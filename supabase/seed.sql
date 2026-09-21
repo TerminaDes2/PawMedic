@@ -1,0 +1,3 @@
+-- Safe development seed: no credentials and no auth.users rows.
+-- Tenant and profile fixtures must be inserted by an authenticated test
+-- harness after creating users through Supabase Auth.
