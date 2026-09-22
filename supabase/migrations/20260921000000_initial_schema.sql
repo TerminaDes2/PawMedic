@@ -1,0 +1,3 @@
+-- Retained for repository history. The canonical schema starts at
+-- 20260921000001_profiles.sql and is intentionally split into ordered,
+-- independently reviewable migrations.
