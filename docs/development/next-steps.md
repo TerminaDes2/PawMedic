@@ -101,7 +101,7 @@ El incremento se considerará listo cuando:
 
 ## Dependencias de implementación
 
-1. Supabase Auth real debe estar disponible antes de validar el routing final.
+1. Supabase Auth real debe estar disponible antes de validar el routing final.s}
 2. El modelo de perfiles, roles y tenants debe estabilizarse antes de cerrar
    las políticas RLS.
 3. Las políticas RLS deben estar probadas antes de exponer operaciones

@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="platform-admin-desktop-0.1.0">
+    <output-path>$PROJECT_DIR$/shared/features/platform-admin/build/libs</output-path>
+    <root id="archive" name="platform-admin-desktop-0.1.0.jar" />
+  </artifact>
+</component>

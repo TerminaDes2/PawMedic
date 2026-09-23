@@ -1,10 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/build-logic" name="pawmedic-build-logic">
+                <projects>
+                  <project path="$PROJECT_DIR$/build-logic" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
         <option name="testRunner" value="CHOOSE_PER_TEST" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="gradleJvm" value="#GRADLE_LOCAL_JAVA_HOME" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/apps" />
+            <option value="$PROJECT_DIR$/apps/desktop-admin" />
+            <option value="$PROJECT_DIR$/apps/desktop-veterinary" />
+            <option value="$PROJECT_DIR$/apps/mobile-android" />
+            <option value="$PROJECT_DIR$/build-logic" />
+            <option value="$PROJECT_DIR$/shared" />
+            <option value="$PROJECT_DIR$/shared/core" />
+            <option value="$PROJECT_DIR$/shared/core/auth" />
+            <option value="$PROJECT_DIR$/shared/core/common" />
+            <option value="$PROJECT_DIR$/shared/core/design-system" />
+            <option value="$PROJECT_DIR$/shared/core/model" />
+            <option value="$PROJECT_DIR$/shared/core/network" />
+            <option value="$PROJECT_DIR$/shared/core/storage" />
+            <option value="$PROJECT_DIR$/shared/core/testing" />
+            <option value="$PROJECT_DIR$/shared/features" />
+            <option value="$PROJECT_DIR$/shared/features/appointments" />
+            <option value="$PROJECT_DIR$/shared/features/auth" />
+            <option value="$PROJECT_DIR$/shared/features/businesses" />
+            <option value="$PROJECT_DIR$/shared/features/medical-records" />
+            <option value="$PROJECT_DIR$/shared/features/pets" />
+            <option value="$PROJECT_DIR$/shared/features/platform-admin" />
+            <option value="$PROJECT_DIR$/shared/features/products" />
+            <option value="$PROJECT_DIR$/shared/features/reports" />
+            <option value="$PROJECT_DIR$/shared/features/services" />
+          </set>
+        </option>
       </GradleProjectSettings>
     </option>
   </component>

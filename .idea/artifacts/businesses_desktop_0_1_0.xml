@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="businesses-desktop-0.1.0">
+    <output-path>$PROJECT_DIR$/shared/features/businesses/build/libs</output-path>
+    <root id="archive" name="businesses-desktop-0.1.0.jar" />
+  </artifact>
+</component>
