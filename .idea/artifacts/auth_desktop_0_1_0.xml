@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="auth-desktop-0.1.0">
+    <output-path>$PROJECT_DIR$/shared/features/auth/build/libs</output-path>
+    <root id="archive" name="auth-desktop-0.1.0.jar" />
+  </artifact>
+</component>
