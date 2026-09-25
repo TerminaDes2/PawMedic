@@ -1,4 +1,5 @@
 # PawMedic
+# PawMedic
 
 PawMedic is a Kotlin Multiplatform veterinary-care platform. Pet owners use
 the Android client, veterinary businesses use the veterinary desktop client,
