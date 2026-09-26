@@ -1,3 +1,5 @@
+package com.pawsmedic.core.network
+
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.postgrest.Postgrest
@@ -9,4 +11,3 @@ val supabase = createSupabaseClient(
     install(Auth)
     install(Postgrest)
 }
-
