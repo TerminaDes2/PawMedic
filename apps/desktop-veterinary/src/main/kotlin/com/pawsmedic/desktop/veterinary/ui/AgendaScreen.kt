@@ -1,7 +1,5 @@
 package com.pawsmedic.desktop.veterinary.ui
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.ui.window.singleWindowApplication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -101,7 +99,7 @@ fun AgendaScreen(
                             modifier = Modifier
                                 .size(22.dp)
                                 .clip(CircleShape)
-                                .background(DarkSlate),
+                                .background(EmeraldGreen),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -184,7 +182,7 @@ fun AgendaScreen(
                                                 .weight(1f)
                                                 .height(34.dp)
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .background(DarkSlate)
+                                                .background(EmeraldGreen)
                                                 .clickable { requests.remove(item) },
                                             contentAlignment = Alignment.Center
                                         ) {
@@ -241,7 +239,7 @@ fun AgendaScreen(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(4.dp))
-                                        .background(if (isSel) Color.White else Color.Transparent)
+                                        .background(if (isSel) SelectedBg else Color.Transparent)
                                         .clickable { selectedViewMode = mode }
                                         .padding(horizontal = 12.dp, vertical = 4.dp)
                                 ) {
@@ -249,7 +247,7 @@ fun AgendaScreen(
                                         text = mode,
                                         fontSize = 12.sp,
                                         fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                        color = TextPrimary
+                                        color = if (isSel) SelectedText else TextPrimary
                                     )
                                 }
                             }
@@ -298,7 +296,7 @@ fun AgendaScreen(
                                             .background(if (slot.isSelected) Color.White else OffWhiteBg)
                                             .border(
                                                 width = if (slot.isSelected) 2.dp else 1.dp,
-                                                color = if (slot.isSelected) DarkSlate else BorderLight,
+                                                color = if (slot.isSelected) EmeraldGreen else BorderLight,
                                                 shape = RoundedCornerShape(8.dp)
                                             )
                                             .padding(horizontal = 16.dp),
@@ -313,7 +311,7 @@ fun AgendaScreen(
                                                     .width(4.dp)
                                                     .height(24.dp)
                                                     .clip(RoundedCornerShape(2.dp))
-                                                    .background(DarkSlate)
+                                                    .background(EmeraldGreen)
                                             )
                                             Column {
                                                 Text(
@@ -380,7 +378,7 @@ fun AgendaScreen(
                                 Icon(
                                     imageVector = Icons.Default.Pets,
                                     contentDescription = null,
-                                    tint = DarkSlate,
+                                    tint = SelectedText,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -439,7 +437,7 @@ fun AgendaScreen(
                                 .fillMaxWidth()
                                 .height(42.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(DarkSlate)
+                                .background(EmeraldGreen)
                                 .clickable { },
                             contentAlignment = Alignment.Center
                         ) {
@@ -469,14 +467,4 @@ fun AgendaScreen(
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun AgendaScreenPreview() {
-    AgendaScreen(onNavigate = {})
-}
-
-fun main() = singleWindowApplication(title = "Preview - Agenda y Citas Médicas") {
-    AgendaScreen(onNavigate = {})
 }

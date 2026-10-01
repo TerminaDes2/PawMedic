@@ -96,8 +96,8 @@ fun ExpedientesScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isSel) DarkSlate else OffWhiteBg)
-                                    .border(1.dp, if (isSel) DarkSlate else BorderLight, RoundedCornerShape(6.dp))
+                                    .background(if (isSel) EmeraldGreen else OffWhiteBg)
+                                    .border(1.dp, if (isSel) EmeraldGreen else BorderLight, RoundedCornerShape(6.dp))
                                     .clickable { selectedCategory = cat }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
@@ -132,7 +132,7 @@ fun ExpedientesScreen(
                                     .background(if (isSelected) SelectedBg else Color.White)
                                     .border(
                                         width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) DarkSlate else BorderLight,
+                                        color = if (isSelected) EmeraldGreen else BorderLight,
                                         shape = RoundedCornerShape(10.dp)
                                     )
                                     .clickable { selectedPatient = p }
@@ -146,14 +146,14 @@ fun ExpedientesScreen(
                                         modifier = Modifier
                                             .size(38.dp)
                                             .clip(CircleShape)
-                                            .background(OffWhiteBg)
+                                            .background(SelectedBg)
                                             .border(1.dp, BorderLight, CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = if (p.species == "Canino") Icons.Default.Pets else Icons.Default.CatchingPokemon,
                                             contentDescription = null,
-                                            tint = DarkSlate,
+                                            tint = SelectedText,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -173,7 +173,7 @@ fun ExpedientesScreen(
                                                 text = p.species,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = TextMuted
+                                                color = SelectedText
                                             )
                                         }
                                         Text(
@@ -219,7 +219,7 @@ fun ExpedientesScreen(
                                 modifier = Modifier
                                     .size(56.dp)
                                     .clip(CircleShape)
-                                    .background(OffWhiteBg)
+                                    .background(SelectedBg)
                                     .border(1.dp, BorderLight, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -227,7 +227,7 @@ fun ExpedientesScreen(
                                     text = selectedPatient.name.take(2).uppercase(),
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
+                                    color = SelectedText
                                 )
                             }
 
@@ -255,7 +255,7 @@ fun ExpedientesScreen(
                             modifier = Modifier
                                 .height(38.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(DarkSlate)
+                                .background(EmeraldGreen)
                                 .clickable { }
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center
@@ -320,7 +320,7 @@ fun ExpedientesScreen(
                                     text = title,
                                     fontSize = 13.sp,
                                     fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSel) TextPrimary else TextSecondary
+                                    color = if (isSel) SelectedText else TextSecondary
                                 )
                             }
                         }

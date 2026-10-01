@@ -21,11 +21,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.singleWindowApplication
 
-val AdminOffWhiteBg = Color(0xFFF8F9FA)
+val AdminOffWhiteBg = Color(0xFFF8FAFC)
 val AdminDarkSlate = Color(0xFF0F172A)
 val AdminBorderLight = Color(0xFFE2E8F0)
-val AdminSelectedBg = Color(0xFFF1F5F9)
+val AdminSelectedBg = Color(0xFFDCFCE7)
+val AdminSelectedText = Color(0xFF15803D)
+val AdminEmeraldGreen = Color(0xFF16A34A)
 val AdminTextPrimary = Color(0xFF0F172A)
 val AdminTextSecondary = Color(0xFF64748B)
 val AdminTextMuted = Color(0xFF94A3B8)
@@ -90,7 +93,7 @@ fun SuperadminDashboardScreen(
                     .border(1.dp, AdminBorderLight)
                     .padding(vertical = 20.dp, horizontal = 16.dp)
             ) {
-                // Header Marca Superadmin
+                // Header Marca Superadmin (Paleta Esmeralda)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -99,7 +102,7 @@ fun SuperadminDashboardScreen(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(AdminDarkSlate),
+                            .background(AdminEmeraldGreen),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -110,19 +113,18 @@ fun SuperadminDashboardScreen(
                         )
                     }
 
-                    Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "PawsMedic",
+                            text = "Paws",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = AdminTextPrimary
                         )
                         Text(
-                            text = "SISTEMA SUPERADMIN",
-                            fontSize = 10.sp,
+                            text = "Admin",
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = AdminTextMuted,
-                            letterSpacing = 0.5.sp
+                            color = Color(0xFF22C55E)
                         )
                     }
                 }
@@ -156,7 +158,7 @@ fun SuperadminDashboardScreen(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = if (isSelected) AdminTextPrimary else AdminTextSecondary,
+                                tint = if (isSelected) AdminSelectedText else AdminTextSecondary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -164,7 +166,7 @@ fun SuperadminDashboardScreen(
                                 text = label,
                                 fontSize = 14.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) AdminTextPrimary else AdminTextSecondary
+                                color = if (isSelected) AdminSelectedText else AdminTextSecondary
                             )
                         }
                     }
@@ -261,14 +263,14 @@ fun SuperadminDashboardScreen(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(AdminDarkSlate),
+                                        .background(AdminSelectedBg),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = "SA",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        color = AdminSelectedText
                                     )
                                 }
 
@@ -366,7 +368,7 @@ fun MonitoreoModule() {
                         Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AdminTextMuted)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(valStr, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                        Text(sub, fontSize = 11.sp, color = AdminTextSecondary)
+                        Text(sub, fontSize = 11.sp, color = AdminSelectedText)
                     }
                 }
             }
@@ -420,7 +422,7 @@ fun MonitoreoModule() {
                                             modifier = Modifier
                                                 .size(8.dp)
                                                 .clip(CircleShape)
-                                                .background(Color(0xFF16A34A))
+                                                .background(AdminEmeraldGreen)
                                         )
                                         Text(sName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
                                     }
@@ -475,10 +477,10 @@ fun MonitoreoModule() {
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(4.dp))
-                                            .background(Color(0xFFDCFCE7))
+                                            .background(AdminSelectedBg)
                                             .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
-                                        Text("En Línea", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
+                                        Text("En Línea", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AdminSelectedText)
                                     }
                                 }
                             }
@@ -557,7 +559,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                         .weight(1f)
                                         .height(32.dp)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(AdminDarkSlate)
+                                        .background(AdminEmeraldGreen)
                                         .clickable {
                                             val idx = requests.indexOf(req)
                                             if (idx != -1) requests[idx] = req.copy(status = "Aprobado")
@@ -588,14 +590,14 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                         .fillMaxWidth()
                                         .height(32.dp)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(if (req.status == "Aprobado") Color(0xFFDCFCE7) else Color(0xFFFEE2E2)),
+                                        .background(if (req.status == "Aprobado") AdminSelectedBg else Color(0xFFFEE2E2)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = req.status,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (req.status == "Aprobado") Color(0xFF166534) else Color(0xFF991B1B)
+                                        color = if (req.status == "Aprobado") AdminSelectedText else Color(0xFF991B1B)
                                     )
                                 }
                             }
@@ -688,5 +690,9 @@ fun AuditoriaModule(logs: List<AuditLog>) {
 @Preview
 @Composable
 fun SuperadminDashboardScreenPreview() {
+    SuperadminDashboardScreen()
+}
+
+fun main() = singleWindowApplication(title = "Preview - Superadmin Dashboard") {
     SuperadminDashboardScreen()
 }

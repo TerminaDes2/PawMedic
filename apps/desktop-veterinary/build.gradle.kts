@@ -5,6 +5,10 @@ plugins {
     application
 }
 
+kotlin {
+    jvmToolchain(22)
+}
+
 dependencies {
     implementation(project(":shared:features:auth"))
     implementation(project(":apps:desktop-admin"))

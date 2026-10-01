@@ -88,7 +88,7 @@ fun CatalogScreen(
                         modifier = Modifier
                             .height(40.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(DarkSlate)
+                            .background(EmeraldGreen)
                             .clickable { }
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.Center
@@ -115,8 +115,8 @@ fun CatalogScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSel) DarkSlate else OffWhiteBg)
-                                .border(1.dp, if (isSel) DarkSlate else BorderLight, RoundedCornerShape(6.dp))
+                                .background(if (isSel) EmeraldGreen else OffWhiteBg)
+                                .border(1.dp, if (isSel) EmeraldGreen else BorderLight, RoundedCornerShape(6.dp))
                                 .clickable { selectedCategory = cat }
                                 .padding(horizontal = 14.dp, vertical = 6.dp)
                         ) {
@@ -173,7 +173,7 @@ fun CatalogScreen(
                             Text(item.sku, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextMuted, modifier = Modifier.weight(0.15f))
                             Text(item.name, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(0.35f))
                             Text(item.category, fontSize = 12.sp, color = TextSecondary, modifier = Modifier.weight(0.15f))
-                            Text(item.price, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(0.15f))
+                            Text(item.price, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = EmeraldGreen, modifier = Modifier.weight(0.15f))
                             Text(item.duration, fontSize = 12.sp, color = TextMuted, modifier = Modifier.weight(0.10f))
                             Box(
                                 modifier = Modifier
