@@ -9,6 +9,8 @@ dependencies {
     implementation(project(":shared:features:auth"))
     implementation(project(":shared:features:platform-admin"))
     implementation(compose.desktop.currentOs)
+    implementation(compose.material3)
+    implementation(compose.materialIconsExtended)
 }
 
 application { mainClass.set("com.pawsmedic.desktop.admin.MainKt") }
