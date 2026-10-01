@@ -12,3 +12,6 @@ Edge Function -> Auth / JWT -> PostgreSQL / RLS -> authorized response**.
 The canonical modules are listed in `settings.gradle.kts`; the original
 `core`, `features`, and legacy app folders remain on disk as historical
 scaffold material and are not included in the build.
+
+For the responsibility and non-responsibility of every canonical directory,
+see [project structure](project-structure.md).
