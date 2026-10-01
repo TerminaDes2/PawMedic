@@ -1,78 +1,71 @@
 # 📋 Roadmap de Desarrollo de Base de Datos y Dominio - PawMedic
 
-Este documento detalla los avances, arquitectura de datos, archivos creados/modificados y la función de cada componente implementado en las distintas fases del proyecto.
+Este documento detalla los avances, la arquitectura de datos, una guía para la incorporación del equipo y el resumen de lo implementado en cada fase del proyecto PawMedic.
+
+---
+
+## 👥 Guía para Compañeros de Equipo: ¿Cómo implementar / configurar Supabase en tu entorno local?
+
+Si acabas de hacer `git pull` de los últimos cambios del repositorio, la capa de red y los modelos ya están listos en el código. Para que tu aplicación (Android o Desktop) pueda comunicarse con Supabase sin errores, debes seguir estos pasos:
+
+### 1. Configurar el archivo de entorno (`.env`)
+1. En la raíz del proyecto, busca el archivo `.env.example`.
+2. Duplícalo y renómbralo exactamente como **`.env`** (este archivo está ignorado en Git por seguridad, por lo que nunca se subirá al repositorio).
+3. Abre el archivo `.env` y añade las credenciales públicas de Supabase:
+   ```env
+   SUPABASE_URL=https://tu-proyecto.supabase.co
+   SUPABASE_ANON_KEY=tu-anon-key-publica
+   ```
+   *(Si estás utilizando Supabase de forma local con la CLI, ejecuta `supabase status` en tu terminal para obtener la URL y la Anon Key).*
+
+### 2. Sincronizar Gradle
+* En Android Studio, haz clic en **Sync Project with Gradle Files** (o ejecuta `./gradlew clean build`) para que Android inyecte automáticamente estas variables mediante `BuildConfig` y configure las dependencias de KMP y Postgrest.
 
 ---
 
 ## 🏛️ Visión General de la Arquitectura
 
-PawMedic utiliza una arquitectura **Kotlin Multiplatform (KMP)** organizada por capas de diseño limpio (Clean Architecture) e inyección de dependencias con Koin:
+PawMedic utiliza una arquitectura **Kotlin Multiplatform (KMP)** organizada por capas (Clean Architecture) e inyección de dependencias:
 
-1. **Backend & Base de Datos:** Supabase (PostgreSQL) con autenticación basada en JWT, Row Level Security (RLS) y UUIDs como identificadores universales.
-2. **Capa de Red (`shared/core/network`):** Utiliza el SDK de `supabase-kt` (Postgrest y GoTrue/Auth). Las credenciales se inyectan mediante el entorno (`.env` -> `BuildConfig` / `System.getenv`).
-3. **Capa de Modelos (`shared/core/model`):** Contiene los Data Classes anotados con `@Serializable` y `@SerialName` que mapean automáticamente las tablas de PostgreSQL en objetos Kotlin.
-4. **Capa de Datos y Características (`shared/features/*` y `shared/core/data`):** Contiene las fuentes de datos (DataSources) y repositorios que realizan consultas a Supabase con Postgrest respetando RLS.
+1. **Backend & Base de Datos:** Supabase (PostgreSQL) con autenticación JWT, Row Level Security (RLS) y UUIDs.
+2. **Capa de Red (`shared/core/network`):** Utiliza `supabase-kt` (Postgrest y Auth). Las credenciales se leen del entorno (`.env`).
+3. **Capa de Modelos (`shared/core/model`):** Data Classes con `@Serializable` y `@SerialName` que mapean las tablas PostgreSQL.
+4. **Capa de Datos (`shared/features/*` y `core/data`):** DataSources y Repositorios que ejecutan consultas Postgrest y funciones RPC respetando RLS.
 
 ---
 
 ## 🟢 Fase 1: Identidad, Autenticación y Multi-Tenancy (Completada)
 
-### 📌 Objetivos Alcanzados:
-* Eliminación del esquema legacy de usuarios con IDs enteros autoincrementables.
-* Integración con `auth.users` de Supabase mediante una tabla `profiles` atada 1:1 por UUID.
-* Creación del modelo *Multi-Tenant* mediante las tablas `tenants` (sucursales veterinarias) y `business_applications` (solicitudes de registro).
-* Implementación de políticas RLS para aislar perfiles y lectura de sucursales.
-
-### 📁 Archivos Modificados / Creados en Fase 1:
-
-| Archivo / Ruta | Función Principal |
-| :--- | :--- |
-| `gradle/libs.versions.toml` | Declara las dependencias oficiales de `supabase-gotrue` y `supabase-postgrest`. |
-| `shared/core/network/SupabaseClient.kt` | Función factoría `provideSupabaseClient` que inicializa el SDK de Supabase de manera segura. |
-| `apps/mobile-android/build.gradle.kts` | Lee el archivo `.env` en tiempo de compilación para inyectar `SUPABASE_URL` y `SUPABASE_ANON_KEY` en `BuildConfig`. |
-| `shared/core/model/.../UserProfile.kt` | Modelo serializable para la tabla `profiles` (`id`, `role`, `nombre`, `apellidos`, `num_tel`). |
-| `shared/core/model/.../Tenant.kt` | Modelo serializable para la tabla `tenants` (`id`, `owner_id`, `nombre`, `domicilio`, `municipio`, etc.). |
-| `shared/core/model/.../BusinessApplication.kt` | Modelo para las solicitudes de veterinarias (`applicant_id`, `nombre_negocio`, `estado`). |
-| `core/.../AccountModels.kt` | Sincronización de los modelos centrales del core con `@SerialName`. |
-| `core/.../SupabaseRepository.kt` | Implementación de `SupabaseAuthRepository` (login con Supabase Auth) y `SupabaseProfileRepository` (obtener perfil por UUID). |
+### 📌 Qué se realizó:
+* **Refactor de Usuarios (SQL):** Se unificaron las antiguas tablas `Cliente` y `Veterinario` en una única tabla `profiles` vinculada 1:1 con `auth.users` mediante UUIDs y un ENUM de roles (`USER`, `VETERINARY_BUSINESS`, `SUPERADMIN`). Se añadió un trigger automático (`handle_new_user`) para crear el perfil al registrarse.
+* **Multi-Tenancy (SQL):** Creación de las tablas `tenants` (sucursales veterinarias) y `business_applications` (solicitudes de registro).
+* **RLS Base (SQL):** Políticas de Row Level Security para asegurar que cada usuario solo lea y actualice su propio perfil.
+* **Integración Kotlin:** Creación del modelo `UserProfile` y el repositorio `SupabaseProfileRepository` para consultar perfiles de forma segura con Postgrest.
 
 ---
 
 ## 🟢 Fase 2: Entidades Dependientes y RLS por Propietario (Completada)
 
-### 📌 Objetivos Alcanzados (Issues #42, #43, #50, #51):
-* Migración de la tabla `pets` para usar UUID `owner_id` enlazado al perfil del cliente.
-* Creación de las tablas `services` (catálogo de servicios), `business_schedules` (horarios de atención) y `availability_blocks` (bloqueos de disponibilidad) asociadas al `tenant_id`.
-* Configuración de Row Level Security (RLS) que restringe el acceso a mascotas solo al cliente dueño y permite lectura pública de servicios/horarios con escritura restringida al dueño del tenant.
-* Creación de DataSources e integración de Postgrest en Kotlin para mascotas y servicios.
-
-### 📁 Archivos Modificados / Creados en Fase 2:
-
-| Archivo / Ruta | Función Principal |
-| :--- | :--- |
-| `shared/core/model/.../PetModel.kt` | Mapeo de la tabla `pets` (`id`, `owner_id`, `nombre`, `especie`, `raza`, `edad`, `alergias`, `sexo`, `peso`). |
-| `shared/core/model/.../ServiceModel.kt` | Mapeo de la tabla `services` (`id`, `tenant_id`, `nombre`, `descripcion`, `precio_centavos`, `duracion_minutos`). |
-| `shared/core/model/.../BusinessScheduleModel.kt` | Mapeo de la tabla `business_schedules` (`id`, `tenant_id`, `dia_semana`, `hora_apertura`, `hora_cierre`). |
-| `shared/core/model/.../AvailabilityBlockModel.kt` | Mapeo de la tabla `availability_blocks` (`id`, `tenant_id`, `motivo`, `fecha_inicio`, `fecha_fin`). |
-| `shared/features/pets/build.gradle.kts` | Configuración del módulo de mascotas para incluir Postgrest y `:shared:core:model`. |
-| `shared/features/services/build.gradle.kts` | Configuración del módulo de servicios para incluir Postgrest y `:shared:core:model`. |
-| `shared/features/pets/.../SupabasePetDataSource.kt` | Consultas Postgrest para listar mascotas del usuario autenticado e insertar mascotas. |
-| `shared/features/services/.../SupabaseServiceDataSource.kt` | Consultas Postgrest para listar servicios, horarios, bloqueos de disponibilidad e insertar servicios. |
+### 📌 Qué se realizó:
+* **Mascotas (SQL - Issue #42 & #43):** Creación de la tabla `pets` migrando la llave foránea a UUID (`owner_id` -> `profiles.id`). Se aplicaron políticas RLS estrictas (SELECT, INSERT, UPDATE, DELETE) para aislar las mascotas por dueño.
+* **Servicios y Horarios (SQL - Issue #50 & #51):** Creación de las tablas `services` (servicios), `business_schedules` (horarios de atención) y `availability_blocks` (bloqueos de agenda) vinculadas al `tenant_id`.
+* **RLS Servicios (SQL):** Lectura pública para cualquier usuario autenticado y escritura restringida exclusivamente al dueño del negocio (`tenant_id -> owner_id`).
+* **Integración Kotlin:** Creación de los modelos `@Serializable` (`PetModel`, `ServiceModel`, `BusinessScheduleModel`, `AvailabilityBlockModel`) y las fuentes de datos remotas (`SupabasePetDataSource` y `SupabaseServiceDataSource`).
 
 ---
 
-## 🟡 Fase 3: Transacciones, Citas y Concurrencia (Siguiente Paso)
+## 🟢 Fase 3: Transacciones, Citas y Concurrencia (Completada)
 
-### 🎯 Próximos Objetivos:
-1. **Tabla de Citas (`appointments` / `Cita`):** Rediseño con UUIDs vinculando `owner_id`, `pet_id`, `tenant_id` y `service_id`.
-2. **Reserva Atómica mediante Función RPC (SQL):** Creación de una función PL/pgSQL en PostgreSQL que valide en una sola transacción sin bloqueos/conflictos de doble reserva.
-3. **RLS de Citas:** Reglas para que el cliente solo vea sus citas y la veterinaria vea únicamente las citas programadas en su tenant.
-4. **Consumo de RPC en Kotlin:** Integración en `shared/features/appointments` llamando a `supabase.postgrest.rpc(...)`.
+### 📌 Qué se realizó:
+* **Tabla Citas (SQL):** Creación de la tabla `appointments` vinculando usuario (`owner_id`), mascota (`pet_id`), sucursal (`tenant_id`) y servicio (`service_id`).
+* **Protección contra Doble Reserva (SQL):** Implementación de un índice único condicional (`unique_active_appointment`) para evitar duplicar citas activas en la misma sucursal, fecha y hora.
+* **Función RPC Atómica (SQL):** Creación de la función PL/pgSQL `book_appointment(...)`, la cual valida de forma transaccional la propiedad de la mascota, los conflictos de horario y los bloqueos de disponibilidad antes de insertar la cita.
+* **Integración Kotlin:** Implementación de `SupabaseAppointmentDataSource` para invocar la función RPC atómica y consultar citas bajo RLS.
 
 ---
 
-## 🟡 Fase 4: Verificación, Fixtures y Pruebas (Fase Final)
+## 🟢 Fase 4: Verificación y Pruebas (Completada)
 
-### 🎯 Próximos Objetivos:
-1. **Script de Fixtures (SQL):** Datos de prueba con perfiles, mascotas y tenants de prueba.
-2. **Pruebas de Validación RLS:** Verificación del aislamiento de datos desde el editor SQL y pruebas unitarias/de integración en Kotlin.
+### 📌 Qué se realizó:
+* **Script de Fixtures (SQL):** Creación de plantillas de pruebas para verificar perfiles, inserción de tenants, mascotas, servicios y llamadas al RPC `book_appointment` directamente en el editor SQL de Supabase.
+* **Validación Multiplataforma:** Pruebas de compilación exitosas en Gradle para los targets de Android y Desktop.
