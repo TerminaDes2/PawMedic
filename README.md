@@ -101,7 +101,8 @@ and audited business approval.
 
 ## Documentation
 
-Start with [architecture overview](docs/architecture/architecture-overview.md),
+Start with [project structure](docs/architecture/project-structure.md),
+[architecture overview](docs/architecture/architecture-overview.md),
 [local setup](docs/development/local-setup.md), and
 [security/tenancy](docs/security/multi-tenancy.md). The complete documentation
 index is the `docs/` tree. Existing product notes and assumptions remain in
