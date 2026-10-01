@@ -19,16 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-val OffWhiteBg = Color(0xFFF8FAFC)
-val DarkSlate = Color(0xFF0F172A)
-val BorderLight = Color(0xFFE2E8F0)
-val SelectedBg = Color(0xFFDCFCE7)
-val SelectedText = Color(0xFF15803D)
-val EmeraldGreen = Color(0xFF16A34A)
-val TextPrimary = Color(0xFF0F172A)
-val TextSecondary = Color(0xFF64748B)
-val TextMuted = Color(0xFF94A3B8)
+import com.pawsmedic.desktop.veterinary.ui.theme.*
 
 @Composable
 fun VetAppLayout(
@@ -56,11 +47,11 @@ fun VetAppLayout(
                 modifier = Modifier
                     .width(260.dp)
                     .fillMaxHeight()
-                    .background(Color.White)
+                    .background(CardWhite)
                     .border(1.dp, BorderLight)
                     .padding(vertical = 20.dp, horizontal = 16.dp)
             ) {
-                // Header Marca PawsMedic (Estilo idéntico al Login)
+                // Header Marca PawsMedic
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -69,7 +60,7 @@ fun VetAppLayout(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(EmeraldGreen),
+                            .background(ClinicalEmerald),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -91,14 +82,14 @@ fun VetAppLayout(
                             text = "Medic",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF22C55E)
+                            color = ClinicalEmerald
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // ÚNICOS 3 ÍTEMS DE NAVEGACIÓN (Paleta Esmeralda)
+                // ÚNICOS 3 ÍTEMS DE NAVEGACIÓN
                 val menuItems = listOf(
                     Triple("Agenda", "Agenda y Citas", Icons.Default.CalendarMonth),
                     Triple("Expedientes", "Expedientes Clínicos", Icons.Default.FolderShared),
@@ -117,7 +108,7 @@ fun VetAppLayout(
                                 .fillMaxWidth()
                                 .height(44.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) SelectedBg else Color.Transparent)
+                                .background(if (isSelected) EmeraldLightBg else Color.Transparent)
                                 .clickable { onNavigate(id) }
                                 .padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -125,7 +116,7 @@ fun VetAppLayout(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = if (isSelected) SelectedText else TextSecondary,
+                                tint = if (isSelected) ClinicalEmerald else TextSecondary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -133,7 +124,7 @@ fun VetAppLayout(
                                 text = label,
                                 fontSize = 14.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) SelectedText else TextSecondary
+                                color = if (isSelected) ClinicalEmerald else TextSecondary
                             )
                         }
                     }
@@ -147,7 +138,7 @@ fun VetAppLayout(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(80.dp)
-                        .background(Color.White)
+                        .background(CardWhite)
                         .border(1.dp, BorderLight)
                         .padding(horizontal = 24.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -164,7 +155,7 @@ fun VetAppLayout(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Buscador Alineado
+                        // Buscador
                         AlignedSearchBox(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
@@ -185,14 +176,14 @@ fun VetAppLayout(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(SelectedBg),
+                                        .background(EmeraldLightBg),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = "DV",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = SelectedText
+                                        color = ClinicalEmerald
                                     )
                                 }
 
@@ -267,7 +258,7 @@ fun VetAppLayout(
                     modifier = Modifier
                         .width(480.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
+                        .background(CardWhite)
                         .border(1.dp, BorderLight, RoundedCornerShape(16.dp))
                         .padding(28.dp)
                 ) {
@@ -279,13 +270,13 @@ fun VetAppLayout(
                             modifier = Modifier
                                 .size(52.dp)
                                 .clip(CircleShape)
-                                .background(SelectedBg),
+                                .background(EmeraldLightBg),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AdminPanelSettings,
                                 contentDescription = null,
-                                tint = EmeraldGreen,
+                                tint = ClinicalEmerald,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -357,7 +348,7 @@ fun VetAppLayout(
                                     .weight(1f)
                                     .height(44.dp),
                                 shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen)
+                                colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
                             ) {
                                 Text("Iniciar Sesión", color = Color.White)
                             }

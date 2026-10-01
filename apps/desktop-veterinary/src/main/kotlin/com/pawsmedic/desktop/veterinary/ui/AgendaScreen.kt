@@ -1,5 +1,7 @@
 package com.pawsmedic.desktop.veterinary.ui
 
+import com.pawsmedic.desktop.veterinary.ui.theme.*
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable

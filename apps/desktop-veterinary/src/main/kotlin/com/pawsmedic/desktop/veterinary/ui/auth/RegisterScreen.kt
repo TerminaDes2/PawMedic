@@ -2,6 +2,7 @@ package com.pawsmedic.desktop.veterinary.ui.auth
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.veterinary.ui.theme.*
 
 @Composable
 fun RegisterScreen(
@@ -41,14 +43,10 @@ fun RegisterScreen(
 
     var acceptTerms by remember { mutableStateOf(false) }
 
-    val darkSlate = Color(0xFF0F172A)
-    val textPrimary = Color(0xFF0F172A)
-    val textMuted = Color(0xFF94A3B8)
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
+            .background(OffWhiteBg)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -57,7 +55,7 @@ fun RegisterScreen(
                 .width(880.dp)
                 .wrapContentHeight(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = CardWhite),
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Column(
@@ -76,13 +74,13 @@ fun RegisterScreen(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF1F5F9)),
+                            .background(EmeraldLightBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.AppRegistration,
                             contentDescription = null,
-                            tint = darkSlate,
+                            tint = ClinicalEmerald,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -92,17 +90,17 @@ fun RegisterScreen(
                             text = "Registro de Clínica Veterinaria",
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = textPrimary
+                            color = TextPrimary
                         )
                         Text(
                             text = "Solicita el alta de tu establecimiento para comenzar a utilizar PawsMedic",
                             fontSize = 13.sp,
-                            color = Color(0xFF64748B)
+                            color = TextSecondary
                         )
                     }
                 }
 
-                HorizontalDivider(color = Color(0xFFE2E8F0))
+                HorizontalDivider(color = BorderLight)
 
                 // FORMULARIO DE 2 COLUMNAS
                 Row(
@@ -117,45 +115,61 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = clinicName,
                             onValueChange = { clinicName = it },
-                            label = { Text("Nombre de la Clínica") },
-                            placeholder = { Text("ej. Veterinaria San Miguel") },
-                            leadingIcon = { Icon(Icons.Default.Store, contentDescription = null, tint = textMuted) },
+                            label = { Text("Nombre de la Clínica", color = TextSecondary) },
+                            placeholder = { Text("ej. Veterinaria San Miguel", color = TextMuted) },
+                            leadingIcon = { Icon(Icons.Default.Store, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ClinicalEmerald,
+                                unfocusedBorderColor = BorderLight
+                            )
                         )
 
                         OutlinedTextField(
                             value = rucTaxId,
                             onValueChange = { rucTaxId = it },
-                            label = { Text("RUC / ID Fiscal") },
-                            placeholder = { Text("ej. 20123456789") },
-                            leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = textMuted) },
+                            label = { Text("RUC / ID Fiscal", color = TextSecondary) },
+                            placeholder = { Text("ej. 20123456789", color = TextMuted) },
+                            leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ClinicalEmerald,
+                                unfocusedBorderColor = BorderLight
+                            )
                         )
 
                         OutlinedTextField(
                             value = adminEmail,
                             onValueChange = { adminEmail = it },
-                            label = { Text("Correo Electrónico Administrador") },
-                            placeholder = { Text("admin@veterinaria.com") },
-                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = textMuted) },
+                            label = { Text("Correo Electrónico Administrador", color = TextSecondary) },
+                            placeholder = { Text("admin@veterinaria.com", color = TextMuted) },
+                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ClinicalEmerald,
+                                unfocusedBorderColor = BorderLight
+                            )
                         )
 
                         OutlinedTextField(
                             value = contactPhone,
                             onValueChange = { contactPhone = it },
-                            label = { Text("Teléfono de Contacto") },
-                            placeholder = { Text("+52 55 1234 5678") },
-                            leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = textMuted) },
+                            label = { Text("Teléfono de Contacto", color = TextSecondary) },
+                            placeholder = { Text("+52 55 1234 5678", color = TextMuted) },
+                            leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ClinicalEmerald,
+                                unfocusedBorderColor = BorderLight
+                            )
                         )
                     }
 
@@ -167,59 +181,75 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = clinicAddress,
                             onValueChange = { clinicAddress = it },
-                            label = { Text("Dirección de la Clínica") },
-                            placeholder = { Text("Av. Principal 123, Ciudad") },
-                            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = textMuted) },
+                            label = { Text("Dirección de la Clínica", color = TextSecondary) },
+                            placeholder = { Text("Av. Principal 123, Ciudad", color = TextMuted) },
+                            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ClinicalEmerald,
+                                unfocusedBorderColor = BorderLight
+                            )
                         )
 
                         OutlinedTextField(
                             value = vetManagerName,
                             onValueChange = { vetManagerName = it },
-                            label = { Text("Nombre del Veterinario Responsable") },
-                            placeholder = { Text("MVZ Dr. Carlos Ramos") },
-                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = textMuted) },
+                            label = { Text("Nombre del Veterinario Responsable", color = TextSecondary) },
+                            placeholder = { Text("MVZ Dr. Carlos Ramos", color = TextMuted) },
+                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ClinicalEmerald,
+                                unfocusedBorderColor = BorderLight
+                            )
                         )
 
                         OutlinedTextField(
                             value = licenseNumber,
                             onValueChange = { licenseNumber = it },
-                            label = { Text("Cédula Profesional / Licencia") },
-                            placeholder = { Text("CÉD-981204") },
-                            leadingIcon = { Icon(Icons.Default.Verified, contentDescription = null, tint = textMuted) },
+                            label = { Text("Cédula Profesional / Licencia", color = TextSecondary) },
+                            placeholder = { Text("CÉD-981204", color = TextMuted) },
+                            leadingIcon = { Icon(Icons.Default.Verified, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ClinicalEmerald,
+                                unfocusedBorderColor = BorderLight
+                            )
                         )
 
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
-                            label = { Text("Contraseña") },
-                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = textMuted) },
+                            label = { Text("Contraseña", color = TextSecondary) },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = TextMuted) },
                             trailingIcon = {
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                     Icon(
                                         imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                         contentDescription = null,
-                                        tint = textMuted
+                                        tint = TextMuted
                                     )
                                 }
                             },
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ClinicalEmerald,
+                                unfocusedBorderColor = BorderLight
+                            )
                         )
                     }
                 }
 
-                HorizontalDivider(color = Color(0xFFE2E8F0))
+                HorizontalDivider(color = BorderLight)
 
                 // PARTE INFERIOR: Checkbox & Botones
                 Row(
@@ -235,13 +265,14 @@ fun RegisterScreen(
                     ) {
                         Checkbox(
                             checked = acceptTerms,
-                            onCheckedChange = { acceptTerms = it }
+                            onCheckedChange = { acceptTerms = it },
+                            colors = CheckboxDefaults.colors(checkedColor = ClinicalEmerald)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Acepto los Términos de Servicio y la Política de Privacidad de PawsMedic.",
                             fontSize = 12.sp,
-                            color = textPrimary
+                            color = TextPrimary
                         )
                     }
 
@@ -254,13 +285,13 @@ fun RegisterScreen(
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.height(44.dp)
                         ) {
-                            Text("Cancelar", fontSize = 14.sp, color = textPrimary)
+                            Text("Cancelar", fontSize = 14.sp, color = TextPrimary)
                         }
 
                         Button(
                             onClick = onNavigateToVetMain,
                             shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = darkSlate),
+                            colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald),
                             modifier = Modifier.height(44.dp)
                         ) {
                             Text(

@@ -26,10 +26,10 @@ import androidx.compose.ui.window.singleWindowApplication
 val AdminOffWhiteBg = Color(0xFFF8FAFC)
 val AdminDarkSlate = Color(0xFF0F172A)
 val AdminBorderLight = Color(0xFFE2E8F0)
-val AdminSelectedBg = Color(0xFFDCFCE7)
-val AdminSelectedText = Color(0xFF15803D)
-val AdminEmeraldGreen = Color(0xFF16A34A)
-val AdminTextPrimary = Color(0xFF0F172A)
+val AdminSelectedBg = Color(0xFFCCFBF1)
+val AdminSelectedText = Color(0xFF0D9488)
+val AdminEmeraldGreen = Color(0xFF0D9488)
+val AdminTextPrimary = Color(0xFF1E293B)
 val AdminTextSecondary = Color(0xFF64748B)
 val AdminTextMuted = Color(0xFF94A3B8)
 
@@ -93,7 +93,7 @@ fun SuperadminDashboardScreen(
                     .border(1.dp, AdminBorderLight)
                     .padding(vertical = 20.dp, horizontal = 16.dp)
             ) {
-                // Header Marca Superadmin (Paleta Esmeralda)
+                // Header Marca Superadmin (Paleta Esmeralda Clínico)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -124,7 +124,7 @@ fun SuperadminDashboardScreen(
                             text = "Admin",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF22C55E)
+                            color = AdminEmeraldGreen
                         )
                     }
                 }

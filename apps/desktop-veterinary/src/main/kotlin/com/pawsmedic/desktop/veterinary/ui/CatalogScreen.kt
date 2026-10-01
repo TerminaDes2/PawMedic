@@ -1,5 +1,7 @@
 package com.pawsmedic.desktop.veterinary.ui
 
+import com.pawsmedic.desktop.veterinary.ui.theme.*
+
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.ui.window.singleWindowApplication
 
