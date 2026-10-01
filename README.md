@@ -1,4 +1,5 @@
 # PawMedic
+# PawMedic
 
 PawMedic is a Kotlin Multiplatform veterinary-care platform. Pet owners use
 the Android client, veterinary businesses use the veterinary desktop client,
@@ -46,18 +47,22 @@ scaffold material and are not included in the build.
 * Supabase CLI for local database and Edge Function work
 * Network access on the first Gradle invocation
 
-## Configuration and secrets
+## Configuration, Secrets, and Supabase Connection
 
-Copy `.env.example` to `.env` for local Supabase tooling. The public
-`SUPABASE_URL` and `SUPABASE_ANON_KEY` may be used by client adapters; they are
-not secrets, but should still be supplied by deployment configuration. Never
-put a service-role key, database password, JWT signing secret, or user
+Copy `.env.example` to `.env` to configure your local Supabase connection. The public
+`SUPABASE_URL` and `SUPABASE_ANON_KEY` are read from the `.env` file and injected into 
+the client apps (Android and Desktop) via their respective build and runtime environments. 
+
+**Important for Team Members**: 
+Because `.env` is ignored in Git (for security reasons), you will not see these credentials 
+when cloning the project. **Every developer must create their own `.env` file** and populate 
+it with the URL and Anon Key of the local or remote Supabase project.
+
+Never put a service-role key, database password, JWT signing secret, or user
 credentials in source control or a client app. `SUPABASE_SERVICE_ROLE_KEY`
 belongs only in Supabase Edge Function secrets.
 
-The current auth adapter is deliberately credential-free and safe to compile.
-When the real adapter is wired, map the environment values into the platform
-configuration rather than committing them.
+The Supabase client is configured in `shared/core/network` and consumed by the `SupabaseAuthRepository` in `core/model/data`. The credentials are injected safely by the platform (e.g. `BuildConfig` in Android) ensuring no secrets are hardcoded in the codebase.
 
 ## Run the project
 
@@ -96,7 +101,8 @@ and audited business approval.
 
 ## Documentation
 
-Start with [architecture overview](docs/architecture/architecture-overview.md),
+Start with [project structure](docs/architecture/project-structure.md),
+[architecture overview](docs/architecture/architecture-overview.md),
 [local setup](docs/development/local-setup.md), and
 [security/tenancy](docs/security/multi-tenancy.md). The complete documentation
 index is the `docs/` tree. Existing product notes and assumptions remain in

@@ -4,54 +4,108 @@ import com.pawsmedic.core.model.AuthCredentials
 import com.pawsmedic.core.model.ProfileRole
 import com.pawsmedic.core.model.UserProfile
 import com.pawsmedic.core.model.UserSession
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.postgrest.postgrest
 
 /**
- * Configuration is intentionally supplied by the host application. This
- * adapter is the boundary for a Supabase Auth/REST client and remains usable
- * in previews and tests without a network or embedded credentials.
+ * Configuración de conexión para el cliente de Supabase.
+ * Los valores son inyectados desde el entorno (ej. BuildConfig en Android o System.getenv en Desktop).
  */
 data class SupabaseConfig(
-    val url: String = "",
-    val anonKey: String = ""
+    val url: String,
+    val anonKey: String
 ) {
     val isConfigured: Boolean
         get() = url.isNotBlank() && anonKey.isNotBlank()
 }
 
+/**
+ * Repositorio de Autenticación que interactúa con Supabase Auth.
+ * Maneja inicio/cierre de sesión y recuperación del token de sesión JWT.
+ */
 class SupabaseAuthRepository(
-    private val config: SupabaseConfig
+    private val supabase: SupabaseClient
 ) : AuthRepository {
-    private var session: UserSession? = null
 
     override suspend fun signIn(credentials: AuthCredentials): Result<UserSession> {
-        if (!config.isConfigured) {
-            return Result.failure(
-                IllegalStateException("Supabase is not configured for this build")
-            )
-        }
         if (credentials.email.isBlank() || credentials.password.isBlank()) {
-            return Result.failure(IllegalArgumentException("Email and password are required"))
+            return Result.failure(IllegalArgumentException("Email y contraseña son obligatorios"))
         }
-        return Result.failure(
-            UnsupportedOperationException(
-                "Wire this port to Supabase Auth; no live credentials are bundled"
+
+        return try {
+            // 1. Iniciar sesión con email y contraseña mediante Supabase Auth
+            supabase.auth.signInWith(Email) {
+                email = credentials.email
+                password = credentials.password
+            }
+
+            // 2. Obtener la sesión activa generada por Supabase
+            val session = supabase.auth.currentSessionOrNull()
+                ?: throw IllegalStateException("No se pudo obtener la sesión tras iniciar sesión")
+
+            // 3. Retornar el objeto de sesión con el token JWT y el UUID del usuario
+            Result.success(
+                UserSession(
+                    userId = session.user?.id ?: "",
+                    accessToken = session.accessToken,
+                    expiresAtEpochSeconds = session.expiresAt.epochSeconds
+                )
             )
-        )
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override suspend fun signOut() {
-        session = null
+        supabase.auth.signOut()
     }
 
-    override suspend fun currentSession(): UserSession? = session
+    override suspend fun currentSession(): UserSession? {
+        val session = supabase.auth.currentSessionOrNull() ?: return null
+        return UserSession(
+            userId = session.user?.id ?: "",
+            accessToken = session.accessToken,
+            expiresAtEpochSeconds = session.expiresAt.epochSeconds
+        )
+    }
 }
 
+/**
+ * Repositorio para consultar y gestionar perfiles de usuario en la tabla 'profiles' de Supabase.
+ * Utiliza Postgrest y opera respetando la seguridad RLS (Row Level Security) basada en el UUID del usuario.
+ */
+class SupabaseProfileRepository(
+    private val supabase: SupabaseClient
+) : ProfileRepository {
+
+    override suspend fun getProfile(userId: String): Result<UserProfile> {
+        return try {
+            // Consultar a la tabla 'profiles' en Supabase pasando el UUID como filtro
+            val profile = supabase.postgrest["profiles"]
+                .select {
+                    filter {
+                        eq("id", userId)
+                    }
+                }
+                .decodeSingle<UserProfile>() // Deserializa automáticamente a la data class Kotlin
+            Result.success(profile)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+/**
+ * Implementación simulada de Autenticación para pruebas unitarias o desarrollo sin red.
+ */
 class InMemoryAuthRepository : AuthRepository {
     private var session: UserSession? = null
 
     override suspend fun signIn(credentials: AuthCredentials): Result<UserSession> {
         if (credentials.email.isBlank() || credentials.password.isBlank()) {
-            return Result.failure(IllegalArgumentException("Email and password are required"))
+            return Result.failure(IllegalArgumentException("Email y contraseña son obligatorios"))
         }
         val next = UserSession(
             userId = credentials.email.lowercase(),
@@ -69,13 +123,16 @@ class InMemoryAuthRepository : AuthRepository {
     override suspend fun currentSession(): UserSession? = session
 }
 
+/**
+ * Implementación simulada de Perfil para pruebas unitarias.
+ */
 class InMemoryProfileRepository : ProfileRepository {
     override suspend fun getProfile(userId: String): Result<UserProfile> =
         Result.success(
             UserProfile(
                 id = userId,
-                email = userId,
-                displayName = userId.substringBefore('@'),
+                nombre = "Test",
+                apellidos = "User",
                 role = ProfileRole.USER
             )
         )
