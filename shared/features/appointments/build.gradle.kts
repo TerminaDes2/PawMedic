@@ -8,7 +8,12 @@ kotlin {
     androidTarget()
     jvm("desktop")
     sourceSets {
-        commonMain.dependencies { implementation(libs.kotlinx.serialization.json) }
+        commonMain.dependencies {
+            implementation(project(":shared:core:model"))
+            implementation(libs.kotlinx.serialization.json)
+            implementation("io.github.jan-tennert.supabase:postgrest-kt:3.0.0")
+            implementation("io.github.jan-tennert.supabase:auth-kt:3.0.0")
+        }
         commonTest.dependencies { implementation(kotlin("test")) }
     }
 }
