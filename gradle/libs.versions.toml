@@ -8,7 +8,7 @@ coroutines-test = "1.9.0"
 serialization = "1.7.3"
 koin = "4.0.2"
 ktor = "3.0.1"
-supabase = "3.0.0"
+supabase = "3.0.3"
 android-compileSdk = "35"
 android-minSdk = "26"
 
