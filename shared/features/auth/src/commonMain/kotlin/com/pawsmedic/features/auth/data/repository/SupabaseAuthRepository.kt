@@ -2,6 +2,7 @@ package com.pawsmedic.features.auth.data.repository
 
 import com.pawsmedic.features.auth.data.datasource.SupabaseAuthDataSource
 import com.pawsmedic.features.auth.domain.model.AuthenticatedSession
+import com.pawsmedic.features.auth.domain.model.RegisterParams
 import com.pawsmedic.features.auth.domain.repository.AuthRepository
 
 class SupabaseAuthRepository(
@@ -12,6 +13,9 @@ class SupabaseAuthRepository(
 
     override suspend fun signIn(email: String, password: String): AuthenticatedSession =
         dataSource.signIn(email, password).toDomain()
+
+    override suspend fun signUp(params: RegisterParams): AuthenticatedSession =
+        dataSource.signUp(params).toDomain()
 
     override suspend fun signOut() = dataSource.signOut()
 }
