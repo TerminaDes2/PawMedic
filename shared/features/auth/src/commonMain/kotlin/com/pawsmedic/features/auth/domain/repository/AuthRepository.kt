@@ -12,5 +12,12 @@ interface AuthRepository {
         requiredRole: PawMedicRole? = null
     ): AuthenticatedSession
 
+    suspend fun signUp(
+        email: String,
+        password: String,
+        role: PawMedicRole,
+        fullName: String? = null
+    ): AuthenticatedSession
+
     suspend fun signOut()
 }

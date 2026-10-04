@@ -27,5 +27,16 @@ class SupabaseAuthRepository(
         return session
     }
 
+    override suspend fun signUp(
+        email: String,
+        password: String,
+        role: PawMedicRole,
+        fullName: String?
+    ): AuthenticatedSession {
+        val sessionDto = dataSource.signUp(email, password, role, fullName)
+        return sessionDto.toDomain()
+    }
+
     override suspend fun signOut() = dataSource.signOut()
+
 }
