@@ -11,6 +11,13 @@ kotlin {
     jvm("desktop")
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":shared:core:model"))
+            implementation(libs.kotlinx.serialization.json)
+            implementation("io.github.jan-tennert.supabase:postgrest-kt:3.0.0")
+            implementation("io.github.jan-tennert.supabase:auth-kt:3.0.0")
+        }
+        commonTest.dependencies { implementation(kotlin("test")) }
+        commonMain.dependencies {
             implementation(project(":shared:core:design-system"))
             implementation(project(":shared:core:model"))
             implementation(project(":shared:features:businesses"))

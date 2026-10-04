@@ -28,6 +28,12 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.coroutines.test)
         }
+        commonMain.dependencies {
+            implementation(project(":shared:core:model"))
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.supabase.postgrest)
+        }
+        commonTest.dependencies { implementation(kotlin("test")) }
     }
 }
 
