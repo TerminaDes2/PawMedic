@@ -23,6 +23,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pawsmedic.features.appointments.data.datasource.InMemoryAppointmentDataSource
+import com.pawsmedic.features.appointments.data.repository.DefaultAppointmentRepository
+import com.pawsmedic.features.appointments.presentation.booking.BookingFlowScreen
+import com.pawsmedic.features.appointments.presentation.booking.BookingViewModel
+import com.pawsmedic.features.appointments.presentation.list.AppointmentsListScreen
+import com.pawsmedic.features.appointments.presentation.list.AppointmentsListViewModel
+import com.pawsmedic.features.businesses.data.datasource.InMemoryBusinessDataSource
+import com.pawsmedic.features.businesses.data.repository.DefaultBusinessRepository
+import com.pawsmedic.features.businesses.presentation.VeterinaryDetailViewModel
+import com.pawsmedic.features.businesses.presentation.VeterinaryListViewModel
+import com.pawsmedic.features.businesses.presentation.detail.VeterinaryDetailScreen
+import com.pawsmedic.features.businesses.presentation.list.VeterinaryListScreen
+import com.pawsmedic.features.medical_records.data.datasource.InMemoryMedicalRecordDataSource
+import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
+import com.pawsmedic.features.medical_records.presentation.MedicalHistoryScreen
+import com.pawsmedic.features.medical_records.presentation.MedicalHistoryViewModel
 import com.pawsmedic.features.pets.domain.repository.PetRepository
 import com.pawsmedic.features.pets.domain.usecase.AddPetUseCase
 import com.pawsmedic.features.pets.domain.usecase.DeletePetUseCase
@@ -44,6 +60,11 @@ sealed interface PetScreenState {
     data class PetDetail(val petId: String) : PetScreenState
     data object AddPet : PetScreenState
     data class EditPet(val petId: String) : PetScreenState
+    data object VeterinaryList : PetScreenState
+    data class VeterinaryDetail(val clinicId: String) : PetScreenState
+    data class BookingFlow(val clinicId: String) : PetScreenState
+    data object AppointmentsList : PetScreenState
+    data object MedicalHistory : PetScreenState
 }
 
 @Composable
@@ -53,13 +74,22 @@ fun PetNavHost(
 ) {
     var currentScreen by remember { mutableStateOf<PetScreenState>(PetScreenState.Dashboard) }
 
+    // Repositories & DataSources
+    val medicalRecordRepository = remember { DefaultMedicalRecordRepository(InMemoryMedicalRecordDataSource()) }
+    val businessRepository = remember { DefaultBusinessRepository(InMemoryBusinessDataSource()) }
+    val appointmentRepository = remember { DefaultAppointmentRepository(InMemoryAppointmentDataSource()) }
+
+    // Pet Use Cases & ViewModels
     val getPetsUseCase = remember { GetPetsUseCase(repository) }
     val getPetByIdUseCase = remember { GetPetByIdUseCase(repository) }
     val addPetUseCase = remember { AddPetUseCase(repository) }
     val updatePetUseCase = remember { UpdatePetUseCase(repository) }
     val deletePetUseCase = remember { DeletePetUseCase(repository) }
 
-    val listViewModel = remember { PetListViewModel(getPetsUseCase) }
+    val petListViewModel = remember { PetListViewModel(getPetsUseCase) }
+    val medicalHistoryViewModel = remember { MedicalHistoryViewModel(medicalRecordRepository) }
+    val veterinaryListViewModel = remember { VeterinaryListViewModel(businessRepository) }
+    val appointmentsListViewModel = remember { AppointmentsListViewModel(appointmentRepository) }
 
     Box(modifier = modifier.fillMaxSize().background(PawMedicColors.BackgroundScreen)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -70,7 +100,7 @@ fun PetNavHost(
                             PetDashboardScreen(
                                 userName = "María",
                                 onNavigateToPetsList = {
-                                    listViewModel.loadPets()
+                                    petListViewModel.loadPets()
                                     currentScreen = PetScreenState.PetList
                                 },
                                 onNavigateToAddPet = { currentScreen = PetScreenState.AddPet },
@@ -82,7 +112,7 @@ fun PetNavHost(
 
                         PetScreenState.PetList -> {
                             PetListScreen(
-                                viewModel = listViewModel,
+                                viewModel = petListViewModel,
                                 onNavigateToAddPet = { currentScreen = PetScreenState.AddPet },
                                 onNavigateToPetDetail = { petId ->
                                     currentScreen = PetScreenState.PetDetail(petId)
@@ -101,7 +131,7 @@ fun PetNavHost(
                                     currentScreen = PetScreenState.EditPet(petId)
                                 },
                                 onDeleteSuccess = {
-                                    listViewModel.loadPets()
+                                    petListViewModel.loadPets()
                                     currentScreen = PetScreenState.PetList
                                 }
                             )
@@ -115,7 +145,7 @@ fun PetNavHost(
                                 viewModel = addViewModel,
                                 onBackClick = { currentScreen = PetScreenState.PetList },
                                 onSaveSuccess = {
-                                    listViewModel.loadPets()
+                                    petListViewModel.loadPets()
                                     currentScreen = PetScreenState.PetList
                                 }
                             )
@@ -134,9 +164,58 @@ fun PetNavHost(
                                 viewModel = editViewModel,
                                 onBackClick = { currentScreen = PetScreenState.PetDetail(screen.petId) },
                                 onSaveSuccess = {
-                                    listViewModel.loadPets()
+                                    petListViewModel.loadPets()
                                     currentScreen = PetScreenState.PetDetail(screen.petId)
                                 }
+                            )
+                        }
+
+                        PetScreenState.VeterinaryList -> {
+                            VeterinaryListScreen(
+                                viewModel = veterinaryListViewModel,
+                                onNavigateToDetail = { clinicId ->
+                                    currentScreen = PetScreenState.VeterinaryDetail(clinicId)
+                                }
+                            )
+                        }
+
+                        is PetScreenState.VeterinaryDetail -> {
+                            val detailVm = remember(screen.clinicId) {
+                                VeterinaryDetailViewModel(businessRepository, screen.clinicId)
+                            }
+                            VeterinaryDetailScreen(
+                                viewModel = detailVm,
+                                onBackClick = { currentScreen = PetScreenState.VeterinaryList },
+                                onStartBooking = { clinicId ->
+                                    currentScreen = PetScreenState.BookingFlow(clinicId)
+                                }
+                            )
+                        }
+
+                        is PetScreenState.BookingFlow -> {
+                            val bookingVm = remember(screen.clinicId) {
+                                BookingViewModel(appointmentRepository)
+                            }
+                            BookingFlowScreen(
+                                viewModel = bookingVm,
+                                onBackClick = { currentScreen = PetScreenState.VeterinaryDetail(screen.clinicId) },
+                                onBookingComplete = {
+                                    appointmentsListViewModel.loadAppointments()
+                                    currentScreen = PetScreenState.AppointmentsList
+                                }
+                            )
+                        }
+
+                        PetScreenState.AppointmentsList -> {
+                            AppointmentsListScreen(
+                                viewModel = appointmentsListViewModel,
+                                onStartBooking = { currentScreen = PetScreenState.VeterinaryList }
+                            )
+                        }
+
+                        PetScreenState.MedicalHistory -> {
+                            MedicalHistoryScreen(
+                                viewModel = medicalHistoryViewModel
                             )
                         }
                     }
@@ -163,21 +242,30 @@ fun PetNavHost(
                     label = "Mascotas",
                     isSelected = currentScreen is PetScreenState.PetList || currentScreen is PetScreenState.PetDetail,
                     onClick = {
-                        listViewModel.loadPets()
+                        petListViewModel.loadPets()
                         currentScreen = PetScreenState.PetList
                     }
                 )
                 BottomNavItem(
                     icon = "📅",
                     label = "Citas",
-                    isSelected = false,
-                    onClick = { }
+                    isSelected = currentScreen is PetScreenState.VeterinaryList ||
+                        currentScreen is PetScreenState.VeterinaryDetail ||
+                        currentScreen is PetScreenState.BookingFlow ||
+                        currentScreen is PetScreenState.AppointmentsList,
+                    onClick = {
+                        veterinaryListViewModel.loadClinics()
+                        currentScreen = PetScreenState.VeterinaryList
+                    }
                 )
                 BottomNavItem(
                     icon = "📄",
                     label = "Historial",
-                    isSelected = false,
-                    onClick = { }
+                    isSelected = currentScreen is PetScreenState.MedicalHistory,
+                    onClick = {
+                        medicalHistoryViewModel.loadHistory()
+                        currentScreen = PetScreenState.MedicalHistory
+                    }
                 )
             }
         }
