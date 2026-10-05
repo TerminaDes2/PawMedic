@@ -1,4 +1,4 @@
- package com.pawsmedic.desktop.veterinary.ui.auth
+package com.pawsmedic.desktop.veterinary.ui.auth
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
@@ -189,17 +189,6 @@ fun LoginScreen(
                             .background(cardDarkIllustration)
                             .border(1.dp, borderDark, RoundedCornerShape(20.dp))
                     ) {
-                        /*
-                         * Para usar una imagen real de la ilustración:
-                         * androidx.compose.foundation.Image(
-                         *     painter = androidx.compose.ui.res.painterResource("vet_illustration.png"),
-                         *     contentDescription = "Ilustración Veterinaria",
-                         *     modifier = Modifier.fillMaxSize(),
-                         *     contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                         * )
-                         */
-
-                        // Gráfico / Fallback de Ilustración
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -274,7 +263,7 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .padding(36.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
                         // Ícono Superior Encabezado
                         Box(
@@ -380,17 +369,14 @@ fun LoginScreen(
                             }
                         }
 
-                        // Botón Principal Esmeralda Clínico
+                        // Botón Principal Esmeralda
                         Button(
                             onClick = onNavigateToVetMain,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(46.dp),
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = ClinicalEmerald,
-                                contentColor = Color.White
-                            )
+                            colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,

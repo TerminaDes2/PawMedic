@@ -8,15 +8,14 @@ import com.pawsmedic.features.appointments.domain.repository.AppointmentReposito
 class DefaultAppointmentRepository(
     private val dataSource: AppointmentDataSource
 ) : AppointmentRepository {
+    override suspend fun getAppointments(): Result<List<Appointment>> = try {
+        Result.success(dataSource.getAppointments().map { it.toDomain() })
+    } catch (error: Throwable) {
+        Result.failure(error)
+    }
+
     override suspend fun requestAppointment(appointment: Appointment): Result<Appointment> = try {
-        val dto = AppointmentDto(
-            id = appointment.id,
-            petId = appointment.petId,
-            businessId = appointment.businessId,
-            serviceId = appointment.serviceId,
-            requestedAt = appointment.requestedAt,
-            notes = appointment.notes
-        )
+        val dto = AppointmentDto.fromDomain(appointment)
         Result.success(dataSource.requestAppointment(dto).toDomain())
     } catch (error: Throwable) {
         Result.failure(error)

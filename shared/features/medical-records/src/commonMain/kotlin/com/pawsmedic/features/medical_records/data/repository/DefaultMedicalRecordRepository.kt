@@ -11,7 +11,15 @@ class DefaultMedicalRecordRepository(
         petId: String
     ): Result<List<MedicalRecord>> = try {
         Result.success(
-            dataSource.getAuthorizedMedicalHistory(petId).map { it.toDomain() }
+            dataSource.getRecordsByPet(petId).map { it.toDomain() }
+        )
+    } catch (error: Throwable) {
+        Result.failure(error)
+    }
+
+    override suspend fun getAllMedicalRecords(): Result<List<MedicalRecord>> = try {
+        Result.success(
+            dataSource.getAllRecords().map { it.toDomain() }
         )
     } catch (error: Throwable) {
         Result.failure(error)

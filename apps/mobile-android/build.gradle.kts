@@ -26,11 +26,11 @@ android {
             properties.load(FileInputStream(localPropertiesFile))
         }
 
-        val supabaseUrl = properties.getProperty("https://fmcsdyupvmdjvlbzjgml.supabase.co") ?: System.getenv("https://fmcsdyupvmdjvlbzjgml.supabase.co") ?: ""
-        val supabaseAnonKey = properties.getProperty("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtY3NkeXVwdm1kanZsYnpqZ21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTE0MDMsImV4cCI6MjEwNTg2NzQwM30.y4dIbAKuGdFujQNos3HXGH-TYbtCMMEFw083SbGwkVc") ?: System.getenv("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtY3NkeXVwdm1kanZsYnpqZ21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTE0MDMsImV4cCI6MjEwNTg2NzQwM30.y4dIbAKuGdFujQNos3HXGH-TYbtCMMEFw083SbGwkVc") ?: ""
+        val supabaseUrl = properties.getProperty("SUPABASE_URL") ?: System.getenv("SUPABASE_URL") ?: "https://fmcsdyupvmdjvlbzjgml.supabase.co"
+        val supabaseAnonKey = properties.getProperty("SUPABASE_ANON_KEY") ?: System.getenv("SUPABASE_ANON_KEY") ?: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtY3NkeXVwdm1kanZsYnpqZ21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTE0MDMsImV4cCI6MjEwNTg2NzQwM30.y4dIbAKuGdFujQNos3HXGH-TYbtCMMEFw083SbGwkVc"
 
-        buildConfigField("String", "https://fmcsdyupvmdjvlbzjgml.supabase.co", "\"$supabaseUrl\"")
-        buildConfigField("String", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtY3NkeXVwdm1kanZsYnpqZ21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTE0MDMsImV4cCI6MjEwNTg2NzQwM30.y4dIbAKuGdFujQNos3HXGH-TYbtCMMEFw083SbGwkVc", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
     
     buildFeatures { 
@@ -41,5 +41,8 @@ android {
 
 dependencies {
     implementation(project(":shared:features:auth"))
+    implementation(project(":shared:features:pets"))
+    implementation(project(":shared:core:design-system"))
     implementation("androidx.activity:activity-compose:1.9.3")
+    implementation(libs.koin.core)
 }
