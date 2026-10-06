@@ -39,9 +39,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.pets.presentation.AgeInputMode
+import com.pawsmedic.features.pets.presentation.PetFormUiState
 import com.pawsmedic.features.pets.presentation.PetFormViewModel
 import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
+import com.pawsmedic.shared.core.common.convertMillisToIsoDateString
+import com.pawsmedic.shared.core.common.formatIsoToDisplayDate
 import com.pawsmedic.shared.core.common.rememberPhotoPicker
+import com.pawsmedic.shared.core.designsystem.components.DatePickerModal
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
@@ -174,54 +178,8 @@ fun PetFormScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // --- FIELD 4: EDAD (Fecha de nacimiento vs. Edad aproximada) ---
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Edad de la mascota",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = PawMedicColors.Gray800,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-            Row(modifier = Modifier.fillMaxWidth()) {
-                AgeModeChip(
-                    text = "Edad aproximada",
-                    isSelected = uiState.ageMode == AgeInputMode.APPROXIMATE,
-                    onClick = { viewModel.onAgeModeChanged(AgeInputMode.APPROXIMATE) },
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                AgeModeChip(
-                    text = "Fecha nacimiento",
-                    isSelected = uiState.ageMode == AgeInputMode.EXACT_DATE,
-                    onClick = { viewModel.onAgeModeChanged(AgeInputMode.EXACT_DATE) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (uiState.ageMode == AgeInputMode.APPROXIMATE) {
-                PawMedicTextField(
-                    value = uiState.approximateAge,
-                    onValueChange = viewModel::onApproximateAgeChanged,
-                    label = "",
-                    placeholder = "Ej. 3 años, 5 meses o 2 semanas",
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-                )
-            } else {
-                PawMedicTextField(
-                    value = uiState.exactBirthDate,
-                    onValueChange = viewModel::onExactBirthDateChanged,
-                    label = "",
-                    placeholder = "Formato YYYY-MM-DD (Ej. 2024-05-10)",
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    )
-                )
-            }
-        }
+        // --- FIELD 4: EDAD (Input numérico + Dropdown de unidades OR Modal DatePicker) ---
+        AgeInputSection(uiState = uiState, viewModel = viewModel)
 
         Spacer(modifier = Modifier.height(14.dp))
 
@@ -303,6 +261,190 @@ fun PetFormScreen(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun AgeInputSection(
+    uiState: PetFormUiState,
+    viewModel: PetFormViewModel
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var showDatePickerModal by remember { mutableStateOf(false) }
+    val timeUnits = listOf("Semanas", "Meses", "Años")
+
+    if (showDatePickerModal) {
+        DatePickerModal(
+            onDateSelected = { selectedMillis ->
+                if (selectedMillis != null) {
+                    val isoDate = convertMillisToIsoDateString(selectedMillis)
+                    viewModel.onExactBirthDateChanged(isoDate)
+                }
+                showDatePickerModal = false
+            },
+            onDismiss = { showDatePickerModal = false }
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Edad de la mascota",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = PawMedicColors.Gray800,
+            modifier = Modifier.padding(bottom = 6.dp)
+        )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            AgeModeChip(
+                text = "Edad aproximada",
+                isSelected = uiState.ageMode == AgeInputMode.APPROXIMATE,
+                onClick = { viewModel.onAgeModeChanged(AgeInputMode.APPROXIMATE) },
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            AgeModeChip(
+                text = "Fecha nacimiento",
+                isSelected = uiState.ageMode == AgeInputMode.EXACT_DATE,
+                onClick = { viewModel.onAgeModeChanged(AgeInputMode.EXACT_DATE) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (uiState.ageMode == AgeInputMode.APPROXIMATE) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. Campo de texto numérico
+                Box(modifier = Modifier.weight(1f)) {
+                    PawMedicTextField(
+                        value = uiState.ageNumber,
+                        onValueChange = viewModel::onAgeNumberChanged,
+                        label = "Número",
+                        placeholder = "Ej. 3",
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // 2. Dropdown Menu para la unidad de tiempo
+                Box(
+                    modifier = Modifier
+                        .padding(top = 22.dp)
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(12.dp))
+                        .clickable { expanded = true }
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = uiState.ageUnit,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PawMedicColors.Teal600
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "▼",
+                            fontSize = 11.sp,
+                            color = PawMedicColors.Teal600
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        timeUnits.forEach { unit ->
+                            DropdownMenuItem(
+                                text = { Text(text = unit, fontSize = 14.sp) },
+                                onClick = {
+                                    viewModel.onAgeUnitChanged(unit)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Fecha de nacimiento",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = PawMedicColors.Gray800,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDatePickerModal = true }
+                ) {
+                    OutlinedTextField(
+                        value = if (uiState.exactBirthDate.isNotBlank()) formatIsoToDisplayDate(uiState.exactBirthDate) else "",
+                        onValueChange = {},
+                        readOnly = true,
+                        placeholder = {
+                            Text(
+                                text = "Selecciona en el calendario (dd-MM-yy)",
+                                color = PawMedicColors.Gray400,
+                                fontSize = 14.sp
+                            )
+                        },
+                        trailingIcon = {
+                            Text(
+                                text = "📅",
+                                fontSize = 18.sp,
+                                modifier = Modifier.clickable { showDatePickerModal = true }
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PawMedicColors.Teal600,
+                            unfocusedBorderColor = PawMedicColors.Gray300,
+                            focusedContainerColor = PawMedicColors.White,
+                            unfocusedContainerColor = PawMedicColors.White,
+                            focusedTextColor = PawMedicColors.Gray900,
+                            unfocusedTextColor = PawMedicColors.Gray900
+                        )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { showDatePickerModal = true }
+                    )
+                }
+
+                if (uiState.exactBirthDate.isNotBlank() && uiState.ageNumber.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PawMedicColors.Teal50)
+                            .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Edad calculada: ${uiState.ageNumber} ${uiState.ageUnit}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PawMedicColors.Teal600
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

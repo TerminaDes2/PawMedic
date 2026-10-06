@@ -128,7 +128,8 @@ data class PetFormUiState(
     val species: String = "Canino",
     val breed: String = "Mestizo Canino",
     val ageMode: AgeInputMode = AgeInputMode.APPROXIMATE,
-    val approximateAge: String = "2 años",
+    val ageNumber: String = "2",
+    val ageUnit: String = "Años",
     val exactBirthDate: String = "2024-05-10",
     val weightKg: String = "",
     val gender: String = "Macho",
@@ -172,13 +173,23 @@ class PetFormViewModel(
             _uiState.update { curr -> curr.copy(isLoading = true) }
             getPetByIdUseCase(id).onSuccess { p ->
                 if (p != null) {
+                    val ageStr = p.age ?: "2 Años"
+                    val digits = ageStr.filter { it.isDigit() }
+                    val num = if (digits.isNotBlank()) digits else "2"
+                    val unit = when {
+                        ageStr.contains("semana", true) -> "Semanas"
+                        ageStr.contains("mes", true) -> "Meses"
+                        else -> "Años"
+                    }
+
                     _uiState.update { curr ->
                         curr.copy(
                             id = p.id,
                             name = p.name,
                             species = if (p.species.contains("Gato", true)) "Felino" else if (p.species.contains("Perro", true)) "Canino" else p.species,
                             breed = p.breed ?: "Mestizo",
-                            approximateAge = p.age ?: "2 años",
+                            ageNumber = num,
+                            ageUnit = unit,
                             weightKg = p.weight?.replace(" kg", "")?.replace(" lbs", "") ?: "",
                             gender = p.gender ?: "Macho",
                             allergies = p.allergies ?: "",
@@ -195,7 +206,6 @@ class PetFormViewModel(
     }
 
     fun onNameChanged(v: String) {
-        // Restricción: No permite números ni caracteres especiales
         val filtered = v.filter { it.isLetter() || it.isWhitespace() }
         _uiState.update { curr -> curr.copy(name = filtered, errorMessage = null) }
     }
@@ -216,9 +226,58 @@ class PetFormViewModel(
 
     fun onAgeModeChanged(mode: AgeInputMode) = _uiState.update { curr -> curr.copy(ageMode = mode, errorMessage = null) }
 
-    fun onApproximateAgeChanged(v: String) = _uiState.update { curr -> curr.copy(approximateAge = v, errorMessage = null) }
+    fun onAgeNumberChanged(v: String) {
+        if (v.all { it.isDigit() }) {
+            _uiState.update { curr -> curr.copy(ageNumber = v, errorMessage = null) }
+        }
+    }
 
-    fun onExactBirthDateChanged(v: String) = _uiState.update { curr -> curr.copy(exactBirthDate = v, errorMessage = null) }
+    fun onAgeUnitChanged(unit: String) = _uiState.update { curr -> curr.copy(ageUnit = unit, errorMessage = null) }
+
+    fun calculateAgeFromBirthDate(birthDateStr: String): Pair<String, String>? {
+        val cleanStr = birthDateStr.trim()
+        val parts = cleanStr.split("-")
+        if (parts.size != 3) return null
+        val bYear = parts[0].toIntOrNull() ?: return null
+        val bMonth = parts[1].toIntOrNull() ?: return null
+        val bDay = parts[2].toIntOrNull() ?: return null
+
+        val cYear = 2026
+        val cMonth = 10
+        val cDay = 6
+
+        val totalMonths = (cYear * 12 + cMonth) - (bYear * 12 + bMonth)
+        val totalDays = (totalMonths * 30) + (cDay - bDay)
+
+        if (totalDays <= 0) return Pair("1", "Semanas")
+
+        return when {
+            totalDays < 30 -> {
+                val weeks = maxOf(1, totalDays / 7)
+                Pair(weeks.toString(), "Semanas")
+            }
+            totalMonths < 12 -> {
+                val months = maxOf(1, totalMonths)
+                Pair(months.toString(), "Meses")
+            }
+            else -> {
+                val years = maxOf(1, cYear - bYear)
+                Pair(years.toString(), "Años")
+            }
+        }
+    }
+
+    fun onExactBirthDateChanged(v: String) {
+        val agePair = calculateAgeFromBirthDate(v)
+        _uiState.update { curr ->
+            curr.copy(
+                exactBirthDate = v,
+                ageNumber = agePair?.first ?: curr.ageNumber,
+                ageUnit = agePair?.second ?: curr.ageUnit,
+                errorMessage = null
+            )
+        }
+    }
 
     fun onWeightChanged(v: String) {
         val filtered = v.filter { it.isDigit() || it == '.' }
@@ -231,28 +290,22 @@ class PetFormViewModel(
 
     fun onPhotoUrlChanged(v: String) = _uiState.update { curr -> curr.copy(photoUrl = v, errorMessage = null) }
 
-    fun calculateBirthDateFromText(ageInput: String): String? {
-        if (ageInput.isBlank()) return null
-        val regex = Regex("(\\d+)\\s*(año|ano|mes|semana)?", RegexOption.IGNORE_CASE)
-        val matchResult = regex.find(ageInput.trim()) ?: return null
-
-        val amount = matchResult.groupValues[1].toIntOrNull() ?: return null
-        val unit = matchResult.groupValues.getOrNull(2)?.lowercase() ?: "año"
+    fun calculateBirthDate(ageNumberString: String, ageUnit: String): String? {
+        val amount = ageNumberString.toIntOrNull() ?: return null
+        if (amount <= 0) return null
 
         var year = 2026
         var month = 10
-        var day = 5
+        var day = 6
 
-        when {
-            unit.startsWith("año") || unit.startsWith("ano") -> {
-                year -= amount
-            }
-            unit.startsWith("mes") -> {
+        when (ageUnit) {
+            "Años" -> year -= amount
+            "Meses" -> {
                 val totalMonths = year * 12 + (month - 1) - amount
                 year = totalMonths / 12
                 month = (totalMonths % 12) + 1
             }
-            unit.startsWith("semana") -> {
+            "Semanas" -> {
                 val totalDays = amount * 7
                 val monthsToSubtract = totalDays / 30
                 val daysRemainder = totalDays % 30
@@ -299,15 +352,15 @@ class PetFormViewModel(
         val calculatedBirthDate: String? = if (s.ageMode == AgeInputMode.EXACT_DATE) {
             if (s.exactBirthDate.isBlank()) null else s.exactBirthDate
         } else {
-            calculateBirthDateFromText(s.approximateAge)
+            calculateBirthDate(s.ageNumber, s.ageUnit)
         }
 
         if (calculatedBirthDate == null) {
-            _uiState.update { curr -> curr.copy(errorMessage = "Formato de edad inválido. Usa ej. '3 años' o '5 meses'") }
+            _uiState.update { curr -> curr.copy(errorMessage = "Ingresa un número de edad válido (ej. 3)") }
             return
         }
 
-        val displayAge = if (s.ageMode == AgeInputMode.EXACT_DATE) s.exactBirthDate else s.approximateAge
+        val displayAge = "${s.ageNumber} ${s.ageUnit}"
         val displayWeight = if (s.weightKg.isNotBlank()) "${s.weightKg} kg" else "4.5 kg"
 
         val pet = Pet(
