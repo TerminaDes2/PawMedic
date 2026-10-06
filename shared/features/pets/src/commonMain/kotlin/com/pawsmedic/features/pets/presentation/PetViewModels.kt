@@ -117,12 +117,20 @@ class PetDetailViewModel(
 }
 
 // --- PET FORM UI STATE & VIEWMODEL ---
+enum class AgeInputMode {
+    APPROXIMATE,
+    EXACT_DATE
+}
+
 data class PetFormUiState(
     val id: String = "",
     val name: String = "",
-    val species: String = "Gato",
-    val breed: String = "",
-    val age: String = "",
+    val species: String = "Canino",
+    val breed: String = "Mestizo Canino",
+    val ageMode: AgeInputMode = AgeInputMode.APPROXIMATE,
+    val approximateAge: String = "2 años",
+    val exactBirthDate: String = "2024-05-10",
+    val weightKg: String = "",
     val gender: String = "Macho",
     val allergies: String = "",
     val photoUrl: String = "",
@@ -130,7 +138,17 @@ data class PetFormUiState(
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
     val errorMessage: String? = null
-)
+) {
+    val availableSpecies = listOf("Canino", "Felino", "Avíparo")
+
+    val availableBreeds: List<String>
+        get() = when (species) {
+            "Canino" -> listOf("Mestizo Canino", "Golden Retriever", "Labrador Retriever", "Pastor Alemán", "Poodle", "Bulldog", "Beagle", "Siberian Husky", "Chihuahua", "Pug", "Otro")
+            "Felino" -> listOf("Mestizo Felino", "Persa", "Siamés", "Maine Coon", "Bengalí", "Sphynx", "Ragdoll", "British Shorthair", "Otro")
+            "Avíparo" -> listOf("Mestizo Avíparo", "Loro Real", "Canario", "Perico Australiano", "Cacatúa", "Agapornis", "Guacamayo", "Otro")
+            else -> listOf("Mestizo", "Otro")
+        }
+}
 
 class PetFormViewModel(
     private val addPetUseCase: AddPetUseCase,
@@ -158,9 +176,10 @@ class PetFormViewModel(
                         curr.copy(
                             id = p.id,
                             name = p.name,
-                            species = p.species,
-                            breed = p.breed ?: "",
-                            age = p.age ?: "",
+                            species = if (p.species.contains("Gato", true)) "Felino" else if (p.species.contains("Perro", true)) "Canino" else p.species,
+                            breed = p.breed ?: "Mestizo",
+                            approximateAge = p.age ?: "2 años",
+                            weightKg = p.weight?.replace(" kg", "")?.replace(" lbs", "") ?: "",
                             gender = p.gender ?: "Macho",
                             allergies = p.allergies ?: "",
                             photoUrl = p.photoUrl ?: "",
@@ -175,36 +194,134 @@ class PetFormViewModel(
         }
     }
 
-    fun onNameChanged(v: String) = _uiState.update { curr -> curr.copy(name = v, errorMessage = null) }
-    fun onSpeciesChanged(v: String) = _uiState.update { curr -> curr.copy(species = v, errorMessage = null) }
+    fun onNameChanged(v: String) {
+        // Restricción: No permite números ni caracteres especiales
+        val filtered = v.filter { it.isLetter() || it.isWhitespace() }
+        _uiState.update { curr -> curr.copy(name = filtered, errorMessage = null) }
+    }
+
+    fun onSpeciesChanged(newSpecies: String) {
+        val defaultBreed = when (newSpecies) {
+            "Canino" -> "Mestizo Canino"
+            "Felino" -> "Mestizo Felino"
+            "Avíparo" -> "Mestizo Avíparo"
+            else -> "Mestizo"
+        }
+        _uiState.update { curr ->
+            curr.copy(species = newSpecies, breed = defaultBreed, errorMessage = null)
+        }
+    }
+
     fun onBreedChanged(v: String) = _uiState.update { curr -> curr.copy(breed = v, errorMessage = null) }
-    fun onAgeChanged(v: String) = _uiState.update { curr -> curr.copy(age = v, errorMessage = null) }
+
+    fun onAgeModeChanged(mode: AgeInputMode) = _uiState.update { curr -> curr.copy(ageMode = mode, errorMessage = null) }
+
+    fun onApproximateAgeChanged(v: String) = _uiState.update { curr -> curr.copy(approximateAge = v, errorMessage = null) }
+
+    fun onExactBirthDateChanged(v: String) = _uiState.update { curr -> curr.copy(exactBirthDate = v, errorMessage = null) }
+
+    fun onWeightChanged(v: String) {
+        val filtered = v.filter { it.isDigit() || it == '.' }
+        _uiState.update { curr -> curr.copy(weightKg = filtered, errorMessage = null) }
+    }
+
     fun onGenderChanged(v: String) = _uiState.update { curr -> curr.copy(gender = v, errorMessage = null) }
+
     fun onAllergiesChanged(v: String) = _uiState.update { curr -> curr.copy(allergies = v, errorMessage = null) }
+
     fun onPhotoUrlChanged(v: String) = _uiState.update { curr -> curr.copy(photoUrl = v, errorMessage = null) }
+
+    fun calculateBirthDateFromText(ageInput: String): String? {
+        if (ageInput.isBlank()) return null
+        val regex = Regex("(\\d+)\\s*(año|ano|mes|semana)?", RegexOption.IGNORE_CASE)
+        val matchResult = regex.find(ageInput.trim()) ?: return null
+
+        val amount = matchResult.groupValues[1].toIntOrNull() ?: return null
+        val unit = matchResult.groupValues.getOrNull(2)?.lowercase() ?: "año"
+
+        var year = 2026
+        var month = 10
+        var day = 5
+
+        when {
+            unit.startsWith("año") || unit.startsWith("ano") -> {
+                year -= amount
+            }
+            unit.startsWith("mes") -> {
+                val totalMonths = year * 12 + (month - 1) - amount
+                year = totalMonths / 12
+                month = (totalMonths % 12) + 1
+            }
+            unit.startsWith("semana") -> {
+                val totalDays = amount * 7
+                val monthsToSubtract = totalDays / 30
+                val daysRemainder = totalDays % 30
+                year -= monthsToSubtract / 12
+                month -= monthsToSubtract % 12
+                if (month <= 0) {
+                    year -= 1
+                    month += 12
+                }
+                day -= daysRemainder
+                if (day <= 0) {
+                    month -= 1
+                    if (month <= 0) {
+                        year -= 1
+                        month += 12
+                    }
+                    day += 30
+                }
+            }
+            else -> year -= amount
+        }
+
+        val monthStr = month.toString().padStart(2, '0')
+        val dayStr = day.toString().padStart(2, '0')
+        return "$year-$monthStr-$dayStr"
+    }
 
     fun savePet(onSuccess: () -> Unit) {
         val s = _uiState.value
-        if (s.name.isBlank()) {
-            _uiState.update { curr -> curr.copy(errorMessage = "El nombre de la mascota es obligatorio") }
+
+        // Validation 1: Name length >= 2
+        if (s.name.trim().length < 2) {
+            _uiState.update { curr -> curr.copy(errorMessage = "El nombre de la mascota debe tener al menos 2 caracteres (sin números ni símbolos)") }
             return
         }
+
+        // Validation 2: Species required
         if (s.species.isBlank()) {
-            _uiState.update { curr -> curr.copy(errorMessage = "La especie es obligatoria") }
+            _uiState.update { curr -> curr.copy(errorMessage = "Selecciona la especie de la mascota") }
             return
         }
+
+        // Validation 3: Age calculation
+        val calculatedBirthDate: String? = if (s.ageMode == AgeInputMode.EXACT_DATE) {
+            if (s.exactBirthDate.isBlank()) null else s.exactBirthDate
+        } else {
+            calculateBirthDateFromText(s.approximateAge)
+        }
+
+        if (calculatedBirthDate == null) {
+            _uiState.update { curr -> curr.copy(errorMessage = "Formato de edad inválido. Usa ej. '3 años' o '5 meses'") }
+            return
+        }
+
+        val displayAge = if (s.ageMode == AgeInputMode.EXACT_DATE) s.exactBirthDate else s.approximateAge
+        val displayWeight = if (s.weightKg.isNotBlank()) "${s.weightKg} kg" else "4.5 kg"
 
         val pet = Pet(
             id = s.id,
             ownerId = ownerId,
-            name = s.name,
+            name = s.name.trim(),
             species = s.species,
-            breed = if (s.breed.isBlank()) null else s.breed,
-            age = if (s.age.isBlank()) null else s.age,
+            breed = if (s.breed.isBlank()) "Mestizo" else s.breed,
+            age = displayAge,
             gender = s.gender,
             allergies = if (s.allergies.isBlank()) null else s.allergies,
             photoUrl = if (s.photoUrl.isBlank()) "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba" else s.photoUrl,
-            medicalId = "PM-${(1000..9999).random()}-A"
+            medicalId = "PM-${(1000..9999).random()}-A",
+            weight = displayWeight
         )
 
         scope.launch {
@@ -217,7 +334,7 @@ class PetFormViewModel(
                 }
                 .onFailure { err ->
                     _uiState.update { curr ->
-                        curr.copy(isLoading = false, errorMessage = err.message ?: "Error al guardar")
+                        curr.copy(isLoading = false, errorMessage = err.message ?: "Error al guardar mascota")
                     }
                 }
         }

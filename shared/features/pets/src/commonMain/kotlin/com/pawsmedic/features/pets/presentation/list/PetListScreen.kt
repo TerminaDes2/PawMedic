@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.pets.domain.model.Pet
 import com.pawsmedic.features.pets.presentation.PetListViewModel
+import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
@@ -85,19 +86,18 @@ fun PetListScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(64.dp)
+                                    .size(68.dp)
                                     .clip(CircleShape)
-                                    .background(PawMedicColors.Teal50)
                                     .border(
                                         width = if (isSelected) 3.dp else 1.dp,
                                         color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray300,
                                         shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
+                                    )
                             ) {
-                                Text(
-                                    text = if (pet.species.contains("Gato", true)) "🐱" else "🐶",
-                                    fontSize = 32.sp
+                                PetAvatarImage(
+                                    photoUrl = pet.photoUrl,
+                                    species = pet.species,
+                                    size = 68.dp
                                 )
                             }
                             Spacer(modifier = Modifier.height(4.dp))
@@ -150,7 +150,7 @@ fun PetListScreen(
                             .padding(16.dp)
                     ) {
                         Column {
-                            // Pet Image Placeholder Banner
+                            // Pet Image Banner
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -159,9 +159,10 @@ fun PetListScreen(
                                     .background(PawMedicColors.Teal50),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = if (selectedPet.species.contains("Gato", true)) "🐱" else "🐕",
-                                    fontSize = 80.sp
+                                PetAvatarImage(
+                                    photoUrl = selectedPet.photoUrl,
+                                    species = selectedPet.species,
+                                    size = 140.dp
                                 )
                             }
 

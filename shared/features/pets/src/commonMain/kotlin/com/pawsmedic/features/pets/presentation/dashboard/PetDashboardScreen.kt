@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,18 +29,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pawsmedic.features.pets.presentation.PetListViewModel
+import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicLogoIcon
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
 @Composable
 fun PetDashboardScreen(
+    viewModel: PetListViewModel,
     userName: String = "María",
     onNavigateToPetsList: () -> Unit,
     onNavigateToAddPet: () -> Unit,
     onNavigateToPetDetail: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val selectedPet = uiState.selectedPet ?: uiState.pets.firstOrNull()
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -96,59 +104,57 @@ fun PetDashboardScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         // --- ACTIVE PET BANNER ---
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(PawMedicColors.Teal50)
-                .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(20.dp))
-                .clickable { onNavigateToPetDetail("pet-1") }
-                .padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+        if (selectedPet != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(PawMedicColors.Teal50)
+                    .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(20.dp))
+                    .clickable { onNavigateToPetDetail(selectedPet.id) }
+                    .padding(16.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PetAvatarImage(
+                            photoUrl = selectedPet.photoUrl,
+                            species = selectedPet.species,
+                            size = 64.dp
+                        )
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column {
+                            Text(
+                                text = selectedPet.name,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PawMedicColors.Gray900
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "${selectedPet.species} • ${selectedPet.breed ?: "Mestizo"} • ${selectedPet.age ?: "2 años"}",
+                                fontSize = 13.sp,
+                                color = PawMedicColors.Gray600
+                            )
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(PawMedicColors.Teal100),
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(PawMedicColors.Teal600)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
-                        Text(text = "🐱", fontSize = 32.sp)
-                    }
-                    Spacer(modifier = Modifier.width(14.dp))
-                    Column {
                         Text(
-                            text = "Tobías",
-                            fontSize = 18.sp,
+                            text = "Activo",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Gato • Persa Mestizo • 2 años",
-                            fontSize = 13.sp,
-                            color = PawMedicColors.Gray600
+                            color = PawMedicColors.White
                         )
                     }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PawMedicColors.Teal600)
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = "Activo",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.White
-                    )
                 }
             }
         }
@@ -220,7 +226,7 @@ fun PetDashboardScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         AppointmentCard(
-            petName = "Tobías (Gato)",
+            petName = "${selectedPet?.name ?: "Tobías"} (${selectedPet?.species ?: "Gato"})",
             doctor = "Dra. Ana Milena • Clinipet Central",
             date = "Mañana, 10:00 AM",
             isHighlight = true

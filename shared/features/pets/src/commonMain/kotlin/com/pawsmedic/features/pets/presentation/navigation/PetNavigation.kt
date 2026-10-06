@@ -52,6 +52,7 @@ import com.pawsmedic.features.pets.presentation.dashboard.PetDashboardScreen
 import com.pawsmedic.features.pets.presentation.detail.PetDetailScreen
 import com.pawsmedic.features.pets.presentation.form.PetFormScreen
 import com.pawsmedic.features.pets.presentation.list.PetListScreen
+import com.pawsmedic.shared.core.common.rememberPhotoPicker
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
 sealed interface PetScreenState {
@@ -98,6 +99,7 @@ fun PetNavHost(
                     when (screen) {
                         PetScreenState.Dashboard -> {
                             PetDashboardScreen(
+                                viewModel = petListViewModel,
                                 userName = "María",
                                 onNavigateToPetsList = {
                                     petListViewModel.loadPets()
@@ -141,13 +143,17 @@ fun PetNavHost(
                             val addViewModel = remember {
                                 PetFormViewModel(addPetUseCase, updatePetUseCase, getPetByIdUseCase)
                             }
+                            val launchAddPhotoPicker = rememberPhotoPicker { photoUrl ->
+                                addViewModel.onPhotoUrlChanged(photoUrl)
+                            }
                             PetFormScreen(
                                 viewModel = addViewModel,
                                 onBackClick = { currentScreen = PetScreenState.PetList },
                                 onSaveSuccess = {
                                     petListViewModel.loadPets()
                                     currentScreen = PetScreenState.PetList
-                                }
+                                },
+                                onPickPhoto = launchAddPhotoPicker
                             )
                         }
 
@@ -160,13 +166,17 @@ fun PetNavHost(
                                     initialPetId = screen.petId
                                 )
                             }
+                            val launchEditPhotoPicker = rememberPhotoPicker { photoUrl ->
+                                editViewModel.onPhotoUrlChanged(photoUrl)
+                            }
                             PetFormScreen(
                                 viewModel = editViewModel,
                                 onBackClick = { currentScreen = PetScreenState.PetDetail(screen.petId) },
                                 onSaveSuccess = {
                                     petListViewModel.loadPets()
                                     currentScreen = PetScreenState.PetDetail(screen.petId)
-                                }
+                                },
+                                onPickPhoto = launchEditPhotoPicker
                             )
                         }
 
