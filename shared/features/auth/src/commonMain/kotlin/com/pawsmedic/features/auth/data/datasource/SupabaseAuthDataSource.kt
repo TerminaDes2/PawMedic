@@ -1,13 +1,22 @@
 package com.pawsmedic.features.auth.data.datasource
 
 import com.pawsmedic.features.auth.data.dto.AuthSessionDto
+import com.pawsmedic.features.auth.domain.model.PawMedicRole
+import com.pawsmedic.features.auth.domain.model.RegisterParams
 
-/**
- * Platform adapters can implement this with Supabase Auth. It deliberately
- * accepts configuration rather than embedding a URL, anon key, or secret.
- */
 interface SupabaseAuthDataSource {
     suspend fun currentSession(): AuthSessionDto?
     suspend fun signIn(email: String, password: String): AuthSessionDto
+    suspend fun signUp(
+        email: String,
+        password: String,
+        role: PawMedicRole,
+        fullName: String? = null
+    ): AuthSessionDto
+    suspend fun signUp(params: RegisterParams): AuthSessionDto = signUp(
+        email = params.email,
+        password = params.password,
+        role = PawMedicRole.USER
+    )
     suspend fun signOut()
 }
