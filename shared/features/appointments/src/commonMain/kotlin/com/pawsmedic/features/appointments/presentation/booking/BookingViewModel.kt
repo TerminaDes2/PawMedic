@@ -19,7 +19,8 @@ data class BookingPet(
     val name: String,
     val species: String,
     val breed: String? = null,
-    val age: String? = null
+    val age: String? = null,
+    val photoUrl: String? = null
 )
 
 enum class BookingStep {
@@ -60,11 +61,46 @@ data class BookingUiState(
             durationMinutes = 15
         )
     ),
+    val userPets: List<BookingPet> = listOf(
+        BookingPet(
+            id = "pet-1",
+            name = "Tobías",
+            species = "Gato",
+            breed = "Persa Mestizo",
+            age = "2 años",
+            photoUrl = "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba"
+        ),
+        BookingPet(
+            id = "pet-2",
+            name = "Joey",
+            species = "Perro",
+            breed = "Australian Shepard",
+            age = "14 años",
+            photoUrl = "https://images.unsplash.com/photo-1543466835-00a7907e9de1"
+        ),
+        BookingPet(
+            id = "pet-3",
+            name = "Rudy",
+            species = "Perro",
+            breed = "Dálmata",
+            age = "3 años",
+            photoUrl = "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e"
+        ),
+        BookingPet(
+            id = "pet-4",
+            name = "Skippy",
+            species = "Gato",
+            breed = "Siamés",
+            age = "1 año",
+            photoUrl = "https://images.unsplash.com/photo-1573865526739-10659fec78a5"
+        )
+    ),
     val selectedService: VeterinaryService? = null,
     val selectedPet: BookingPet? = null,
-    val selectedDate: String = "Domingo, 15 de Nov",
-    val selectedTimeSlot: String = "10:00 AM",
-    val availableTimeSlots: List<String> = listOf("09:00 AM", "10:00 AM", "11:00 AM", "02:00 PM", "03:30 PM"),
+    val selectedDate: String = "Mañana (16 de Nov)",
+    val selectedDateMillis: Long? = null,
+    val selectedTimeSlot: String = "11:00 AM",
+    val availableTimeSlots: List<String> = listOf("11:00 AM", "12:00 PM", "01:30 PM", "03:00 PM", "04:30 PM", "06:00 PM", "07:00 PM"),
     val notes: String = "",
     val isLoading: Boolean = false,
     val isConfirmed: Boolean = false,
@@ -82,31 +118,57 @@ class BookingViewModel(
         _uiState.update { curr ->
             curr.copy(
                 selectedService = curr.services.firstOrNull(),
-                selectedPet = BookingPet(
-                    id = "pet-1",
-                    name = "Tobías",
-                    species = "Gato",
-                    breed = "Persa Mestizo",
-                    age = "2 años"
-                )
+                selectedPet = curr.userPets.firstOrNull()
             )
         }
     }
 
     fun selectService(service: VeterinaryService) {
-        _uiState.update { curr -> curr.copy(selectedService = service) }
+        _uiState.update { curr -> curr.copy(selectedService = service, errorMessage = null) }
     }
 
     fun selectPet(pet: BookingPet) {
-        _uiState.update { curr -> curr.copy(selectedPet = pet) }
+        _uiState.update { curr -> curr.copy(selectedPet = pet, errorMessage = null) }
     }
 
-    fun selectDate(date: String) {
-        _uiState.update { curr -> curr.copy(selectedDate = date) }
+    fun selectDate(date: String, millis: Long? = null) {
+        // Validation: Ensure date is in the future within 1 month (30 days)
+        val todayMillis = System.currentTimeMillis()
+        val oneDayMillis = 86400000L
+        val maxAllowedMillis = todayMillis + (30L * oneDayMillis)
+
+        if (millis != null) {
+            if (millis <= todayMillis) {
+                _uiState.update { curr -> curr.copy(errorMessage = "La fecha debe ser futura (a partir de mañana). No se permite hoy ni fechas pasadas.") }
+                return
+            }
+            if (millis > maxAllowedMillis) {
+                _uiState.update { curr -> curr.copy(errorMessage = "La fecha debe estar dentro del próximo mes (máximo 30 días).") }
+                return
+            }
+        }
+
+        _uiState.update { curr ->
+            curr.copy(selectedDate = date, selectedDateMillis = millis, errorMessage = null)
+        }
     }
 
     fun selectTimeSlot(slot: String) {
-        _uiState.update { curr -> curr.copy(selectedTimeSlot = slot) }
+        _uiState.update { curr -> curr.copy(selectedTimeSlot = slot, errorMessage = null) }
+    }
+
+    fun selectTimeFromPicker(hour: Int, minute: Int, formattedTime: String) {
+        // Validation: Time must be between 11:00 AM (11) and 07:00 PM (19:00)
+        if (hour < 11 || hour > 19 || (hour == 19 && minute > 0)) {
+            _uiState.update { curr ->
+                curr.copy(errorMessage = "Horario no disponible. Selecciona una hora entre las 11:00 AM y las 07:00 PM.")
+            }
+            return
+        }
+
+        _uiState.update { curr ->
+            curr.copy(selectedTimeSlot = formattedTime, errorMessage = null)
+        }
     }
 
     fun onNotesChanged(n: String) {
@@ -116,9 +178,9 @@ class BookingViewModel(
     fun nextStep() {
         _uiState.update { curr ->
             when (curr.currentStep) {
-                BookingStep.SELECT_SERVICE -> curr.copy(currentStep = BookingStep.SELECT_PET)
-                BookingStep.SELECT_PET -> curr.copy(currentStep = BookingStep.SELECT_DATE_TIME)
-                BookingStep.SELECT_DATE_TIME -> curr.copy(currentStep = BookingStep.CONFIRM)
+                BookingStep.SELECT_SERVICE -> curr.copy(currentStep = BookingStep.SELECT_PET, errorMessage = null)
+                BookingStep.SELECT_PET -> curr.copy(currentStep = BookingStep.SELECT_DATE_TIME, errorMessage = null)
+                BookingStep.SELECT_DATE_TIME -> curr.copy(currentStep = BookingStep.CONFIRM, errorMessage = null)
                 BookingStep.CONFIRM -> curr
                 BookingStep.SUCCESS -> curr
             }
@@ -129,9 +191,9 @@ class BookingViewModel(
         _uiState.update { curr ->
             when (curr.currentStep) {
                 BookingStep.SELECT_SERVICE -> curr
-                BookingStep.SELECT_PET -> curr.copy(currentStep = BookingStep.SELECT_SERVICE)
-                BookingStep.SELECT_DATE_TIME -> curr.copy(currentStep = BookingStep.SELECT_PET)
-                BookingStep.CONFIRM -> curr.copy(currentStep = BookingStep.SELECT_DATE_TIME)
+                BookingStep.SELECT_PET -> curr.copy(currentStep = BookingStep.SELECT_SERVICE, errorMessage = null)
+                BookingStep.SELECT_DATE_TIME -> curr.copy(currentStep = BookingStep.SELECT_PET, errorMessage = null)
+                BookingStep.CONFIRM -> curr.copy(currentStep = BookingStep.SELECT_DATE_TIME, errorMessage = null)
                 BookingStep.SUCCESS -> curr
             }
         }

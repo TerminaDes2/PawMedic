@@ -99,7 +99,8 @@ fun PetNavHost(
                     when (screen) {
                         PetScreenState.Dashboard -> {
                             PetDashboardScreen(
-                                viewModel = petListViewModel,
+                                petViewModel = petListViewModel,
+                                appointmentsViewModel = appointmentsListViewModel,
                                 userName = "María",
                                 onNavigateToPetsList = {
                                     petListViewModel.loadPets()
@@ -108,6 +109,18 @@ fun PetNavHost(
                                 onNavigateToAddPet = { currentScreen = PetScreenState.AddPet },
                                 onNavigateToPetDetail = { petId ->
                                     currentScreen = PetScreenState.PetDetail(petId)
+                                },
+                                onNavigateToAppointments = {
+                                    appointmentsListViewModel.loadAppointments()
+                                    currentScreen = PetScreenState.AppointmentsList
+                                },
+                                onNavigateToMedicalHistory = {
+                                    medicalHistoryViewModel.loadHistory()
+                                    currentScreen = PetScreenState.MedicalHistory
+                                },
+                                onNavigateToBookAppointment = {
+                                    veterinaryListViewModel.loadClinics()
+                                    currentScreen = PetScreenState.VeterinaryList
                                 }
                             )
                         }

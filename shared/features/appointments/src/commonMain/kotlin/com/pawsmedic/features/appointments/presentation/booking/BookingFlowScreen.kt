@@ -25,19 +25,28 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.appointments.domain.model.VeterinaryService
+import com.pawsmedic.features.appointments.presentation.components.AsyncBookingPetImage
+import com.pawsmedic.shared.core.common.convertMillisToIsoDateString
+import com.pawsmedic.shared.core.common.formatIsoToDisplayDate
+import com.pawsmedic.shared.core.designsystem.components.DatePickerModal
 import com.pawsmedic.shared.core.designsystem.components.PawMedicLogoIcon
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
+import com.pawsmedic.shared.core.designsystem.components.TimePickerModal
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
 @Composable
@@ -72,7 +81,9 @@ fun BookingFlowScreen(
             BookingStep.SELECT_DATE_TIME -> {
                 SelectDateTimeStep(
                     uiState = uiState,
+                    onDateSelected = viewModel::selectDate,
                     onTimeSlotSelected = viewModel::selectTimeSlot,
+                    onTimeFromPickerSelected = viewModel::selectTimeFromPicker,
                     onNext = viewModel::nextStep,
                     onBack = viewModel::previousStep
                 )
@@ -217,12 +228,6 @@ private fun SelectPetStep(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    val samplePets = listOf(
-        BookingPet("pet-1", "Tobías", "Gato", "Persa Mestizo", "2 años"),
-        BookingPet("pet-2", "Rocky", "Perro", "Golden Retriever", "4 años"),
-        BookingPet("pet-3", "Luna", "Conejo", "Cabeza de León", "1 año")
-    )
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -246,7 +251,7 @@ private fun SelectPetStep(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        samplePets.forEach { pet ->
+        uiState.userPets.forEach { pet ->
             val isSelected = pet.id == (uiState.selectedPet?.id ?: "pet-1")
             Box(
                 modifier = Modifier
@@ -267,18 +272,11 @@ private fun SelectPetStep(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(PawMedicColors.Teal100),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = if (pet.species.contains("Gato", true)) "🐱" else if (pet.species.contains("Perro", true)) "🐕" else "🐰",
-                                fontSize = 32.sp
-                            )
-                        }
+                        BookingPetAvatar(
+                            photoUrl = pet.photoUrl,
+                            species = pet.species,
+                            size = 56.dp
+                        )
 
                         Spacer(modifier = Modifier.width(14.dp))
 
@@ -336,14 +334,77 @@ private fun SelectPetStep(
     }
 }
 
+@Composable
+private fun BookingPetAvatar(
+    photoUrl: String?,
+    species: String?,
+    size: Dp = 56.dp
+) {
+    val emoji = when {
+        species?.contains("Gato", true) == true || species?.contains("Felino", true) == true -> "🐱"
+        species?.contains("Perro", true) == true || species?.contains("Canino", true) == true -> "🐕"
+        species?.contains("Conejo", true) == true -> "🐰"
+        species?.contains("Ave", true) == true || species?.contains("Pájaro", true) == true -> "🦜"
+        else -> "🐾"
+    }
+
+    if (!photoUrl.isNullOrBlank()) {
+        AsyncBookingPetImage(
+            photoUrl = photoUrl,
+            fallbackEmoji = emoji,
+            size = size
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(PawMedicColors.Teal100),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = emoji, fontSize = (size.value * 0.45f).sp)
+        }
+    }
+}
+
 // --- STEP 3: SELECT DATE & TIME ---
 @Composable
 private fun SelectDateTimeStep(
     uiState: BookingUiState,
+    onDateSelected: (String, Long?) -> Unit,
     onTimeSlotSelected: (String) -> Unit,
+    onTimeFromPickerSelected: (Int, Int, String) -> Unit,
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
+    var showDatePickerModal by remember { mutableStateOf(false) }
+    var showTimePickerModal by remember { mutableStateOf(false) }
+
+    if (showDatePickerModal) {
+        DatePickerModal(
+            onDateSelected = { selectedMillis ->
+                if (selectedMillis != null) {
+                    val isoDate = convertMillisToIsoDateString(selectedMillis)
+                    val displayDate = formatIsoToDisplayDate(isoDate)
+                    onDateSelected("Día $displayDate", selectedMillis)
+                }
+                showDatePickerModal = false
+            },
+            onDismiss = { showDatePickerModal = false }
+        )
+    }
+
+    if (showTimePickerModal) {
+        TimePickerModal(
+            initialHour = 11,
+            initialMinute = 0,
+            onTimeSelected = { hour, minute, formatted ->
+                onTimeFromPickerSelected(hour, minute, formatted)
+            },
+            onDismiss = { showTimePickerModal = false }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -356,152 +417,116 @@ private fun SelectDateTimeStep(
             onBackClick = onBack
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Noviembre 2026",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray900
-        )
-
         Spacer(modifier = Modifier.height(12.dp))
 
-        // CALENDAR BOX MOCK
+        // --- CALENDAR DATE SELECTION ---
+        Text(
+            text = "Fecha de la cita (Dentro de 1 mes, solo fechas futuras)",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = PawMedicColors.Gray800,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(PawMedicColors.White)
-                .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
+                .border(1.dp, PawMedicColors.Teal600, RoundedCornerShape(16.dp))
+                .clickable { showDatePickerModal = true }
                 .padding(16.dp)
         ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    listOf("L", "M", "M", "J", "V", "S", "D").forEach { day ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "📅", fontSize = 22.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
                         Text(
-                            text = day,
-                            fontSize = 13.sp,
+                            text = uiState.selectedDate,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray400,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Center
+                            color = PawMedicColors.Teal600
+                        )
+                        Text(
+                            text = "Toca para elegir fecha en el calendario (1 mes disponible)",
+                            fontSize = 12.sp,
+                            color = PawMedicColors.Gray500
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    listOf("9", "10", "11", "12", "13", "14", "15").forEach { num ->
-                        val isSelected = num == "15"
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(36.dp)
-                                .clip(CircleShape)
-                                .background(if (isSelected) PawMedicColors.Teal600 else Color.Transparent),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = num,
-                                fontSize = 14.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) PawMedicColors.White else PawMedicColors.Gray800
-                            )
-                        }
-                    }
-                }
+                Text(text = "▼", fontSize = 12.sp, color = PawMedicColors.Teal600)
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // --- TIME SELECTION SECTION ---
         Text(
-            text = "Horas Disponibles (${uiState.selectedDate})",
-            fontSize = 16.sp,
+            text = "Hora de Atención (11:00 AM - 07:00 PM)",
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray900
+            color = PawMedicColors.Gray800,
+            modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // TIME SLOTS GRID
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        // LARGE TIME PICKER BUTTON
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(PawMedicColors.White)
+                .border(1.5.dp, PawMedicColors.Teal600, RoundedCornerShape(16.dp))
+                .clickable { showTimePickerModal = true }
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            uiState.availableTimeSlots.take(3).forEach { slot ->
-                val isSelected = slot == uiState.selectedTimeSlot
-                val isDisabled = slot == "11:00 AM"
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "🕒", fontSize = 22.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Seleccionar hora",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PawMedicColors.Gray900
+                    )
+                }
+
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            when {
-                                isDisabled -> PawMedicColors.Gray100
-                                isSelected -> PawMedicColors.Teal600
-                                else -> PawMedicColors.White
-                            }
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray300,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .clickable(enabled = !isDisabled) { onTimeSlotSelected(slot) },
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(PawMedicColors.Teal50)
+                        .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = slot,
-                        fontSize = 13.sp,
+                        text = uiState.selectedTimeSlot,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = when {
-                            isDisabled -> PawMedicColors.Gray400
-                            isSelected -> PawMedicColors.White
-                            else -> PawMedicColors.Gray800
-                        }
+                        color = PawMedicColors.Teal600
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(0.66f),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            uiState.availableTimeSlots.drop(3).forEach { slot ->
-                val isSelected = slot == uiState.selectedTimeSlot
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSelected) PawMedicColors.Teal600 else PawMedicColors.White)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray300,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .clickable { onTimeSlotSelected(slot) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = slot,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isSelected) PawMedicColors.White else PawMedicColors.Gray800
-                    )
-                }
-            }
+        if (uiState.errorMessage != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = uiState.errorMessage ?: "",
+                fontSize = 13.sp,
+                color = PawMedicColors.Error,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
