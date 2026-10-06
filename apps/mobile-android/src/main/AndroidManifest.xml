@@ -7,7 +7,9 @@
 
     <application
         android:theme="@style/Theme.PawMedic"
-        android:label="PawMedic"
+        android:label="PawsMedic"
+        android:icon="@drawable/logo"
+        android:roundIcon="@drawable/logo"
         android:usesCleartextTraffic="true">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>

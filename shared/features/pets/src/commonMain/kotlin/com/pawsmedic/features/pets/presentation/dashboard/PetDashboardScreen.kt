@@ -34,11 +34,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pawsmedic.features.appointments.domain.model.Appointment
+import com.pawsmedic.features.appointments.presentation.list.AppointmentsListUiState
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListViewModel
+import com.pawsmedic.features.pets.domain.model.Pet
+import com.pawsmedic.features.pets.presentation.PetListUiState
 import com.pawsmedic.features.pets.presentation.PetListViewModel
 import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun PetDashboardScreen(
@@ -55,6 +61,34 @@ fun PetDashboardScreen(
 ) {
     val petState by petViewModel.uiState.collectAsState()
     val appointmentsState by appointmentsViewModel.uiState.collectAsState()
+
+    PetDashboardContent(
+        petState = petState,
+        appointmentsState = appointmentsState,
+        userName = userName,
+        onNavigateToPetsList = onNavigateToPetsList,
+        onNavigateToAddPet = onNavigateToAddPet,
+        onNavigateToPetDetail = onNavigateToPetDetail,
+        onNavigateToAppointments = onNavigateToAppointments,
+        onNavigateToMedicalHistory = onNavigateToMedicalHistory,
+        onNavigateToBookAppointment = onNavigateToBookAppointment,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun PetDashboardContent(
+    petState: PetListUiState,
+    appointmentsState: AppointmentsListUiState,
+    userName: String = "María",
+    onNavigateToPetsList: () -> Unit = {},
+    onNavigateToAddPet: () -> Unit = {},
+    onNavigateToPetDetail: (String) -> Unit = {},
+    onNavigateToAppointments: () -> Unit = {},
+    onNavigateToMedicalHistory: () -> Unit = {},
+    onNavigateToBookAppointment: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
 
     val selectedPet = petState.selectedPet ?: petState.pets.firstOrNull()
     val appointments = appointmentsState.appointments
@@ -517,5 +551,81 @@ private fun AppointmentCard(
                 )
             }
         }
+    }
+}
+
+@Preview
+@Composable
+fun PetDashboardScreenPreview() {
+    val samplePets = listOf(
+        Pet(
+            id = "pet-1",
+            ownerId = "owner-1",
+            name = "Tobías",
+            species = "Gato",
+            breed = "Persa Mestizo",
+            age = "2 años",
+            gender = "Macho",
+            allergies = "Alergia a la penicilina",
+            photoUrl = null,
+            medicalId = "PM-8942-A",
+            weight = "4.2 kg",
+            isInsured = true
+        ),
+        Pet(
+            id = "pet-2",
+            ownerId = "owner-1",
+            name = "Joey",
+            species = "Perro",
+            breed = "Australian Shepherd",
+            age = "3 años",
+            gender = "Macho",
+            allergies = null,
+            photoUrl = null,
+            medicalId = "PM-1204-B",
+            weight = "15 kg",
+            isInsured = true
+        )
+    )
+
+    val sampleAppointments = listOf(
+        Appointment(
+            id = "app-1",
+            petId = "pet-1",
+            petName = "Tobías",
+            businessId = "biz-1",
+            businessName = "Clinipet Central",
+            serviceId = "serv-1",
+            serviceName = "Consulta General",
+            date = "24 Oct 2023",
+            time = "10:00 AM",
+            notes = "Chequeo de rutina",
+            status = "Confirmada"
+        ),
+        Appointment(
+            id = "app-2",
+            petId = "pet-1",
+            petName = "Tobías",
+            businessId = "biz-1",
+            businessName = "Clinipet Central",
+            serviceId = "serv-2",
+            serviceName = "Vacunación",
+            date = "28 Oct 2023",
+            time = "03:30 PM",
+            notes = null,
+            status = "Pendiente de aprobación"
+        )
+    )
+
+    PawMedicTheme {
+        PetDashboardContent(
+            petState = PetListUiState(
+                pets = samplePets,
+                selectedPet = samplePets.first()
+            ),
+            appointmentsState = AppointmentsListUiState(
+                appointments = sampleAppointments
+            )
+        )
     }
 }
