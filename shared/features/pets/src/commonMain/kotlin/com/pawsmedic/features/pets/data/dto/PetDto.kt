@@ -1,22 +1,23 @@
 package com.pawsmedic.features.pets.data.dto
 
 import com.pawsmedic.features.pets.domain.model.Pet
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class PetDto(
-    val id: String,
-    val ownerId: String,
-    val name: String,
-    val species: String,
-    val breed: String? = null,
-    val age: String? = null,
-    val gender: String? = null,
-    val allergies: String? = null,
-    val photoUrl: String? = null,
-    val medicalId: String? = null,
-    val weight: String? = null,
-    val isInsured: Boolean = false
+    @SerialName("id") val id: String = "",
+    @SerialName("owner_id") val ownerId: String = "",
+    @SerialName("nombre") val name: String = "",
+    @SerialName("especie") val species: String = "Perro",
+    @SerialName("raza") val breed: String? = null,
+    @SerialName("edad") val age: String? = null,
+    @SerialName("sexo") val gender: String? = null,
+    @SerialName("alergias") val allergies: String? = null,
+    @SerialName("foto_url") val photoUrl: String? = null,
+    @SerialName("medical_id") val medicalId: String? = null,
+    @SerialName("peso") val weight: String? = null,
+    @SerialName("is_insured") val isInsured: Boolean = false
 ) {
     fun toDomain() = Pet(
         id = id,

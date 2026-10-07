@@ -6,17 +6,20 @@ import com.pawsmedic.features.auth.domain.model.RegisterParams
 
 interface SupabaseAuthDataSource {
     suspend fun currentSession(): AuthSessionDto?
-    suspend fun signIn(email: String, password: String): AuthSessionDto
+
+    suspend fun signIn(
+        email: String,
+        password: String
+    ): AuthSessionDto
+
     suspend fun signUp(
         email: String,
         password: String,
         role: PawMedicRole,
         fullName: String? = null
     ): AuthSessionDto
-    suspend fun signUp(params: RegisterParams): AuthSessionDto = signUp(
-        email = params.email,
-        password = params.password,
-        role = PawMedicRole.USER
-    )
+
+    suspend fun signUp(params: RegisterParams): AuthSessionDto
+
     suspend fun signOut()
 }

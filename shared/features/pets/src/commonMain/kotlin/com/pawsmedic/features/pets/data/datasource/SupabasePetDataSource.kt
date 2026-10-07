@@ -1,39 +1,68 @@
 package com.pawsmedic.features.pets.data.datasource
 
-import com.pawsmedic.shared.core.model.PetModel
+import com.pawsmedic.features.pets.data.dto.PetDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 
 /**
  * Fuente de datos remota para Mascotas utilizando Supabase Postgrest.
- * Todas las consultas respetan las políticas RLS activas en la tabla 'pets'.
  */
 class SupabasePetDataSource(
     private val supabase: SupabaseClient
-) {
-    /**
-     * Consulta las mascotas del usuario autenticado.
-     * Gracias a RLS en la tabla 'pets', el filtro 'owner_id = ownerId' es validado
-     * automáticamente por la sesión activa de Supabase Auth.
-     */
-    suspend fun listPetsByOwner(ownerId: String): List<PetModel> {
+) : PetDataSource {
+
+    override suspend fun listPets(ownerId: String): List<PetDto> {
         return supabase.postgrest["pets"]
             .select {
                 filter {
-                    eq("owner_id", ownerId)
+                    if (ownerId.isNotBlank()) {
+                        eq("owner_id", ownerId)
+                    }
                 }
             }
-            .decodeList<PetModel>()
+            .decodeList<PetDto>()
     }
 
-    /**
-     * Registra una nueva mascota asociada al cliente autenticado.
-     */
-    suspend fun insertPet(pet: PetModel): PetModel {
+    override suspend fun getPetById(id: String): PetDto? {
+        return supabase.postgrest["pets"]
+            .select {
+                filter {
+                    eq("id", id)
+                }
+            }
+            .decodeSingleOrNull<PetDto>()
+    }
+
+    override suspend fun addPet(pet: PetDto): PetDto {
         return supabase.postgrest["pets"]
             .insert(pet) {
                 select()
             }
-            .decodeSingle<PetModel>()
+            .decodeSingle<PetDto>()
+    }
+
+    override suspend fun updatePet(pet: PetDto): PetDto {
+        return supabase.postgrest["pets"]
+            .update(pet) {
+                filter {
+                    eq("id", pet.id)
+                }
+                select()
+            }
+            .decodeSingle<PetDto>()
+    }
+
+    override suspend fun deletePet(id: String): Boolean {
+        return try {
+            supabase.postgrest["pets"]
+                .delete {
+                    filter {
+                        eq("id", id)
+                    }
+                }
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 }
