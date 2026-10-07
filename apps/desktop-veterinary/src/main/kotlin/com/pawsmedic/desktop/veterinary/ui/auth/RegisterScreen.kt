@@ -18,15 +18,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.veterinary.BusinessRegistration
+import com.pawsmedic.desktop.veterinary.DesktopAccess
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(
-    onNavigateToVetMain: () -> Unit,
+    onSubmit: suspend (BusinessRegistration) -> DesktopAccess?,
     onNavigateToLogin: () -> Unit
 ) {
     var clinicName by remember { mutableStateOf("") }
@@ -35,12 +40,82 @@ fun RegisterScreen(
     var contactPhone by remember { mutableStateOf("") }
 
     var clinicAddress by remember { mutableStateOf("") }
+    var municipality by remember { mutableStateOf("") }
     var vetManagerName by remember { mutableStateOf("") }
     var licenseNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
     var acceptTerms by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun submitRegistration() {
+        val requiredFields = listOf(
+            clinicName,
+            rucTaxId,
+            adminEmail,
+            contactPhone,
+            clinicAddress,
+            municipality,
+            vetManagerName,
+            licenseNumber,
+            password
+        )
+        if (requiredFields.any { it.isBlank() }) {
+            errorMessage = "Completa todos los campos para enviar la solicitud."
+            return
+        }
+        if (!adminEmail.trim().matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))) {
+            errorMessage = "Ingresa un correo electrónico válido."
+            return
+        }
+        if (contactPhone.count(Char::isDigit) < 7) {
+            errorMessage = "Ingresa un teléfono válido con al menos 7 dígitos."
+            return
+        }
+        if (password.length < 8) {
+            errorMessage = "La contraseña debe tener al menos 8 caracteres."
+            return
+        }
+        if (!acceptTerms) {
+            errorMessage = "Debes aceptar los Términos de Servicio."
+            return
+        }
+
+        coroutineScope.launch {
+            isLoading = true
+            errorMessage = null
+            successMessage = null
+            try {
+                val access = onSubmit(
+                    BusinessRegistration(
+                        clinicName = clinicName.trim(),
+                        taxId = rucTaxId.trim(),
+                        email = adminEmail.trim(),
+                        phone = contactPhone.trim(),
+                        address = clinicAddress.trim(),
+                        municipality = municipality.trim(),
+                        veterinarianName = vetManagerName.trim(),
+                        licenseNumber = licenseNumber.trim(),
+                        password = password
+                    )
+                )
+                if (access == null) {
+                    successMessage =
+                        "Solicitud enviada. Confirma tu correo si recibes el mensaje y luego inicia sesión. El acceso quedará pendiente hasta la aprobación del Superadmin."
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                errorMessage = error.message ?: "No se pudo enviar la solicitud."
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -158,7 +233,9 @@ fun RegisterScreen(
 
                         OutlinedTextField(
                             value = contactPhone,
-                            onValueChange = { contactPhone = it },
+                            onValueChange = { value ->
+                                contactPhone = value.filter { it.isDigit() || it in "+- ()" }
+                            },
                             label = { Text("Teléfono de Contacto", color = TextSecondary) },
                             placeholder = { Text("+52 55 1234 5678", color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = TextMuted) },
@@ -183,6 +260,21 @@ fun RegisterScreen(
                             label = { Text("Dirección de la Clínica", color = TextSecondary) },
                             placeholder = { Text("Av. Principal 123, Ciudad", color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextMuted) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ClinicalEmerald,
+                                unfocusedBorderColor = BorderLight
+                            )
+                        )
+
+                        OutlinedTextField(
+                            value = municipality,
+                            onValueChange = { municipality = it },
+                            label = { Text("Municipio / Ciudad", color = TextSecondary) },
+                            placeholder = { Text("ej. Ciudad de México", color = TextMuted) },
+                            leadingIcon = { Icon(Icons.Default.LocationCity, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
@@ -226,6 +318,9 @@ fun RegisterScreen(
                             value = password,
                             onValueChange = { password = it },
                             label = { Text("Contraseña", color = TextSecondary) },
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = KeyboardType.Password
+                            ),
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = TextMuted) },
                             trailingIcon = {
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -249,6 +344,15 @@ fun RegisterScreen(
                 }
 
                 HorizontalDivider(color = BorderLight)
+
+                if (errorMessage != null || successMessage != null) {
+                    Text(
+                        text = errorMessage ?: successMessage.orEmpty(),
+                        color = if (errorMessage != null) Color(0xFFB91C1C) else ClinicalEmerald,
+                        fontSize = 13.sp,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 // PARTE INFERIOR: Checkbox & Botones
                 Row(
@@ -281,6 +385,7 @@ fun RegisterScreen(
                     ) {
                         OutlinedButton(
                             onClick = onNavigateToLogin,
+                            enabled = !isLoading,
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.height(44.dp)
                         ) {
@@ -288,13 +393,18 @@ fun RegisterScreen(
                         }
 
                         Button(
-                            onClick = onNavigateToVetMain,
+                            onClick = ::submitRegistration,
+                            enabled = !isLoading && successMessage == null,
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald),
                             modifier = Modifier.height(44.dp)
                         ) {
                             Text(
-                                text = "Enviar Solicitud de Registro",
+                                text = when {
+                                    isLoading -> "Enviando..."
+                                    successMessage != null -> "Solicitud Enviada"
+                                    else -> "Enviar Solicitud de Registro"
+                                },
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -311,14 +421,14 @@ fun RegisterScreen(
 @Composable
 fun RegisterScreenPreview() {
     RegisterScreen(
-        onNavigateToVetMain = {},
+        onSubmit = { null },
         onNavigateToLogin = {}
     )
 }
 
 fun main() = singleWindowApplication(title = "Preview - Register Screen") {
     RegisterScreen(
-        onNavigateToVetMain = {},
+        onSubmit = { null },
         onNavigateToLogin = {}
     )
 }

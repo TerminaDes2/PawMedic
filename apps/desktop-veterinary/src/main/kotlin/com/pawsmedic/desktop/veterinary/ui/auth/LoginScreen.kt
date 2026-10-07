@@ -22,18 +22,45 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.veterinary.DesktopAccess
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onNavigateToVetMain: () -> Unit,
-    onNavigateToAdminMain: () -> Unit,
+    onLogin: suspend (email: String, password: String) -> DesktopAccess,
+    message: String? = null,
     onNavigateToRegister: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun submitLogin() {
+        if (email.isBlank() || password.isBlank()) {
+            errorMessage = "Ingresa tu correo y contraseña."
+            return
+        }
+
+        coroutineScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                onLogin(email.trim(), password)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                errorMessage = error.message ?: "No se pudo iniciar sesión."
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     val cardDarkIllustration = Color(0xFF1C2A3A)
     val borderDark = Color(0xFF2A3C4E)
@@ -369,9 +396,19 @@ fun LoginScreen(
                             }
                         }
 
+                        if (message != null || errorMessage != null) {
+                            Text(
+                                text = errorMessage ?: message.orEmpty(),
+                                color = if (errorMessage != null) Color(0xFFB91C1C) else ClinicalEmerald,
+                                fontSize = 12.sp,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
                         // Botón Principal Esmeralda
                         Button(
-                            onClick = onNavigateToVetMain,
+                            onClick = ::submitLogin,
+                            enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(46.dp),
@@ -382,9 +419,17 @@ fun LoginScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                }
                                 Text(
-                                    text = "Ingresar al Sistema",
+                                    text = if (isLoading) "Verificando acceso..." else "Ingresar al Sistema",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -418,20 +463,6 @@ fun LoginScreen(
             }
         }
 
-        // Botón Secreto Admin en la esquina inferior derecha
-        TextButton(
-            onClick = onNavigateToAdminMain,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "v1.0",
-                color = Color.Black.copy(alpha = 0.12f),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
     }
 }
 
@@ -439,16 +470,14 @@ fun LoginScreen(
 @Composable
 fun LoginScreenPreview() {
     LoginScreen(
-        onNavigateToVetMain = {},
-        onNavigateToAdminMain = {},
+        onLogin = { _, _ -> DesktopAccess.Administrator },
         onNavigateToRegister = {}
     )
 }
 
 fun main() = singleWindowApplication(title = "Preview - Login Screen") {
     LoginScreen(
-        onNavigateToVetMain = {},
-        onNavigateToAdminMain = {},
+        onLogin = { _, _ -> DesktopAccess.Administrator },
         onNavigateToRegister = {}
     )
 }
