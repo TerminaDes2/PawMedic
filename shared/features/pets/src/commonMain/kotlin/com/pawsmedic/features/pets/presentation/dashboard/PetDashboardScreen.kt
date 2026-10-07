@@ -19,8 +19,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.FolderShared
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -182,7 +193,12 @@ fun PetDashboardContent(
                         .background(PawMedicColors.Teal100),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "👩🏻", fontSize = 24.sp)
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(26.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
@@ -210,7 +226,12 @@ fun PetDashboardContent(
                     .clickable { showNotificationsModal = true },
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🔔", fontSize = 20.sp)
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Notificaciones",
+                    tint = PawMedicColors.Gray700,
+                    modifier = Modifier.size(22.dp)
+                )
                 if (pendingCount > 0) {
                     Box(
                         modifier = Modifier
@@ -306,7 +327,7 @@ fun PetDashboardContent(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             QuickAccessCard(
-                icon = "🐾",
+                icon = Icons.Default.Pets,
                 title = "Mis mascotas",
                 backgroundColor = Color(0xFFE6F4EA),
                 onClick = onNavigateToPetsList,
@@ -314,7 +335,7 @@ fun PetDashboardContent(
             )
             Spacer(modifier = Modifier.width(10.dp))
             QuickAccessCard(
-                icon = "📅",
+                icon = Icons.Default.CalendarMonth,
                 title = "Mis citas",
                 backgroundColor = Color(0xFFFEF7E0),
                 onClick = onNavigateToAppointments,
@@ -322,7 +343,7 @@ fun PetDashboardContent(
             )
             Spacer(modifier = Modifier.width(10.dp))
             QuickAccessCard(
-                icon = "📄",
+                icon = Icons.Default.FolderShared,
                 title = "Historial",
                 backgroundColor = Color(0xFFF3E8FF),
                 onClick = onNavigateToMedicalHistory,
@@ -424,7 +445,12 @@ fun PetDashboardContent(
                         color = PawMedicColors.Gray900
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "⭐", fontSize = 14.sp)
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFF59E0B),
+                            modifier = Modifier.size(16.dp)
+                        )
                         Text(
                             text = "4.9",
                             fontSize = 14.sp,
@@ -453,7 +479,7 @@ fun PetDashboardContent(
 
 @Composable
 private fun QuickAccessCard(
-    icon: String,
+    icon: ImageVector,
     title: String,
     backgroundColor: Color,
     onClick: () -> Unit,
@@ -467,7 +493,12 @@ private fun QuickAccessCard(
             .padding(vertical = 16.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = icon, fontSize = 26.sp)
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = PawMedicColors.Teal700,
+            modifier = Modifier.size(26.dp)
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = title,
@@ -512,7 +543,12 @@ private fun AppointmentCard(
                         .background(PawMedicColors.Teal50),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "📅", fontSize = 20.sp)
+                    Icon(
+                        imageVector = Icons.Default.Event,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {

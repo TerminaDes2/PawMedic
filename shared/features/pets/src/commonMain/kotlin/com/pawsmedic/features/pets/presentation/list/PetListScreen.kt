@@ -21,7 +21,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -277,7 +281,11 @@ fun PetListScreen(
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
         ) {
-            Text(text = "+", fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Agregar mascota",
+                tint = PawMedicColors.White
+            )
         }
     }
 }
@@ -339,6 +347,10 @@ private fun RecordRowItem(
                 color = PawMedicColors.Gray900
             )
         }
-        Text(text = "›", fontSize = 24.sp, color = PawMedicColors.Gray400)
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = PawMedicColors.Gray400
+        )
     }
 }

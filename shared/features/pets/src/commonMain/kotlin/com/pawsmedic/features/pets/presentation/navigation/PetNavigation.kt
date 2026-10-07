@@ -14,11 +14,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.FolderShared
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -119,7 +127,7 @@ fun PetNavHost(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 BottomNavItem(
-                    icon = "🏠",
+                    icon = Icons.Default.Home,
                     label = "Inicio",
                     isSelected = pagerState.currentPage == 0,
                     onClick = {
@@ -127,7 +135,7 @@ fun PetNavHost(
                     }
                 )
                 BottomNavItem(
-                    icon = "🐾",
+                    icon = Icons.Default.Pets,
                     label = "Mascotas",
                     isSelected = pagerState.currentPage == 1,
                     onClick = {
@@ -137,7 +145,7 @@ fun PetNavHost(
                     }
                 )
                 BottomNavItem(
-                    icon = "📅",
+                    icon = Icons.Default.CalendarMonth,
                     label = "Citas",
                     isSelected = pagerState.currentPage == 2,
                     onClick = {
@@ -147,7 +155,7 @@ fun PetNavHost(
                     }
                 )
                 BottomNavItem(
-                    icon = "📄",
+                    icon = Icons.Default.FolderShared,
                     label = "Historial",
                     isSelected = pagerState.currentPage == 3,
                     onClick = {
@@ -348,7 +356,7 @@ fun PetNavHost(
 
 @Composable
 private fun BottomNavItem(
-    icon: String,
+    icon: ImageVector,
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -357,7 +365,12 @@ private fun BottomNavItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable { onClick() }
     ) {
-        Text(text = icon, fontSize = 22.sp)
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray500,
+            modifier = Modifier.size(24.dp)
+        )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,

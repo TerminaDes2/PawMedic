@@ -17,9 +17,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,7 +75,12 @@ fun VeterinaryListScreen(
                 )
             },
             leadingIcon = {
-                Text(text = "🔍", fontSize = 16.sp, color = PawMedicColors.Gray400)
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Buscar",
+                    tint = PawMedicColors.Gray400,
+                    modifier = Modifier.size(20.dp)
+                )
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -150,7 +160,12 @@ private fun VeterinaryCard(
                     .background(PawMedicColors.Teal50),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🏥", fontSize = 64.sp)
+                Icon(
+                    imageVector = Icons.Default.LocalHospital,
+                    contentDescription = null,
+                    tint = PawMedicColors.Teal600,
+                    modifier = Modifier.size(56.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -168,7 +183,12 @@ private fun VeterinaryCard(
                     color = PawMedicColors.Gray900
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "⭐", fontSize = 14.sp)
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFF59E0B),
+                        modifier = Modifier.size(16.dp)
+                    )
                     Text(
                         text = clinic.rating.toString(),
                         fontSize = 14.sp,

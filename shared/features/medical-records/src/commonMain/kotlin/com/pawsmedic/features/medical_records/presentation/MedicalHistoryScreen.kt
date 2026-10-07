@@ -20,9 +20,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -87,7 +91,12 @@ fun MedicalHistoryScreen(
                                 .background(PawMedicColors.Teal50),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "🐱", fontSize = 20.sp)
+                            Icon(
+                                imageVector = Icons.Default.Pets,
+                                contentDescription = null,
+                                tint = PawMedicColors.Teal600,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
@@ -132,7 +141,12 @@ fun MedicalHistoryScreen(
                 )
             },
             leadingIcon = {
-                Text(text = "🔍", fontSize = 16.sp, color = PawMedicColors.Gray400)
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Buscar",
+                    tint = PawMedicColors.Gray400,
+                    modifier = Modifier.size(20.dp)
+                )
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
