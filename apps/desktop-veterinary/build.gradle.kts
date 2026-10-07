@@ -19,12 +19,8 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 dependencies {
     implementation(project(":shared:features:auth"))
-    implementation(project(":shared:core:model"))
     implementation(project(":apps:desktop-admin"))
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.supabase.postgrest)
-    implementation(libs.supabase.auth)
-    implementation(libs.ktor.client.cio)
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)

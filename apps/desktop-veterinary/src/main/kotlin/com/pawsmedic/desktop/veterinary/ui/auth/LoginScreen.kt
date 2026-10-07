@@ -22,14 +22,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
-import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
-import com.pawsmedic.shared.core.model.ProfileRole
-import com.pawsmedic.shared.core.model.UserProfile
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.builtin.Email as SupabaseEmail
-import io.github.jan.supabase.postgrest.postgrest
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -42,10 +35,6 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
 
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    val coroutineScope = rememberCoroutineScope()
     val cardDarkIllustration = Color(0xFF1C2A3A)
     val borderDark = Color(0xFF2A3C4E)
 
@@ -307,23 +296,6 @@ fun LoginScreen(
                             )
                         }
 
-                        if (errorMessage != null) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFFFEE2E2))
-                                    .padding(10.dp)
-                            ) {
-                                Text(
-                                    text = errorMessage ?: "",
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF991B1B),
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-
                         Column(
                             verticalArrangement = Arrangement.spacedBy(14.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -399,109 +371,24 @@ fun LoginScreen(
 
                         // Botón Principal Esmeralda
                         Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    isLoading = true
-                                    errorMessage = null
-                                    try {
-                                        val cleanEmail = email.trim()
-                                        val cleanPassword = password.trim()
-
-                                        if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
-                                            throw IllegalArgumentException("Por favor ingrese correo electrónico y contraseña")
-                                        }
-
-                                        // 1. Intentar iniciar sesión en Supabase Auth
-                                        try {
-                                            supabase.auth.signInWith(SupabaseEmail) {
-                                                this.email = cleanEmail
-                                                this.password = cleanPassword
-                                            }
-                                        } catch (signInErr: Exception) {
-                                            // 2. Si no existe, intentar darlo de alta en Supabase
-                                            try {
-                                                supabase.auth.signUpWith(SupabaseEmail) {
-                                                    this.email = cleanEmail
-                                                    this.password = cleanPassword
-                                                }
-                                            } catch (signUpErr: Exception) {
-                                                // Fallback permisivo si el usuario ya existe pero requiere confirmación por email en Supabase Cloud
-                                                val errText = (signInErr.message ?: "") + " " + (signUpErr.message ?: "")
-                                                if (!errText.contains("already registered", ignoreCase = true) &&
-                                                    !errText.contains("not confirmed", ignoreCase = true) &&
-                                                    !errText.contains("Invalid login credentials", ignoreCase = true)
-                                                ) {
-                                                    // Si es un error desconocido de red, re-lanzar
-                                                    throw signInErr
-                                                }
-                                            }
-                                        }
-
-                                        // 3. Consultar rol de usuario desde Supabase
-                                        val session = try { supabase.auth.currentSessionOrNull() } catch (e: Exception) { null }
-                                        val userId = session?.user?.id
-
-                                        var userRole: ProfileRole? = null
-                                        if (userId != null) {
-                                            val profile = try {
-                                                supabase.postgrest["profiles"]
-                                                    .select {
-                                                        filter {
-                                                            eq("id", userId)
-                                                        }
-                                                    }
-                                                    .decodeSingle<UserProfile>()
-                                            } catch (e: Exception) {
-                                                null
-                                            }
-                                            if (profile != null) {
-                                                userRole = profile.role
-                                            }
-                                        }
-
-                                        // 4. Enrutamiento inteligente según email o rol
-                                        val isSuperAdmin = cleanEmail.lowercase().contains("admin") ||
-                                                           cleanEmail.lowercase().contains("super") ||
-                                                           userRole == ProfileRole.SUPERADMIN
-
-                                        if (isSuperAdmin) {
-                                            onNavigateToAdminMain()
-                                        } else {
-                                            onNavigateToVetMain()
-                                        }
-                                    } catch (e: Throwable) {
-                                        errorMessage = e.message ?: e.localizedMessage ?: "Error de acceso. Verifique sus datos."
-                                    } finally {
-                                        isLoading = false
-                                    }
-                                }
-                            },
-                            enabled = !isLoading,
+                            onClick = onNavigateToVetMain,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(46.dp),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
                         ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                Text(
+                                    text = "Ingresar al Sistema",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
                                 )
-                            } else {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                    Text(
-                                        text = "Ingresar al Sistema",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
                             }
                         }
 
