@@ -132,10 +132,26 @@ class RegisterViewModel(
                     )
                 }
             }.onFailure { error ->
+                val rawMsg = error.message.orEmpty()
+                val userFriendlyMessage = if (
+                    rawMsg.lowercase().contains("unable to resolve host") ||
+                    rawMsg.lowercase().contains("no address associated") ||
+                    rawMsg.lowercase().contains("unknownhost") ||
+                    rawMsg.lowercase().contains("connection timed out") ||
+                    rawMsg.lowercase().contains("request timeout") ||
+                    rawMsg.lowercase().contains("timeout") ||
+                    rawMsg.lowercase().contains("eai_nodata") ||
+                    rawMsg.lowercase().contains("eai_again") ||
+                    rawMsg.lowercase().contains("verifica tu conexión")
+                ) {
+                    "La conexión con Supabase tardó demasiado. Verifica tu internet e inténtalo de nuevo."
+                } else {
+                    rawMsg.ifBlank { "Error al registrarse. Inténtalo de nuevo." }
+                }
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Error al registrarse. Inténtalo de nuevo."
+                        errorMessage = userFriendlyMessage
                     )
                 }
             }

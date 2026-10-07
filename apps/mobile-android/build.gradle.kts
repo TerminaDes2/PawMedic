@@ -43,6 +43,7 @@ dependencies {
     implementation(project(":shared:core:network")) // Agregado para acceder a red/Supabase
     implementation(project(":shared:features:auth"))
     implementation(project(":shared:features:pets"))
+    implementation(project(":shared:features:appointments"))
     implementation(project(":shared:core:design-system"))
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation(libs.koin.core)
