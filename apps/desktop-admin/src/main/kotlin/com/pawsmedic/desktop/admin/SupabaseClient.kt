@@ -1,4 +1,4 @@
-package com.pawsmedic.desktop.veterinary
+package com.pawsmedic.desktop.admin
 
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth

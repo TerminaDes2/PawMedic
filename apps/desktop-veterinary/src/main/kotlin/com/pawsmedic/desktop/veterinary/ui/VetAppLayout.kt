@@ -27,6 +27,7 @@ fun VetAppLayout(
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {},
     title: String,
+    userEmail: String = "",
     content: @Composable BoxScope.() -> Unit
 ) {
     var showAdminModal by remember { mutableStateOf(false) }
@@ -163,7 +164,8 @@ fun VetAppLayout(
                             modifier = Modifier.width(300.dp)
                         )
 
-                        // Perfil Doctor & Cerrar Sesión
+                        // Perfil Usuario (Muestra icono y nombre antes de @)
+                        val displayName = if (userEmail.isNotBlank()) userEmail.substringBefore("@") else "Dr. Valdez"
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -179,23 +181,23 @@ fun VetAppLayout(
                                         .background(EmeraldLightBg),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "DV",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = ClinicalEmerald
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = ClinicalEmerald,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
 
                                 Column {
                                     Text(
-                                        text = "Dr. Valdez",
+                                        text = displayName,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = TextPrimary
                                     )
                                     Text(
-                                        text = "Clínica Principal",
+                                        text = userEmail.ifBlank { "Clínica Principal" },
                                         fontSize = 11.sp,
                                         color = TextMuted
                                     )

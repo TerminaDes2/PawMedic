@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 
 data class CatalogItem(
     val sku: String,
@@ -30,18 +32,26 @@ data class CatalogItem(
     val category: String,
     val price: String,
     val duration: String,
-    val status: String
+    var status: String = "Activo"
 )
 
 @Composable
 fun CatalogScreen(
+    userEmail: String = "",
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {}
 ) {
     var selectedCategory by remember { mutableStateOf("Todos") }
+    var showNewServiceModal by remember { mutableStateOf(false) }
+
+    var newSku by remember { mutableStateOf("") }
+    var newName by remember { mutableStateOf("") }
+    var newCategory by remember { mutableStateOf("Consultas") }
+    var newPrice by remember { mutableStateOf("") }
+    var newDuration by remember { mutableStateOf("30 min") }
 
     val catalogItems = remember {
-        listOf(
+        mutableStateListOf(
             CatalogItem("SRV-001", "Consulta General Veterinaria", "Consultas", "$450.00 MXN", "30 min", "Activo"),
             CatalogItem("SRV-002", "Vacunación Sextuple Canina", "Vacunas", "$600.00 MXN", "15 min", "Activo"),
             CatalogItem("SRV-003", "Limpieza Dental Ultrasonido", "Cirugías", "$1,800.00 MXN", "90 min", "Activo"),
@@ -56,7 +66,8 @@ fun CatalogScreen(
         currentScreen = "Catalog",
         onNavigate = onNavigate,
         onLogout = onLogout,
-        title = "Catálogo de Servicios y Tarifas"
+        title = "Catálogo de Servicios y Tarifas",
+        userEmail = userEmail
     ) {
         Box(
             modifier = Modifier
@@ -91,7 +102,7 @@ fun CatalogScreen(
                             .height(40.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(EmeraldGreen)
-                            .clickable { }
+                            .clickable { showNewServiceModal = true }
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -112,7 +123,7 @@ fun CatalogScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    listOf("Todos", "Consultas", "Cirugías", "Vacunas", "Estética", "Laboratorio").forEach { cat ->
+                    listOf("Todos", "Consultas", "Cirugías", "Vacunas", "Estética", "Laboratorio", "Diagnóstico").forEach { cat ->
                         val isSel = selectedCategory == cat
                         Box(
                             modifier = Modifier
@@ -181,11 +192,122 @@ fun CatalogScreen(
                                 modifier = Modifier
                                     .weight(0.10f)
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(Color(0xFFDCFCE7))
-                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                                    .background(if (item.status == "Activo") Color(0xFFDCFCE7) else Color(0xFFFEE2E2))
+                                    .clickable {
+                                        val idx = catalogItems.indexOf(item)
+                                        if (idx != -1) {
+                                            catalogItems[idx] = item.copy(status = if (item.status == "Activo") "Inactivo" else "Activo")
+                                        }
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(item.status, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
+                                Text(item.status, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (item.status == "Activo") Color(0xFF166534) else Color(0xFF991B1B))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // MODAL DE AGREGAR NUEVO SERVICIO
+        if (showNewServiceModal) {
+            Dialog(onDismissRequest = { showNewServiceModal = false }) {
+                Card(
+                    modifier = Modifier
+                        .width(480.dp)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Agregar Nuevo Servicio", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            IconButton(onClick = { showNewServiceModal = false }) {
+                                Icon(Icons.Default.Close, contentDescription = null, tint = TextMuted)
+                            }
+                        }
+
+                        HorizontalDivider(color = BorderLight)
+
+                        OutlinedTextField(
+                            value = newSku,
+                            onValueChange = { newSku = it },
+                            label = { Text("Código / SKU") },
+                            placeholder = { Text("ej. SRV-008") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = newName,
+                            onValueChange = { newName = it },
+                            label = { Text("Nombre del Servicio") },
+                            placeholder = { Text("ej. Ultrasonido Abdominal") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = newPrice,
+                            onValueChange = { newPrice = it },
+                            label = { Text("Precio Base ($ MXN)") },
+                            placeholder = { Text("ej. $750.00 MXN") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showNewServiceModal = false },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Cancelar", color = TextPrimary)
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (newName.isNotBlank() && newPrice.isNotBlank()) {
+                                        catalogItems.add(
+                                            CatalogItem(
+                                                sku = newSku.ifBlank { "SRV-00${catalogItems.size + 1}" },
+                                                name = newName.trim(),
+                                                category = newCategory,
+                                                price = if (newPrice.contains("$")) newPrice.trim() else "$$newPrice MXN",
+                                                duration = newDuration,
+                                                status = "Activo"
+                                            )
+                                        )
+                                        showNewServiceModal = false
+                                        newSku = ""
+                                        newName = ""
+                                        newPrice = ""
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
+                            ) {
+                                Text("Guardar Servicio", color = Color.White)
                             }
                         }
                     }

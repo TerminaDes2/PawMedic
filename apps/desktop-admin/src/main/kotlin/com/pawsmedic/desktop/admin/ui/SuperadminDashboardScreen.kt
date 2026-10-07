@@ -26,6 +26,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.admin.model.BusinessApplicationDto
+import com.pawsmedic.desktop.admin.supabase
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.launch
 
 val AdminOffWhiteBg = Color(0xFFF8FAFC)
 val AdminDarkSlate = Color(0xFF0F172A)
@@ -61,6 +65,7 @@ data class AuditLog(
 
 @Composable
 fun SuperadminDashboardScreen(
+    userEmail: String = "",
     onLogout: () -> Unit = {}
 ) {
     var selectedModule by remember { mutableStateOf(0) } // 0: Monitoreo, 1: Solicitudes, 2: Auditoría
@@ -197,7 +202,7 @@ fun SuperadminDashboardScreen(
                     Text(
                         text = when (selectedModule) {
                             0 -> "Monitoreo del Sistema & Servidores"
-                            1 -> "Solicitudes de Registro de Veterinarias"
+                            1 -> "Solicitudes de Registro de Veterinarias y Cuentas"
                             else -> "Auditoría, Licencias & Seguridad"
                         },
                         fontSize = 22.sp,
@@ -259,6 +264,7 @@ fun SuperadminDashboardScreen(
                         }
 
                         // Profile Root & Cerrar Sesión
+                        val displayName = if (userEmail.isNotBlank()) userEmail.substringBefore("@") else "admin"
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -274,23 +280,23 @@ fun SuperadminDashboardScreen(
                                         .background(AdminSelectedBg),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "SA",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = AdminSelectedText
+                                    Icon(
+                                        imageVector = Icons.Default.AdminPanelSettings,
+                                        contentDescription = null,
+                                        tint = AdminSelectedText,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
 
                                 Column {
                                     Text(
-                                        text = "Sesión Activa: Root",
+                                        text = displayName,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = AdminTextPrimary
                                     )
                                     Text(
-                                        text = "Control Central",
+                                        text = userEmail.ifBlank { "Control Central" },
                                         fontSize = 11.sp,
                                         color = AdminTextMuted
                                     )
@@ -500,11 +506,73 @@ fun MonitoreoModule() {
     }
 }
 
-// MÓDULO 2: SOLICITUDES CON DETALLE EN DOBLE CLICK
+// MÓDULO 2: SOLICITUDES DIVIDIDAS EN SUB-PESTAÑAS (VETERINARIAS VS SUPERADMIN)
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
+    var subTab by remember { mutableStateOf(0) } // 0: Veterinarias, 1: Superadmin
     var selectedRequestForDetail by remember { mutableStateOf<RegistrationRequest?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    val superadminRequests = remember {
+        mutableStateListOf(
+            RegistrationRequest("SOL-ADM-001", "N/A - Control Central", "Lic. Roberto Gómez", "ADMIN-001", "29/09/2026", "Pendiente", "roberto.gomez@pawsmedic.com", "+52 55 1122 3344", "Oficina Central Central", "CÉD-ADM-01"),
+            RegistrationRequest("SOL-ADM-002", "N/A - Control Central", "Ing. Daniela Morales", "ADMIN-002", "30/09/2026", "Pendiente", "daniela.morales@pawsmedic.com", "+52 55 9988 7766", "Oficina Central Norte", "CÉD-ADM-02")
+        )
+    }
+
+    val currentList = if (subTab == 0) requests else superadminRequests
+
+    // Consulta en tiempo real a Supabase Postgrest 'business_applications'
+    LaunchedEffect(Unit) {
+        try {
+            val fetchedApps = supabase.postgrest["business_applications"]
+                .select()
+                .decodeList<BusinessApplicationDto>()
+
+            if (fetchedApps.isNotEmpty()) {
+                requests.clear()
+                fetchedApps.forEach { dto ->
+                    requests.add(
+                        RegistrationRequest(
+                            id = dto.id ?: "SOL-2026-001",
+                            name = dto.businessName.ifBlank { "Clínica Veterinaria" },
+                            rep = dto.applicantName.ifBlank { "MVZ Responsable" },
+                            rfc = dto.taxId.ifBlank { "VET123456789" },
+                            date = "Hoy",
+                            status = if (dto.status.contains("APROB", ignoreCase = true)) "Aprobado"
+                                     else if (dto.status.contains("RECHAZ", ignoreCase = true)) "Rechazado"
+                                     else "Pendiente",
+                            email = dto.email.ifBlank { "contacto@clinica.com" },
+                            phone = dto.phone.ifBlank { "+52 55 1234 5678" },
+                            address = dto.address.ifBlank { "Av. Principal #123" }
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            // Se conserva la lista inicial
+        }
+    }
+
+    fun updateStatus(req: RegistrationRequest, newStatus: String) {
+        val idx = currentList.indexOf(req)
+        if (idx != -1) currentList[idx] = req.copy(status = newStatus)
+
+        coroutineScope.launch {
+            try {
+                val dbStatus = if (newStatus == "Aprobado") "APROBADA" else "RECHAZADA"
+                supabase.postgrest["business_applications"]
+                    .update(mapOf("status" to dbStatus)) {
+                        filter {
+                            eq("id", req.id)
+                        }
+                    }
+            } catch (e: Exception) {
+                // Actualizado localmente
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -522,21 +590,36 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
             ) {
                 Column {
                     Text("Solicitudes de Registro Pendientes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                    Text("Aprueba o rechaza el alta de nuevas clínicas. Haz doble clic en una fila para ver los detalles completos.", fontSize = 12.sp, color = AdminTextSecondary)
+                    Text("Aprueba o rechaza cuentas de Veterinarias y Operadores Superadmin.", fontSize = 12.sp, color = AdminTextSecondary)
                 }
 
-                Box(
+                // SUB-PESTAÑAS: VETERINARIAS VS SUPERADMIN
+                Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(AdminSelectedBg)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(AdminOffWhiteBg)
+                        .border(1.dp, AdminBorderLight, RoundedCornerShape(10.dp))
+                        .padding(4.dp)
                 ) {
-                    Text(
-                        text = "💡 Tip: Doble clic abre detalle",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AdminSelectedText
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (subTab == 0) AdminEmeraldGreen else Color.Transparent)
+                            .clickable { subTab = 0 }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text("Veterinarias", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (subTab == 0) Color.White else AdminTextSecondary)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (subTab == 1) AdminEmeraldGreen else Color.Transparent)
+                            .clickable { subTab = 1 }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text("Cuentas Superadmin", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (subTab == 1) Color.White else AdminTextSecondary)
+                    }
                 }
             }
 
@@ -553,8 +636,8 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("FOLIO", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.12f))
-                Text("NOMBRE VETERINARIA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.28f))
-                Text("REPRESENTANTE / MVZ", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.22f))
+                Text(if (subTab == 0) "NOMBRE VETERINARIA" else "OFICINA CENTRAL", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.28f))
+                Text("SOLICITANTE / MVZ", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.22f))
                 Text("RFC / CÉDULA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.15f))
                 Text("FECHA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
                 Text("ACCIONES", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.13f))
@@ -566,7 +649,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(requests) { req ->
+                items(currentList) { req ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -597,10 +680,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                         .height(32.dp)
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(AdminEmeraldGreen)
-                                        .clickable {
-                                            val idx = requests.indexOf(req)
-                                            if (idx != -1) requests[idx] = req.copy(status = "Aprobado")
-                                        },
+                                        .clickable { updateStatus(req, "Aprobado") },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text("Aprobar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -613,10 +693,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(Color.White)
                                         .border(1.dp, AdminBorderLight, RoundedCornerShape(6.dp))
-                                        .clickable {
-                                            val idx = requests.indexOf(req)
-                                            if (idx != -1) requests[idx] = req.copy(status = "Rechazado")
-                                        },
+                                        .clickable { updateStatus(req, "Rechazado") },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text("Rechazar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
@@ -681,7 +758,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Store,
+                                    imageVector = if (subTab == 0) Icons.Default.Store else Icons.Default.AdminPanelSettings,
                                     contentDescription = null,
                                     tint = AdminEmeraldGreen,
                                     modifier = Modifier.size(24.dp)
@@ -741,17 +818,17 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             DetailItem(label = "RUC / ID Fiscal", value = req.rfc, icon = Icons.Default.Badge)
-                            DetailItem(label = "Dirección de la Clínica", value = req.address, icon = Icons.Default.LocationOn)
+                            DetailItem(label = "Dirección Registrada", value = req.address, icon = Icons.Default.LocationOn)
                             DetailItem(label = "Correo Administrador", value = req.email, icon = Icons.Default.Email)
                         }
 
-                        // Columna 2: Datos Responsable Médico
+                        // Columna 2: Datos Responsable Médico / Operador
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            DetailItem(label = "Veterinario Responsable", value = req.rep, icon = Icons.Default.Person)
-                            DetailItem(label = "Cédula Profesional", value = req.licenseNumber, icon = Icons.Default.Verified)
+                            DetailItem(label = "Solicitante Responsable", value = req.rep, icon = Icons.Default.Person)
+                            DetailItem(label = "Cédula / Licencia", value = req.licenseNumber, icon = Icons.Default.Verified)
                             DetailItem(label = "Teléfono de Contacto", value = req.phone, icon = Icons.Default.Phone)
                         }
                     }
@@ -775,8 +852,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 OutlinedButton(
                                     onClick = {
-                                        val idx = requests.indexOf(req)
-                                        if (idx != -1) requests[idx] = req.copy(status = "Rechazado")
+                                        updateStatus(req, "Rechazado")
                                         selectedRequestForDetail = null
                                     },
                                     shape = RoundedCornerShape(8.dp),
@@ -787,14 +863,13 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
 
                                 Button(
                                     onClick = {
-                                        val idx = requests.indexOf(req)
-                                        if (idx != -1) requests[idx] = req.copy(status = "Aprobado")
+                                        updateStatus(req, "Aprobado")
                                         selectedRequestForDetail = null
                                     },
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = AdminEmeraldGreen)
                                 ) {
-                                    Text("Aprobar Solicitud", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("Aprobar Habilitación", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                             }
                         }

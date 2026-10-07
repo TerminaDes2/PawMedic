@@ -40,6 +40,7 @@ data class CalendarTimeSlot(
 
 @Composable
 fun AgendaScreen(
+    userEmail: String = "",
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {}
 ) {
@@ -68,7 +69,8 @@ fun AgendaScreen(
         currentScreen = "Agenda",
         onNavigate = onNavigate,
         onLogout = onLogout,
-        title = "Agenda y Citas Médicas"
+        title = "Agenda y Citas Médicas",
+        userEmail = userEmail
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),

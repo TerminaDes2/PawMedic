@@ -1,4 +1,4 @@
-package com.pawsmedic.desktop.veterinary.model
+package com.pawsmedic.desktop.admin.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

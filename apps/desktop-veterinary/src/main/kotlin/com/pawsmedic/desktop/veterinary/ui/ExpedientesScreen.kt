@@ -5,9 +5,11 @@ import com.pawsmedic.desktop.veterinary.ui.theme.*
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.ui.window.singleWindowApplication
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 
 data class Patient(
     val id: String,
@@ -38,16 +41,20 @@ data class Patient(
     val allergies: String?
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ExpedientesScreen(
+    userEmail: String = "",
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {}
 ) {
     var selectedCategory by remember { mutableStateOf("Todos") }
     var selectedTab by remember { mutableStateOf(0) }
+    var showPatientDetailModal by remember { mutableStateOf<Patient?>(null) }
+    var showNewPatientModal by remember { mutableStateOf(false) }
 
     val patients = remember {
-        listOf(
+        mutableStateListOf(
             Patient("1", "Coco", "Maltés", "Canino", "2 años", "4.2 kg", "Elena Rostova", "55-9831-2983", "Hoy", "Penicilina"),
             Patient("2", "Thor", "Pastor Alemán", "Canino", "4 años", "32.5 kg", "Roberto Fernández", "55-9876-5432", "28/09/2026", "Derivados de Sulfa"),
             Patient("3", "Luna", "Siamés", "Felino", "2 años 8 meses", "4.1 kg", "Ana Silva", "55-1234-9876", "20/09/2026", null),
@@ -62,7 +69,8 @@ fun ExpedientesScreen(
         currentScreen = "Expedientes",
         onNavigate = onNavigate,
         onLogout = onLogout,
-        title = "Expedientes Clínicos"
+        title = "Expedientes Clínicos",
+        userEmail = userEmail
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -79,14 +87,24 @@ fun ExpedientesScreen(
                     .padding(16.dp)
             ) {
                 Column {
-                    Text(
-                        text = "Pacientes Registrados",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Pacientes Registrados",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        IconButton(onClick = { showNewPatientModal = true }) {
+                            Icon(Icons.Default.AddCircle, contentDescription = null, tint = ClinicalEmerald)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Chips de Categoría
                     Row(
@@ -137,7 +155,10 @@ fun ExpedientesScreen(
                                         color = if (isSelected) EmeraldGreen else BorderLight,
                                         shape = RoundedCornerShape(10.dp)
                                     )
-                                    .clickable { selectedPatient = p }
+                                    .combinedClickable(
+                                        onClick = { selectedPatient = p },
+                                        onDoubleClick = { showPatientDetailModal = p }
+                                    )
                                     .padding(12.dp)
                             ) {
                                 Row(
@@ -258,7 +279,7 @@ fun ExpedientesScreen(
                                 .height(38.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(EmeraldGreen)
-                                .clickable { }
+                                .clickable { showPatientDetailModal = selectedPatient }
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -267,12 +288,12 @@ fun ExpedientesScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Add,
+                                    imageVector = Icons.Default.Visibility,
                                     contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Text("Nueva Consulta", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("Ver Expediente Completo", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                     }
@@ -330,7 +351,7 @@ fun ExpedientesScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Contenido SOAP
+                    // Contenido SOAP / Vacunas
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -339,21 +360,121 @@ fun ExpedientesScreen(
                             .border(1.dp, BorderLight, RoundedCornerShape(10.dp))
                             .padding(16.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (selectedTab == 0) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Fecha: Hoy (11:00 AM) · Dr. Valdez", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                    Text("Estado: Finalizada", fontSize = 12.sp, color = TextMuted)
+                                }
+
+                                HorizontalDivider(color = BorderLight)
+
+                                Text("S (Subjetivo): El dueño consulta por enrojecimiento y prurito recurrente en orejas y vientre.", fontSize = 13.sp, color = TextPrimary)
+                                Text("O (Objetivo): Lesiones eritematosas moderadas en pabellón auricular y zona ventral. Sin secreción purulenta.", fontSize = 13.sp, color = TextPrimary)
+                                Text("A (Evaluación): Dermatitis atópica / Alergia por contacto.", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text("P (Plan & Tratamiento): Limpieza auricular diaria con solución antiséptica + antihistamínico vía oral 5 días.", fontSize = 13.sp, color = TextPrimary)
+                            }
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Carnet de Vacunación Digital", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                HorizontalDivider(color = BorderLight)
+                                Text("✓ Rabia - Aplicada el 10/01/2026 (Próxima: 10/01/2027)", fontSize = 13.sp, color = TextPrimary)
+                                Text("✓ Séptuple Canina - Aplicada el 15/05/2026 (Próxima: 15/05/2027)", fontSize = 13.sp, color = TextPrimary)
+                                Text("✓ Desparasitación Interna - Aplicada hace 2 meses", fontSize = 13.sp, color = TextPrimary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // MODAL FICHA CLÍNICA EN DOBLE CLIC
+        if (showPatientDetailModal != null) {
+            val p = showPatientDetailModal!!
+            Dialog(onDismissRequest = { showPatientDetailModal = null }) {
+                Card(
+                    modifier = Modifier
+                        .width(620.dp)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(28.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                Text("Fecha: Hoy (11:00 AM) · Dr. Valdez", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                                Text("Estado: Finalizada", fontSize = 12.sp, color = TextMuted)
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .clip(CircleShape)
+                                        .background(EmeraldLightBg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = p.name.take(2).uppercase(),
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ClinicalEmerald
+                                    )
+                                }
+                                Column {
+                                    Text(p.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                    Text("${p.species} · ${p.breed}", fontSize = 13.sp, color = TextSecondary)
+                                }
                             }
 
-                            HorizontalDivider(color = BorderLight)
+                            IconButton(onClick = { showPatientDetailModal = null }) {
+                                Icon(Icons.Default.Close, contentDescription = null, tint = TextMuted)
+                            }
+                        }
 
-                            Text("S (Subjetivo): El dueño consulta por enrojecimiento y prurito recurrente en orejas y vientre.", fontSize = 13.sp, color = TextPrimary)
-                            Text("O (Objetivo): Lesiones eritematosas moderadas en pabellón auricular y zona ventral. Sin secreción purulenta.", fontSize = 13.sp, color = TextPrimary)
-                            Text("A (Evaluación): Dermatitis atópica / Alergia por contacto.", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                            Text("P (Plan & Tratamiento): Limpieza auricular diaria con solución antiséptica + antihistamínico vía oral 5 días.", fontSize = 13.sp, color = TextPrimary)
+                        HorizontalDivider(color = BorderLight)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("DATOS DEL PACIENTE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                                Text("Edad: ${p.age}", fontSize = 13.sp, color = TextPrimary)
+                                Text("Peso: ${p.weight}", fontSize = 13.sp, color = TextPrimary)
+                                Text("Última Visita: ${p.lastVisit}", fontSize = 13.sp, color = TextPrimary)
+                            }
+
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("PROPIETARIO & CONTACTO", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                                Text("Nombre: ${p.owner}", fontSize = 13.sp, color = TextPrimary)
+                                Text("Teléfono: ${p.phone}", fontSize = 13.sp, color = TextPrimary)
+                                Text("Alergias: ${p.allergies ?: "Ninguna registrada"}", fontSize = 13.sp, color = if (p.allergies != null) Color(0xFFDC2626) else TextPrimary)
+                            }
+                        }
+
+                        HorizontalDivider(color = BorderLight)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Button(
+                                onClick = { showPatientDetailModal = null },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
+                            ) {
+                                Text("Cerrar Ficha", color = Color.White)
+                            }
                         }
                     }
                 }
