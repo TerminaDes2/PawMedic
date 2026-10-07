@@ -21,8 +21,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.pets.presentation.PetDetailViewModel
+import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
@@ -101,13 +105,12 @@ fun PetDetailScreen(
                     modifier = Modifier
                         .size(110.dp)
                         .clip(CircleShape)
-                        .background(PawMedicColors.Teal50)
-                        .border(3.dp, PawMedicColors.Teal600, CircleShape),
-                    contentAlignment = Alignment.Center
+                        .border(3.dp, PawMedicColors.Teal600, CircleShape)
                 ) {
-                    Text(
-                        text = if (pet.species.contains("Gato", true)) "🐱" else "🐶",
-                        fontSize = 52.sp
+                    PetAvatarImage(
+                        photoUrl = pet.photoUrl,
+                        species = pet.species,
+                        size = 110.dp
                     )
                 }
 
@@ -314,7 +317,12 @@ private fun MedicalHistoryItem(
                     .background(PawMedicColors.Teal50),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "📄", fontSize = 18.sp)
+                Icon(
+                    imageVector = Icons.Default.Description,
+                    contentDescription = null,
+                    tint = PawMedicColors.Teal600,
+                    modifier = Modifier.size(20.dp)
+                )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column {

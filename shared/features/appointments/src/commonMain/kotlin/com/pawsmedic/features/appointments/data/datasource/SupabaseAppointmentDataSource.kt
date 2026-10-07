@@ -8,14 +8,13 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 /**
- * Implementación de la fuente de datos de Citas utilizando el RPC 'book_appointment'
- * en Supabase para garantizar reservas atómicas sin doble reserva.
+ * Implementación de la fuente de datos de Citas para Supabase.
  */
 class SupabaseAppointmentDataSource(
     private val supabase: SupabaseClient
 ) : AppointmentDataSource {
     override suspend fun getAppointments(): List<AppointmentDto> {
-        TODO("Not yet implemented")
+        return emptyList()
     }
 
     override suspend fun requestAppointment(appointment: AppointmentDto): AppointmentDto {

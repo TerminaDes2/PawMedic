@@ -17,9 +17,18 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -87,10 +96,11 @@ fun RegisterScreen(
                 placeholder = "Ej. Juan Pérez",
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 leadingIcon = {
-                    Text(
-                        text = "👤",
-                        fontSize = 16.sp,
-                        color = PawMedicColors.Teal600
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             )
@@ -107,11 +117,11 @@ fun RegisterScreen(
                     imeAction = ImeAction.Next
                 ),
                 leadingIcon = {
-                    Text(
-                        text = "@",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             )
@@ -128,10 +138,11 @@ fun RegisterScreen(
                     imeAction = ImeAction.Next
                 ),
                 leadingIcon = {
-                    Text(
-                        text = "📞",
-                        fontSize = 16.sp,
-                        color = PawMedicColors.Teal600
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             )
@@ -149,19 +160,21 @@ fun RegisterScreen(
                     imeAction = ImeAction.Next
                 ),
                 leadingIcon = {
-                    Text(
-                        text = "🔒",
-                        fontSize = 16.sp,
-                        color = PawMedicColors.Teal600
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(20.dp)
                     )
                 },
                 trailingIcon = {
-                    Text(
-                        text = if (uiState.isPasswordVisible) "👁" else "🙈",
-                        fontSize = 18.sp,
+                    Icon(
+                        imageVector = if (uiState.isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (uiState.isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                        tint = PawMedicColors.Gray500,
                         modifier = Modifier
+                            .size(20.dp)
                             .clickable { viewModel.togglePasswordVisibility() }
-                            .padding(8.dp)
                     )
                 }
             )
@@ -179,19 +192,21 @@ fun RegisterScreen(
                     imeAction = ImeAction.Done
                 ),
                 leadingIcon = {
-                    Text(
-                        text = "🔒",
-                        fontSize = 16.sp,
-                        color = PawMedicColors.Teal600
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(20.dp)
                     )
                 },
                 trailingIcon = {
-                    Text(
-                        text = if (uiState.isConfirmPasswordVisible) "👁" else "🙈",
-                        fontSize = 18.sp,
+                    Icon(
+                        imageVector = if (uiState.isConfirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (uiState.isConfirmPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                        tint = PawMedicColors.Gray500,
                         modifier = Modifier
+                            .size(20.dp)
                             .clickable { viewModel.toggleConfirmPasswordVisibility() }
-                            .padding(8.dp)
                     )
                 }
             )

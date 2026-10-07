@@ -14,7 +14,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -78,11 +85,11 @@ fun LoginScreen(
                     imeAction = ImeAction.Next
                 ),
                 leadingIcon = {
-                    Text(
-                        text = "@",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             )
@@ -101,19 +108,21 @@ fun LoginScreen(
                 ),
                 keyboardActions = KeyboardActions(onDone = { viewModel.login() }),
                 leadingIcon = {
-                    Text(
-                        text = "🔒",
-                        fontSize = 16.sp,
-                        color = PawMedicColors.Teal600
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(20.dp)
                     )
                 },
                 trailingIcon = {
-                    Text(
-                        text = if (uiState.isPasswordVisible) "👁" else "🙈",
-                        fontSize = 18.sp,
+                    Icon(
+                        imageVector = if (uiState.isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (uiState.isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                        tint = PawMedicColors.Gray500,
                         modifier = Modifier
+                            .size(20.dp)
                             .clickable { viewModel.togglePasswordVisibility() }
-                            .padding(8.dp)
                     )
                 }
             )

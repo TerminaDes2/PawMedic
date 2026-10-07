@@ -12,6 +12,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared:core:design-system"))
+            implementation(project(":shared:core:common"))
             implementation(project(":shared:core:model"))
             implementation(project(":shared:features:appointments"))
             implementation(project(":shared:features:businesses"))
@@ -19,21 +20,22 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
+            implementation(libs.supabase.postgrest)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
+            implementation(compose.components.uiToolingPreview)
+        }
+        androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.coil.compose)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.coroutines.test)
         }
-        commonMain.dependencies {
-            implementation(project(":shared:core:model"))
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.supabase.postgrest)
-        }
-        commonTest.dependencies { implementation(kotlin("test")) }
     }
 }
 
