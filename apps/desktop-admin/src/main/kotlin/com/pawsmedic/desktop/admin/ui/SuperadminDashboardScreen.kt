@@ -1,9 +1,11 @@
 package com.pawsmedic.desktop.admin.ui
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,9 +20,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.singleWindowApplication
 
 val AdminOffWhiteBg = Color(0xFFF8FAFC)
@@ -39,7 +43,11 @@ data class RegistrationRequest(
     val rep: String,
     val rfc: String,
     val date: String,
-    var status: String
+    var status: String,
+    val email: String = "contacto@clinica.com",
+    val phone: String = "+52 55 1234 5678",
+    val address: String = "Av. Principal #123, Col. Centro",
+    val licenseNumber: String = "CÉD-981204-VET"
 )
 
 data class AuditLog(
@@ -60,11 +68,11 @@ fun SuperadminDashboardScreen(
 
     val requests = remember {
         mutableStateListOf(
-            RegistrationRequest("SOL-2026-089", "Clínica Veterinaria San Miguel", "MVZ Carlos Eduardo Ramos", "VET891204KL2", "27/09/2026", "Pendiente"),
-            RegistrationRequest("SOL-2026-090", "VetCare Pets & Specialty", "Dra. Patricia Solís", "VCP1203099X1", "28/09/2026", "Pendiente"),
-            RegistrationRequest("SOL-2026-091", "Hospital Veterinario PetSalud", "MVZ Miguel Ángel Torres", "HVP9001153A0", "28/09/2026", "Pendiente"),
-            RegistrationRequest("SOL-2026-092", "Centro Veterinario Las Lomas", "Dra. Sofía Valenzuela", "CVL18042211B", "28/09/2026", "Pendiente"),
-            RegistrationRequest("SOL-2026-093", "AgroVet & Músculo Animal", "MVZ Fernando Castro", "AVM1105189R4", "28/09/2026", "Pendiente")
+            RegistrationRequest("SOL-2026-089", "Clínica Veterinaria San Miguel", "MVZ Carlos Eduardo Ramos", "VET891204KL2", "27/09/2026", "Pendiente", "contacto@sanmiguelvet.com", "+52 55 8765 4321", "Av. San Miguel #45, Col. Jardines", "CÉD-891204-MVZ"),
+            RegistrationRequest("SOL-2026-090", "VetCare Pets & Specialty", "Dra. Patricia Solís", "VCP1203099X1", "28/09/2026", "Pendiente", "p.solis@vetcarepets.com", "+52 55 9812 3456", "Calle Del Bosque #102, Lomas", "CÉD-120309-MVZ"),
+            RegistrationRequest("SOL-2026-091", "Hospital Veterinario PetSalud", "MVZ Miguel Ángel Torres", "HVP9001153A0", "28/09/2026", "Pendiente", "m.torres@petsalud.org", "+52 55 4567 8901", "Blvd. Los Olivos #78, Centro", "CÉD-900115-MVZ"),
+            RegistrationRequest("SOL-2026-092", "Centro Veterinario Las Lomas", "Dra. Sofía Valenzuela", "CVL18042211B", "28/09/2026", "Pendiente", "s.valenzuela@laslomasvet.com", "+52 55 2345 6789", "Av. Las Lomas #310, Poniente", "CÉD-180422-MVZ"),
+            RegistrationRequest("SOL-2026-093", "AgroVet & Músculo Animal", "MVZ Fernando Castro", "AVM1105189R4", "28/09/2026", "Pendiente", "f.castro@agrovet.mx", "+52 55 3456 7890", "Carretera Nacional Km 12", "CÉD-110518-MVZ")
         )
     }
 
@@ -492,9 +500,12 @@ fun MonitoreoModule() {
     }
 }
 
-// MÓDULO 2: SOLICITUDES
+// MÓDULO 2: SOLICITUDES CON DETALLE EN DOBLE CLICK
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
+    var selectedRequestForDetail by remember { mutableStateOf<RegistrationRequest?>(null) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -504,8 +515,30 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
             .padding(20.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Text("Solicitudes de Registro Pendientes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-            Text("Aprueba o rechaza el alta de nuevas clínicas veterinarias en la plataforma.", fontSize = 12.sp, color = AdminTextSecondary)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Solicitudes de Registro Pendientes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
+                    Text("Aprueba o rechaza el alta de nuevas clínicas. Haz doble clic en una fila para ver los detalles completos.", fontSize = 12.sp, color = AdminTextSecondary)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(AdminSelectedBg)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "💡 Tip: Doble clic abre detalle",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AdminSelectedText
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -540,6 +573,10 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                             .clip(RoundedCornerShape(6.dp))
                             .background(Color.White)
                             .border(1.dp, AdminBorderLight, RoundedCornerShape(6.dp))
+                            .combinedClickable(
+                                onClick = {},
+                                onDoubleClick = { selectedRequestForDetail = req }
+                            )
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -605,6 +642,188 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                     }
                 }
             }
+        }
+    }
+
+    // DIÁLOGO MODAL DE DETALLE DE LA SOLICITUD
+    if (selectedRequestForDetail != null) {
+        val req = selectedRequestForDetail!!
+        Dialog(onDismissRequest = { selectedRequestForDetail = null }) {
+            Card(
+                modifier = Modifier
+                    .width(660.dp)
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(28.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Header del Diálogo
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .clip(CircleShape)
+                                    .background(AdminSelectedBg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Store,
+                                    contentDescription = null,
+                                    tint = AdminEmeraldGreen,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = req.name,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AdminTextPrimary
+                                )
+                                Text(
+                                    text = "Folio: ${req.id} · Fecha de Solicitud: ${req.date}",
+                                    fontSize = 12.sp,
+                                    color = AdminTextSecondary
+                                )
+                            }
+                        }
+
+                        // Badge de Estado
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    when (req.status) {
+                                        "Aprobado" -> AdminSelectedBg
+                                        "Rechazado" -> Color(0xFFFEE2E2)
+                                        else -> Color(0xFFFEF3C7)
+                                    }
+                                )
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = req.status,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (req.status) {
+                                    "Aprobado" -> AdminSelectedText
+                                    "Rechazado" -> Color(0xFF991B1B)
+                                    else -> Color(0xFFD97706)
+                                }
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = AdminBorderLight)
+
+                    // Detalles en 2 columnas
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // Columna 1: Datos Institucionales
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            DetailItem(label = "RUC / ID Fiscal", value = req.rfc, icon = Icons.Default.Badge)
+                            DetailItem(label = "Dirección de la Clínica", value = req.address, icon = Icons.Default.LocationOn)
+                            DetailItem(label = "Correo Administrador", value = req.email, icon = Icons.Default.Email)
+                        }
+
+                        // Columna 2: Datos Responsable Médico
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            DetailItem(label = "Veterinario Responsable", value = req.rep, icon = Icons.Default.Person)
+                            DetailItem(label = "Cédula Profesional", value = req.licenseNumber, icon = Icons.Default.Verified)
+                            DetailItem(label = "Teléfono de Contacto", value = req.phone, icon = Icons.Default.Phone)
+                        }
+                    }
+
+                    HorizontalDivider(color = AdminBorderLight)
+
+                    // Acciones del modal
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { selectedRequestForDetail = null },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Cerrar", fontSize = 13.sp, color = AdminTextPrimary)
+                        }
+
+                        if (req.status == "Pendiente") {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val idx = requests.indexOf(req)
+                                        if (idx != -1) requests[idx] = req.copy(status = "Rechazado")
+                                        selectedRequestForDetail = null
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626))
+                                ) {
+                                    Text("Rechazar Solicitud", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val idx = requests.indexOf(req)
+                                        if (idx != -1) requests[idx] = req.copy(status = "Aprobado")
+                                        selectedRequestForDetail = null
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = AdminEmeraldGreen)
+                                ) {
+                                    Text("Aprobar Solicitud", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailItem(label: String, value: String, icon: ImageVector) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AdminOffWhiteBg)
+                .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = AdminTextMuted, modifier = Modifier.size(18.dp))
+        }
+        Column {
+            Text(text = label, fontSize = 11.sp, color = AdminTextMuted)
+            Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
         }
     }
 }
