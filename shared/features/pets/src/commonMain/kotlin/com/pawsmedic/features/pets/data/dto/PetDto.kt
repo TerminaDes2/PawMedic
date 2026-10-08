@@ -9,29 +9,29 @@ data class PetDto(
     @SerialName("id") val id: String = "",
     @SerialName("owner_id") val ownerId: String = "",
     @SerialName("nombre") val name: String = "",
-    @SerialName("especie") val species: String = "Perro",
-    @SerialName("raza") val breed: String? = null,
-    @SerialName("edad") val age: String? = null,
+    @SerialName("especie") val species: List<String>? = null,
+    @SerialName("raza") val breed: List<String>? = null,
+    @SerialName("edad") val age: Int? = null,
     @SerialName("sexo") val gender: String? = null,
     @SerialName("alergias") val allergies: String? = null,
     @SerialName("foto_url") val photoUrl: String? = null,
     @SerialName("medical_id") val medicalId: String? = null,
-    @SerialName("peso") val weight: String? = null,
-    @SerialName("is_insured") val isInsured: Boolean = false
+    @SerialName("peso") val weight: Double? = null,
+    @SerialName("is_insured") val isInsured: Boolean? = null
 ) {
     fun toDomain() = Pet(
         id = id,
         ownerId = ownerId,
         name = name,
-        species = species,
-        breed = breed,
+        species = species?.firstOrNull() ?: "Perro",
+        breed = breed?.firstOrNull(),
         age = age,
         gender = gender,
         allergies = allergies,
         photoUrl = photoUrl,
         medicalId = medicalId,
         weight = weight,
-        isInsured = isInsured
+        isInsured = isInsured ?: false
     )
 
     companion object {
@@ -39,8 +39,8 @@ data class PetDto(
             id = pet.id,
             ownerId = pet.ownerId,
             name = pet.name,
-            species = pet.species,
-            breed = pet.breed,
+            species = listOf(pet.species),
+            breed = pet.breed?.let { listOf(it) },
             age = pet.age,
             gender = pet.gender,
             allergies = pet.allergies,

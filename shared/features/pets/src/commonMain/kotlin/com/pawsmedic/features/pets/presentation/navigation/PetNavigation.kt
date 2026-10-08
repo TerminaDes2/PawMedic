@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.appointments.data.datasource.InMemoryAppointmentDataSource
 import com.pawsmedic.features.appointments.data.repository.DefaultAppointmentRepository
 import com.pawsmedic.features.appointments.presentation.booking.BookingFlowScreen
+import com.pawsmedic.features.appointments.presentation.booking.BookingPet
 import com.pawsmedic.features.appointments.presentation.booking.BookingViewModel
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListScreen
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListViewModel
@@ -88,6 +90,7 @@ sealed interface CitasTabScreen {
 @Composable
 fun PetNavHost(
     repository: PetRepository,
+    userName: String = "María",
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(initialPage = 0) { 4 }
@@ -181,7 +184,7 @@ fun PetNavHost(
                         PetDashboardScreen(
                             petViewModel = petListViewModel,
                             appointmentsViewModel = appointmentsListViewModel,
-                            userName = "María",
+                            userName = userName,
                             onNavigateToPetsList = {
                                 petListViewModel.loadPets()
                                 petTabScreen = PetTabScreen.List
@@ -320,8 +323,19 @@ fun PetNavHost(
                                 }
 
                                 is CitasTabScreen.Booking -> {
+                                    val petState by petListViewModel.uiState.collectAsState()
+                                    val bookingPets = petState.pets.map { pet ->
+                                        BookingPet(
+                                            id = pet.id,
+                                            name = pet.name,
+                                            species = pet.species,
+                                            breed = pet.breed,
+                                            age = pet.age?.let { "$it años" },
+                                            photoUrl = pet.photoUrl
+                                        )
+                                    }
                                     val bookingVm = remember(screen.clinicId) {
-                                        BookingViewModel(appointmentRepository)
+                                        BookingViewModel(appointmentRepository, initialPets = bookingPets)
                                     }
                                     BookingFlowScreen(
                                         viewModel = bookingVm,

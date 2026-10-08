@@ -16,24 +16,11 @@ class InMemoryAppointmentDataSource : AppointmentDataSource {
             time = "10:00 AM",
             notes = "Revisión anual de rutina",
             status = "Pendiente de aprobación"
-        ),
-        AppointmentDto(
-            id = "app-2",
-            petId = "pet-3",
-            petName = "Rocky (Perro)",
-            businessId = "biz-2",
-            businessName = "Hospital Vet Norte",
-            serviceId = "srv-2",
-            serviceName = "Vacunación Anual",
-            date = "24 Nov",
-            time = "4:30 PM",
-            notes = "Refuerzo antirrábico",
-            status = "Confirmada"
         )
     )
 
     override suspend fun getAppointments(): List<AppointmentDto> {
-        return appointments
+        return appointments.filter { it.status.contains("Pendiente", ignoreCase = true) || it.status.equals("REQUESTED", ignoreCase = true) }
     }
 
     override suspend fun requestAppointment(appointment: AppointmentDto): AppointmentDto {

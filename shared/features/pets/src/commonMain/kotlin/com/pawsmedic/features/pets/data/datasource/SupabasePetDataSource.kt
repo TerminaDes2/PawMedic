@@ -2,6 +2,7 @@ package com.pawsmedic.features.pets.data.datasource
 
 import com.pawsmedic.features.pets.data.dto.PetDto
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 
 /**
@@ -12,11 +13,16 @@ class SupabasePetDataSource(
 ) : PetDataSource {
 
     override suspend fun listPets(ownerId: String): List<PetDto> {
+        val activeOwnerId = if (ownerId.isBlank() || ownerId == "owner-1") {
+            supabase.auth.currentUserOrNull()?.id ?: ownerId
+        } else {
+            ownerId
+        }
         return supabase.postgrest["pets"]
             .select {
                 filter {
-                    if (ownerId.isNotBlank()) {
-                        eq("owner_id", ownerId)
+                    if (activeOwnerId.isNotBlank() && activeOwnerId != "owner-1") {
+                        eq("owner_id", activeOwnerId)
                     }
                 }
             }
@@ -34,16 +40,28 @@ class SupabasePetDataSource(
     }
 
     override suspend fun addPet(pet: PetDto): PetDto {
+        val activeOwnerId = if (pet.ownerId.isBlank() || pet.ownerId == "owner-1") {
+            supabase.auth.currentUserOrNull()?.id ?: pet.ownerId
+        } else {
+            pet.ownerId
+        }
+        val petToInsert = pet.copy(ownerId = activeOwnerId)
         return supabase.postgrest["pets"]
-            .insert(pet) {
+            .insert(petToInsert) {
                 select()
             }
             .decodeSingle<PetDto>()
     }
 
     override suspend fun updatePet(pet: PetDto): PetDto {
+        val activeOwnerId = if (pet.ownerId.isBlank() || pet.ownerId == "owner-1") {
+            supabase.auth.currentUserOrNull()?.id ?: pet.ownerId
+        } else {
+            pet.ownerId
+        }
+        val petToUpdate = pet.copy(ownerId = activeOwnerId)
         return supabase.postgrest["pets"]
-            .update(pet) {
+            .update(petToUpdate) {
                 filter {
                     eq("id", pet.id)
                 }

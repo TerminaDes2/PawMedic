@@ -286,7 +286,7 @@ fun PetDashboardContent(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${selectedPet.species} • ${selectedPet.breed ?: "Mestizo"} • ${selectedPet.age ?: "2 años"}",
+                                text = "${selectedPet.species} • ${selectedPet.breed ?: "Mestizo"} • ${selectedPet.age?.let { "$it años" } ?: "2 años"}",
                                 fontSize = 13.sp,
                                 color = PawMedicColors.Gray600
                             )
@@ -600,12 +600,12 @@ fun PetDashboardScreenPreview() {
             name = "Tobías",
             species = "Gato",
             breed = "Persa Mestizo",
-            age = "2 años",
+            age = 2,
             gender = "Macho",
             allergies = "Alergia a la penicilina",
             photoUrl = null,
             medicalId = "PM-8942-A",
-            weight = "4.2 kg",
+            weight = 4.2,
             isInsured = true
         ),
         Pet(
@@ -614,12 +614,12 @@ fun PetDashboardScreenPreview() {
             name = "Joey",
             species = "Perro",
             breed = "Australian Shepherd",
-            age = "3 años",
+            age = 3,
             gender = "Macho",
             allergies = null,
             photoUrl = null,
             medicalId = "PM-1204-B",
-            weight = "15 kg",
+            weight = 15.0,
             isInsured = true
         )
     )

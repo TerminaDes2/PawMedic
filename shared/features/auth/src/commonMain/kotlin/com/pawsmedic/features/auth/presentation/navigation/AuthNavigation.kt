@@ -277,7 +277,6 @@ fun AuthenticatedHomeScreen(
 
     PetNavHost(
         repository = petRepository,
-        supabaseClient = supabaseClient,
         userName = displayName,
         modifier = modifier
     )

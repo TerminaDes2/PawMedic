@@ -154,7 +154,7 @@ fun PetDetailScreen(
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatCard(
                     title = "Edad",
-                    value = pet.age ?: "2 años",
+                    value = if (pet.age != null) "${pet.age} años" else "2 años",
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(12.dp))

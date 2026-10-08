@@ -173,14 +173,9 @@ class PetFormViewModel(
             _uiState.update { curr -> curr.copy(isLoading = true) }
             getPetByIdUseCase(id).onSuccess { p ->
                 if (p != null) {
-                    val ageStr = p.age ?: "2 Años"
-                    val digits = ageStr.filter { it.isDigit() }
-                    val num = if (digits.isNotBlank()) digits else "2"
-                    val unit = when {
-                        ageStr.contains("semana", true) -> "Semanas"
-                        ageStr.contains("mes", true) -> "Meses"
-                        else -> "Años"
-                    }
+                    val ageInt = p.age ?: 2
+                    val num = ageInt.toString()
+                    val unit = "Años"
 
                     _uiState.update { curr ->
                         curr.copy(
@@ -190,7 +185,7 @@ class PetFormViewModel(
                             breed = p.breed ?: "Mestizo",
                             ageNumber = num,
                             ageUnit = unit,
-                            weightKg = p.weight?.replace(" kg", "")?.replace(" lbs", "") ?: "",
+                            weightKg = p.weight?.toString() ?: "",
                             gender = p.gender ?: "Macho",
                             allergies = p.allergies ?: "",
                             photoUrl = p.photoUrl ?: "",
@@ -360,8 +355,14 @@ class PetFormViewModel(
             return
         }
 
-        val displayAge = "${s.ageNumber} ${s.ageUnit}"
-        val displayWeight = if (s.weightKg.isNotBlank()) "${s.weightKg} kg" else "4.5 kg"
+        val rawAge = s.ageNumber.toIntOrNull() ?: 2
+        val ageInt = when (s.ageUnit) {
+            "Años" -> rawAge
+            "Meses" -> maxOf(0, rawAge / 12)
+            "Semanas" -> maxOf(0, rawAge / 52)
+            else -> rawAge
+        }
+        val weightDouble = s.weightKg.toDoubleOrNull()
 
         val pet = Pet(
             id = s.id,
@@ -369,12 +370,12 @@ class PetFormViewModel(
             name = s.name.trim(),
             species = s.species,
             breed = if (s.breed.isBlank()) "Mestizo" else s.breed,
-            age = displayAge,
+            age = ageInt,
             gender = s.gender,
             allergies = if (s.allergies.isBlank()) null else s.allergies,
             photoUrl = if (s.photoUrl.isBlank()) "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba" else s.photoUrl,
             medicalId = "PM-${(1000..9999).random()}-A",
-            weight = displayWeight
+            weight = weightDouble
         )
 
         scope.launch {

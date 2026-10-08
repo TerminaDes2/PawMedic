@@ -213,7 +213,7 @@ fun PetListScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 InfoGridChip(
                                     icon = "🎂",
-                                    text = selectedPet.age ?: "2 años",
+                                    text = if (selectedPet.age != null) "${selectedPet.age} años" else "2 años",
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -229,7 +229,7 @@ fun PetListScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 InfoGridChip(
                                     icon = "⚖️",
-                                    text = selectedPet.weight ?: "4.5 kg",
+                                    text = if (selectedPet.weight != null) "${selectedPet.weight} kg" else "4.5 kg",
                                     modifier = Modifier.weight(1f)
                                 )
                             }

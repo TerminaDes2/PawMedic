@@ -61,40 +61,7 @@ data class BookingUiState(
             durationMinutes = 15
         )
     ),
-    val userPets: List<BookingPet> = listOf(
-        BookingPet(
-            id = "pet-1",
-            name = "Tobías",
-            species = "Gato",
-            breed = "Persa Mestizo",
-            age = "2 años",
-            photoUrl = "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba"
-        ),
-        BookingPet(
-            id = "pet-2",
-            name = "Joey",
-            species = "Perro",
-            breed = "Australian Shepard",
-            age = "14 años",
-            photoUrl = "https://images.unsplash.com/photo-1543466835-00a7907e9de1"
-        ),
-        BookingPet(
-            id = "pet-3",
-            name = "Rudy",
-            species = "Perro",
-            breed = "Dálmata",
-            age = "3 años",
-            photoUrl = "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e"
-        ),
-        BookingPet(
-            id = "pet-4",
-            name = "Skippy",
-            species = "Gato",
-            breed = "Siamés",
-            age = "1 año",
-            photoUrl = "https://images.unsplash.com/photo-1573865526739-10659fec78a5"
-        )
-    ),
+    val userPets: List<BookingPet> = emptyList(),
     val selectedService: VeterinaryService? = null,
     val selectedPet: BookingPet? = null,
     val selectedDate: String = "Mañana (16 de Nov)",
@@ -109,9 +76,14 @@ data class BookingUiState(
 
 class BookingViewModel(
     private val repository: AppointmentRepository,
+    initialPets: List<BookingPet>? = null,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 ) {
-    private val _uiState = MutableStateFlow(BookingUiState())
+    private val _uiState = MutableStateFlow(
+        BookingUiState(
+            userPets = initialPets ?: emptyList()
+        )
+    )
     val uiState: StateFlow<BookingUiState> = _uiState.asStateFlow()
 
     init {
@@ -203,12 +175,12 @@ class BookingViewModel(
         val s = _uiState.value
         val app = Appointment(
             id = "",
-            petId = s.selectedPet?.id ?: "pet-1",
-            petName = "${s.selectedPet?.name ?: "Tobías"} (${s.selectedPet?.species ?: "Gato"} • ${s.selectedPet?.breed ?: "Persa Mestizo"})",
+            petId = s.selectedPet?.id ?: "",
+            petName = "${s.selectedPet?.name ?: ""} (${s.selectedPet?.species ?: ""} • ${s.selectedPet?.breed ?: ""})",
             businessId = s.selectedClinicId,
             businessName = s.selectedClinicName,
-            serviceId = s.selectedService?.id ?: "srv-1",
-            serviceName = s.selectedService?.title ?: "Consulta Médica General",
+            serviceId = s.selectedService?.id ?: "",
+            serviceName = s.selectedService?.title ?: "",
             date = s.selectedDate,
             time = s.selectedTimeSlot,
             notes = if (s.notes.isBlank()) null else s.notes,
