@@ -11,6 +11,8 @@ kotlin {
     jvm("desktop")
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":shared:core:design-system"))
+            implementation(project(":shared:features:pets"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
@@ -19,6 +21,7 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

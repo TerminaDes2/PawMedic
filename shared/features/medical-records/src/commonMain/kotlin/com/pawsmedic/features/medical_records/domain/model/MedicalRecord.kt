@@ -1,10 +1,17 @@
 package com.pawsmedic.features.medical_records.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class MedicalRecord(
     val id: String,
     val petId: String,
-    val businessId: String,
-    val recordedAt: String,
-    val summary: String,
-    val details: String? = null
+    val petName: String,
+    val clinicName: String,
+    val doctorName: String,
+    val date: String,
+    val title: String,
+    val diagnosis: String,
+    val treatment: String,
+    val vetNotes: String? = null
 )

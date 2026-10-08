@@ -7,10 +7,25 @@ import kotlinx.serialization.Serializable
 data class MedicalRecordDto(
     val id: String,
     val petId: String,
-    val businessId: String,
-    val recordedAt: String,
-    val summary: String,
-    val details: String? = null
+    val petName: String,
+    val clinicName: String,
+    val doctorName: String,
+    val date: String,
+    val title: String,
+    val diagnosis: String,
+    val treatment: String,
+    val vetNotes: String? = null
 ) {
-    fun toDomain() = MedicalRecord(id, petId, businessId, recordedAt, summary, details)
+    fun toDomain() = MedicalRecord(
+        id = id,
+        petId = petId,
+        petName = petName,
+        clinicName = clinicName,
+        doctorName = doctorName,
+        date = date,
+        title = title,
+        diagnosis = diagnosis,
+        treatment = treatment,
+        vetNotes = vetNotes
+    )
 }
