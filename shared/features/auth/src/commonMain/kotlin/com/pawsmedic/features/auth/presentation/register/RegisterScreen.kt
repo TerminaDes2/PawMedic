@@ -10,12 +10,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pawsmedic.shared.core.designsystem.components.GoogleSocialButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
@@ -49,6 +51,7 @@ fun RegisterScreen(
     onBackClick: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onRegisterSuccess: (String) -> Unit,
+    onGoogleSignInClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -75,6 +78,37 @@ fun RegisterScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (onGoogleSignInClick != null) {
+                GoogleSocialButton(
+                    text = "Registrarse con Google",
+                    onClick = onGoogleSignInClick,
+                    isLoading = uiState.isLoading
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = PawMedicColors.Gray300
+                    )
+                    Text(
+                        text = "  o regístrate con correo  ",
+                        fontSize = 12.sp,
+                        color = PawMedicColors.Gray500
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = PawMedicColors.Gray300
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             PawMedicTextField(
                 value = uiState.fullName,
@@ -119,7 +153,7 @@ fun RegisterScreen(
                 value = uiState.phone,
                 onValueChange = viewModel::onPhoneChanged,
                 label = "Teléfono",
-                placeholder = "+51 987 654 321",
+                placeholder = "+52 55 1234 5678",
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Phone,
                     imeAction = ImeAction.Next

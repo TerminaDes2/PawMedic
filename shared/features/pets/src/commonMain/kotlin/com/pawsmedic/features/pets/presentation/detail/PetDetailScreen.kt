@@ -25,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -126,7 +125,7 @@ fun PetDetailScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "ID Médico: ${pet.medicalId ?: "PM-8942-A"}",
+                    text = pet.breed ?: "Raza no registrada",
                     fontSize = 13.sp,
                     color = PawMedicColors.Gray500
                 )
@@ -154,13 +153,13 @@ fun PetDetailScreen(
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatCard(
                     title = "Edad",
-                    value = pet.age ?: "2 años",
+                    value = pet.dateOfBirth?.let { "Nac. $it" } ?: "No registrada",
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 StatCard(
                     title = "Notas de Cuidado",
-                    value = pet.allergies ?: "Sin alergias registradas",
+                    value = pet.allergies ?: "Sin notas registradas",
                     isHighlight = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -180,38 +179,18 @@ fun PetDetailScreen(
                     fontWeight = FontWeight.Bold,
                     color = PawMedicColors.Gray900
                 )
-                Text(
-                    text = "Ver completo",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Teal600,
-                    modifier = Modifier.clickable { }
-                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            MedicalHistoryItem(
-                title = "Vacunación Triple Felina",
-                dateAndDoctor = "15 Oct 2023 • Dr. Carlos Ruiz"
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            MedicalHistoryItem(
-                title = "Control de Parásitos",
-                dateAndDoctor = "02 Sep 2023 • Dra. Ana Milena"
+            Text(
+                text = "Aún no hay registros clínicos vinculados a esta mascota.",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray500,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(32.dp))
-
-            // --- ACTIONS ---
-            PawMedicPrimaryButton(
-                text = "Agendar cita",
-                onClick = { }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -292,52 +271,6 @@ private fun StatCard(
                 fontWeight = FontWeight.Bold,
                 color = PawMedicColors.Gray900
             )
-        }
-    }
-}
-
-@Composable
-private fun MedicalHistoryItem(
-    title: String,
-    dateAndDoctor: String
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(14.dp))
-            .padding(14.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(PawMedicColors.Teal50),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Description,
-                    contentDescription = null,
-                    tint = PawMedicColors.Teal600,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
-                )
-                Text(
-                    text = dateAndDoctor,
-                    fontSize = 12.sp,
-                    color = PawMedicColors.Gray500
-                )
-            }
         }
     }
 }

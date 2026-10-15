@@ -115,7 +115,7 @@ fun MedicalHistoryScreen(
                 onDismissRequest = { dropdownExpanded = false },
                 modifier = Modifier.fillMaxWidth(0.85f)
             ) {
-                listOf("Tobías", "Joey", "Rudy", "Todas").forEach { name ->
+                listOf("Todas").forEach { name ->
                     DropdownMenuItem(
                         text = { Text(text = name, fontWeight = FontWeight.Medium) },
                         onClick = {

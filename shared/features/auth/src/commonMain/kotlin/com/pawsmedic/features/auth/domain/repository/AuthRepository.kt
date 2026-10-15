@@ -5,6 +5,11 @@ import com.pawsmedic.features.auth.domain.model.LoginParams
 import com.pawsmedic.features.auth.domain.model.PawMedicRole
 import com.pawsmedic.features.auth.domain.model.RegisterParams
 
+data class SignUpResult(
+    val isVerified: Boolean,
+    val session: AuthenticatedSession? = null
+)
+
 interface AuthRepository {
     suspend fun restoreSession(): AuthenticatedSession?
 
@@ -20,10 +25,17 @@ interface AuthRepository {
         email: String,
         password: String,
         role: PawMedicRole = PawMedicRole.USER,
-        fullName: String? = null
-    ): AuthenticatedSession
+        fullName: String? = null,
+        phone: String? = null
+    ): SignUpResult
 
-    suspend fun signUp(params: RegisterParams): AuthenticatedSession
+    suspend fun signUp(params: RegisterParams): SignUpResult
+
+    suspend fun verifyEmailOtp(email: String, code: String): AuthenticatedSession
+
+    suspend fun resendEmailOtp(email: String)
+
+    suspend fun signInWithGoogleIdToken(idToken: String, rawNonce: String? = null): AuthenticatedSession
 
     suspend fun signOut()
 }

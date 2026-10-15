@@ -29,8 +29,6 @@ import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pets
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,10 +43,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pawsmedic.features.appointments.domain.model.Appointment
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListUiState
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListViewModel
-import com.pawsmedic.features.pets.domain.model.Pet
 import com.pawsmedic.features.pets.presentation.PetListUiState
 import com.pawsmedic.features.pets.presentation.PetListViewModel
 import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
@@ -61,13 +57,12 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun PetDashboardScreen(
     petViewModel: PetListViewModel,
     appointmentsViewModel: AppointmentsListViewModel,
-    userName: String = "María",
+    userName: String,
     onNavigateToPetsList: () -> Unit,
     onNavigateToAddPet: () -> Unit,
     onNavigateToPetDetail: (String) -> Unit,
     onNavigateToAppointments: () -> Unit,
     onNavigateToMedicalHistory: () -> Unit,
-    onNavigateToBookAppointment: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val petState by petViewModel.uiState.collectAsState()
@@ -82,7 +77,6 @@ fun PetDashboardScreen(
         onNavigateToPetDetail = onNavigateToPetDetail,
         onNavigateToAppointments = onNavigateToAppointments,
         onNavigateToMedicalHistory = onNavigateToMedicalHistory,
-        onNavigateToBookAppointment = onNavigateToBookAppointment,
         modifier = modifier
     )
 }
@@ -91,13 +85,12 @@ fun PetDashboardScreen(
 fun PetDashboardContent(
     petState: PetListUiState,
     appointmentsState: AppointmentsListUiState,
-    userName: String = "María",
+    userName: String,
     onNavigateToPetsList: () -> Unit = {},
     onNavigateToAddPet: () -> Unit = {},
     onNavigateToPetDetail: (String) -> Unit = {},
     onNavigateToAppointments: () -> Unit = {},
     onNavigateToMedicalHistory: () -> Unit = {},
-    onNavigateToBookAppointment: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
 
@@ -254,7 +247,6 @@ fun PetDashboardContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // --- ACTIVE PET BANNER ---
         if (selectedPet != null) {
             Box(
                 modifier = Modifier
@@ -286,13 +278,12 @@ fun PetDashboardContent(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${selectedPet.species} • ${selectedPet.breed ?: "Mestizo"} • ${selectedPet.age ?: "2 años"}",
+                                text = "${selectedPet.species} • ${selectedPet.breed ?: "Raza no registrada"} • ${selectedPet.dateOfBirth ?: "Nacimiento no registrado"}",
                                 fontSize = 13.sp,
                                 color = PawMedicColors.Gray600
                             )
                         }
                     }
-
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
@@ -300,12 +291,41 @@ fun PetDashboardContent(
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = "Activo",
+                            text = "Activa",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicColors.White
                         )
                     }
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(PawMedicColors.White)
+                    .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
+                    .padding(20.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Todavía no tienes mascotas registradas",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PawMedicColors.Gray900
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Registra a tu mascota para consultar y actualizar sus datos.",
+                        fontSize = 14.sp,
+                        color = PawMedicColors.Gray600
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    PawMedicPrimaryButton(
+                        text = "Agregar mascota",
+                        onClick = onNavigateToAddPet
+                    )
                 }
             }
         }
@@ -387,7 +407,7 @@ fun PetDashboardContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No tienes citas agendadas aún.",
+                    text = "La agenda todavía no está conectada.",
                     fontSize = 13.sp,
                     color = PawMedicColors.Gray500
                 )
@@ -405,75 +425,6 @@ fun PetDashboardContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        PawMedicPrimaryButton(
-            text = "Agendar cita",
-            onClick = onNavigateToBookAppointment
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- VETERINARIES AVAILABLE ---
-        Text(
-            text = "Veterinarias Disponibles",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray900
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(PawMedicColors.White)
-                .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
-                .clickable { onNavigateToBookAppointment() }
-                .padding(16.dp)
-        ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Clinipet Central",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Gray900
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFF59E0B),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "4.9",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Calle 100 #15-45, Bog.",
-                    fontSize = 13.sp,
-                    color = PawMedicColors.Gray500
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Urgencias, Cirugía, Consulta",
-                    fontSize = 12.sp,
-                    color = PawMedicColors.Gray400
-                )
-            }
-        }
     }
 }
 
@@ -593,75 +544,11 @@ private fun AppointmentCard(
 @Preview
 @Composable
 fun PetDashboardScreenPreview() {
-    val samplePets = listOf(
-        Pet(
-            id = "pet-1",
-            ownerId = "owner-1",
-            name = "Tobías",
-            species = "Gato",
-            breed = "Persa Mestizo",
-            age = "2 años",
-            gender = "Macho",
-            allergies = "Alergia a la penicilina",
-            photoUrl = null,
-            medicalId = "PM-8942-A",
-            weight = "4.2 kg",
-            isInsured = true
-        ),
-        Pet(
-            id = "pet-2",
-            ownerId = "owner-1",
-            name = "Joey",
-            species = "Perro",
-            breed = "Australian Shepherd",
-            age = "3 años",
-            gender = "Macho",
-            allergies = null,
-            photoUrl = null,
-            medicalId = "PM-1204-B",
-            weight = "15 kg",
-            isInsured = true
-        )
-    )
-
-    val sampleAppointments = listOf(
-        Appointment(
-            id = "app-1",
-            petId = "pet-1",
-            petName = "Tobías",
-            businessId = "biz-1",
-            businessName = "Clinipet Central",
-            serviceId = "serv-1",
-            serviceName = "Consulta General",
-            date = "24 Oct 2023",
-            time = "10:00 AM",
-            notes = "Chequeo de rutina",
-            status = "Confirmada"
-        ),
-        Appointment(
-            id = "app-2",
-            petId = "pet-1",
-            petName = "Tobías",
-            businessId = "biz-1",
-            businessName = "Clinipet Central",
-            serviceId = "serv-2",
-            serviceName = "Vacunación",
-            date = "28 Oct 2023",
-            time = "03:30 PM",
-            notes = null,
-            status = "Pendiente de aprobación"
-        )
-    )
-
     PawMedicTheme {
         PetDashboardContent(
-            petState = PetListUiState(
-                pets = samplePets,
-                selectedPet = samplePets.first()
-            ),
-            appointmentsState = AppointmentsListUiState(
-                appointments = sampleAppointments
-            )
+            petState = PetListUiState(),
+            appointmentsState = AppointmentsListUiState(),
+            userName = "usuario"
         )
     }
 }

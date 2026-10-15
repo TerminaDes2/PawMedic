@@ -25,7 +25,7 @@ data class PetListUiState(
 
 class PetListViewModel(
     private val getPetsUseCase: GetPetsUseCase,
-    private val ownerId: String = "owner-1",
+    private val ownerId: String,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 ) {
     private val _uiState = MutableStateFlow(PetListUiState())
@@ -125,16 +125,14 @@ enum class AgeInputMode {
 data class PetFormUiState(
     val id: String = "",
     val name: String = "",
-    val species: String = "Canino",
-    val breed: String = "Mestizo Canino",
-    val ageMode: AgeInputMode = AgeInputMode.APPROXIMATE,
-    val ageNumber: String = "2",
+    val species: String = "",
+    val breed: String = "",
+    val ageMode: AgeInputMode = AgeInputMode.EXACT_DATE,
+    val ageNumber: String = "",
     val ageUnit: String = "Años",
-    val exactBirthDate: String = "2024-05-10",
+    val exactBirthDate: String = "",
     val weightKg: String = "",
-    val gender: String = "Macho",
     val allergies: String = "",
-    val photoUrl: String = "",
     val isEditMode: Boolean = false,
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
@@ -147,7 +145,7 @@ data class PetFormUiState(
             "Canino" -> listOf("Mestizo Canino", "Golden Retriever", "Labrador Retriever", "Pastor Alemán", "Poodle", "Bulldog", "Beagle", "Siberian Husky", "Chihuahua", "Pug", "Otro")
             "Felino" -> listOf("Mestizo Felino", "Persa", "Siamés", "Maine Coon", "Bengalí", "Sphynx", "Ragdoll", "British Shorthair", "Otro")
             "Avíparo" -> listOf("Mestizo Avíparo", "Loro Real", "Canario", "Perico Australiano", "Cacatúa", "Agapornis", "Guacamayo", "Otro")
-            else -> listOf("Mestizo", "Otro")
+            else -> emptyList()
         }
 }
 
@@ -156,7 +154,7 @@ class PetFormViewModel(
     private val updatePetUseCase: UpdatePetUseCase,
     private val getPetByIdUseCase: GetPetByIdUseCase,
     private val initialPetId: String? = null,
-    private val ownerId: String = "owner-1",
+    private val ownerId: String,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 ) {
     private val _uiState = MutableStateFlow(PetFormUiState())
@@ -173,9 +171,9 @@ class PetFormViewModel(
             _uiState.update { curr -> curr.copy(isLoading = true) }
             getPetByIdUseCase(id).onSuccess { p ->
                 if (p != null) {
-                    val ageStr = p.age ?: "2 Años"
+                    val ageStr = p.age.orEmpty()
                     val digits = ageStr.filter { it.isDigit() }
-                    val num = if (digits.isNotBlank()) digits else "2"
+                    val num = digits
                     val unit = when {
                         ageStr.contains("semana", true) -> "Semanas"
                         ageStr.contains("mes", true) -> "Meses"
@@ -190,10 +188,9 @@ class PetFormViewModel(
                             breed = p.breed ?: "Mestizo",
                             ageNumber = num,
                             ageUnit = unit,
+                            exactBirthDate = p.dateOfBirth.orEmpty(),
                             weightKg = p.weight?.replace(" kg", "")?.replace(" lbs", "") ?: "",
-                            gender = p.gender ?: "Macho",
                             allergies = p.allergies ?: "",
-                            photoUrl = p.photoUrl ?: "",
                             isEditMode = true,
                             isLoading = false
                         )
@@ -211,14 +208,8 @@ class PetFormViewModel(
     }
 
     fun onSpeciesChanged(newSpecies: String) {
-        val defaultBreed = when (newSpecies) {
-            "Canino" -> "Mestizo Canino"
-            "Felino" -> "Mestizo Felino"
-            "Avíparo" -> "Mestizo Avíparo"
-            else -> "Mestizo"
-        }
         _uiState.update { curr ->
-            curr.copy(species = newSpecies, breed = defaultBreed, errorMessage = null)
+            curr.copy(species = newSpecies, breed = "", errorMessage = null)
         }
     }
 
@@ -241,10 +232,12 @@ class PetFormViewModel(
         val bYear = parts[0].toIntOrNull() ?: return null
         val bMonth = parts[1].toIntOrNull() ?: return null
         val bDay = parts[2].toIntOrNull() ?: return null
-
-        val cYear = 2026
-        val cMonth = 10
-        val cDay = 6
+        val todayIso = com.pawsmedic.shared.core.common.convertMillisToIsoDateString(System.currentTimeMillis())
+        if (cleanStr > todayIso) return null
+        val today = todayIso.split("-")
+        val cYear = today[0].toInt()
+        val cMonth = today[1].toInt()
+        val cDay = today[2].toInt()
 
         val totalMonths = (cYear * 12 + cMonth) - (bYear * 12 + bMonth)
         val totalDays = (totalMonths * 30) + (cDay - bDay)
@@ -284,19 +277,17 @@ class PetFormViewModel(
         _uiState.update { curr -> curr.copy(weightKg = filtered, errorMessage = null) }
     }
 
-    fun onGenderChanged(v: String) = _uiState.update { curr -> curr.copy(gender = v, errorMessage = null) }
-
     fun onAllergiesChanged(v: String) = _uiState.update { curr -> curr.copy(allergies = v, errorMessage = null) }
-
-    fun onPhotoUrlChanged(v: String) = _uiState.update { curr -> curr.copy(photoUrl = v, errorMessage = null) }
 
     fun calculateBirthDate(ageNumberString: String, ageUnit: String): String? {
         val amount = ageNumberString.toIntOrNull() ?: return null
         if (amount <= 0) return null
 
-        var year = 2026
-        var month = 10
-        var day = 6
+        val today = com.pawsmedic.shared.core.common.convertMillisToIsoDateString(System.currentTimeMillis())
+            .split("-")
+        var year = today[0].toInt()
+        var month = today[1].toInt()
+        var day = today[2].toInt()
 
         when (ageUnit) {
             "Años" -> year -= amount
@@ -356,25 +347,33 @@ class PetFormViewModel(
         }
 
         if (calculatedBirthDate == null) {
-            _uiState.update { curr -> curr.copy(errorMessage = "Ingresa un número de edad válido (ej. 3)") }
+            _uiState.update { curr ->
+                curr.copy(errorMessage = "Ingresa una fecha de nacimiento válida o una edad aproximada.")
+            }
             return
         }
-
-        val displayAge = "${s.ageNumber} ${s.ageUnit}"
-        val displayWeight = if (s.weightKg.isNotBlank()) "${s.weightKg} kg" else "4.5 kg"
+        val today = com.pawsmedic.shared.core.common.convertMillisToIsoDateString(System.currentTimeMillis())
+        if (calculatedBirthDate > today) {
+            _uiState.update { curr ->
+                curr.copy(errorMessage = "La fecha de nacimiento no puede ser futura.")
+            }
+            return
+        }
+        if (s.weightKg.isNotBlank() && (s.weightKg.toDoubleOrNull()?.let { it > 0 } != true)) {
+            _uiState.update { curr -> curr.copy(errorMessage = "Ingresa un peso mayor a cero.") }
+            return
+        }
 
         val pet = Pet(
             id = s.id,
             ownerId = ownerId,
             name = s.name.trim(),
             species = s.species,
-            breed = if (s.breed.isBlank()) "Mestizo" else s.breed,
-            age = displayAge,
-            gender = s.gender,
+            breed = s.breed.takeIf(String::isNotBlank),
+            age = if (s.ageNumber.isBlank()) null else "${s.ageNumber} ${s.ageUnit}",
+            dateOfBirth = calculatedBirthDate,
             allergies = if (s.allergies.isBlank()) null else s.allergies,
-            photoUrl = if (s.photoUrl.isBlank()) "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba" else s.photoUrl,
-            medicalId = "PM-${(1000..9999).random()}-A",
-            weight = displayWeight
+            weight = s.weightKg.takeIf(String::isNotBlank)?.let { "$it kg" }
         )
 
         scope.launch {

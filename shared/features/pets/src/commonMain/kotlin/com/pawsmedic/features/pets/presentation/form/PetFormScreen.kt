@@ -41,10 +41,8 @@ import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.pets.presentation.AgeInputMode
 import com.pawsmedic.features.pets.presentation.PetFormUiState
 import com.pawsmedic.features.pets.presentation.PetFormViewModel
-import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.common.convertMillisToIsoDateString
 import com.pawsmedic.shared.core.common.formatIsoToDisplayDate
-import com.pawsmedic.shared.core.common.rememberPhotoPicker
 import com.pawsmedic.shared.core.designsystem.components.DatePickerModal
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
@@ -57,14 +55,9 @@ fun PetFormScreen(
     viewModel: PetFormViewModel,
     onBackClick: () -> Unit,
     onSaveSuccess: () -> Unit,
-    onPickPhoto: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-    val defaultPhotoPicker = rememberPhotoPicker { photoUrl ->
-        viewModel.onPhotoUrlChanged(photoUrl)
-    }
 
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
@@ -86,67 +79,6 @@ fun PetFormScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- PHOTO UPLOAD / EDIT AREA ---
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(PawMedicColors.Teal50)
-                .border(
-                    width = 1.dp,
-                    color = PawMedicColors.Teal200,
-                    shape = RoundedCornerShape(20.dp)
-                )
-                .clickable { onPickPhoto?.invoke() ?: defaultPhotoPicker() }
-                .padding(vertical = 20.dp, horizontal = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (uiState.photoUrl.isNotBlank()) {
-                    PetAvatarImage(
-                        photoUrl = uiState.photoUrl,
-                        species = uiState.species,
-                        size = 80.dp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = if (uiState.isEditMode) "Cambiar foto de perfil" else "Foto seleccionada (Click para cambiar)",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600,
-                        textAlign = TextAlign.Center
-                    )
-                } else {
-                    PetAvatarImage(
-                        photoUrl = null,
-                        species = uiState.species,
-                        size = 64.dp
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = if (uiState.isEditMode) "Cambiar foto de perfil" else "Subir foto de tu mascota",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
-                    )
-
-                    if (!uiState.isEditMode) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Formatos aceptados: JPG, PNG (Max 5MB)",
-                            fontSize = 12.sp,
-                            color = PawMedicColors.Gray400,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
         // --- FIELD 1: NOMBRE (Sin números ni caracteres especiales, min 2 letras) ---
         PawMedicTextField(
             value = uiState.name,
@@ -162,6 +94,7 @@ fun PetFormScreen(
         FormDropdownField(
             label = "Especie",
             selectedValue = uiState.species,
+            placeholder = "Selecciona la especie",
             options = uiState.availableSpecies,
             onOptionSelected = viewModel::onSpeciesChanged
         )
@@ -172,6 +105,7 @@ fun PetFormScreen(
         FormDropdownField(
             label = "Raza",
             selectedValue = uiState.breed,
+            placeholder = "Selecciona la raza (opcional)",
             options = uiState.availableBreeds,
             onOptionSelected = viewModel::onBreedChanged
         )
@@ -197,35 +131,7 @@ fun PetFormScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // --- FIELD 6: SEXO / GENDER SELECTOR ---
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Sexo",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = PawMedicColors.Gray800,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-            Row(modifier = Modifier.fillMaxWidth()) {
-                GenderChip(
-                    text = "Macho",
-                    isSelected = uiState.gender == "Macho",
-                    onClick = { viewModel.onGenderChanged("Macho") },
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                GenderChip(
-                    text = "Hembra",
-                    isSelected = uiState.gender == "Hembra",
-                    onClick = { viewModel.onGenderChanged("Hembra") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // --- FIELD 7: NOTAS RELEVANTES ---
+        // --- FIELD 6: NOTAS RELEVANTES ---
         PawMedicTextField(
             value = uiState.allergies,
             onValueChange = viewModel::onAllergiesChanged,
@@ -452,6 +358,7 @@ private fun AgeInputSection(
 private fun FormDropdownField(
     label: String,
     selectedValue: String,
+    placeholder: String,
     options: List<String>,
     onOptionSelected: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -468,7 +375,7 @@ private fun FormDropdownField(
         )
         Box(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
-                value = selectedValue,
+                value = selectedValue.ifBlank { placeholder },
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = {
@@ -534,35 +441,6 @@ private fun AgeModeChip(
         Text(
             text = text,
             fontSize = 13.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray700
-        )
-    }
-}
-
-@Composable
-private fun GenderChip(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .height(48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) PawMedicColors.Teal50 else PawMedicColors.White)
-            .border(
-                width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray300,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            fontSize = 14.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray700
         )

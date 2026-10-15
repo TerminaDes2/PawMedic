@@ -44,14 +44,30 @@ class VeterinaryListViewModel(
     }
 
     fun onSearchQueryChanged(q: String) {
-        _uiState.update { curr -> curr.copy(searchQuery = q) }
+        _uiState.update { curr ->
+            curr.copy(searchQuery = q, isLoading = true, errorMessage = null)
+        }
         scope.launch {
             repository.searchBusinesses(q)
                 .onSuccess { list ->
-                    _uiState.update { curr -> curr.copy(clinics = list) }
+                    _uiState.update { curr ->
+                        if (curr.searchQuery == q) curr.copy(clinics = list, isLoading = false)
+                        else curr
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update { curr ->
+                        if (curr.searchQuery == q) {
+                            curr.copy(isLoading = false, errorMessage = error.message)
+                        } else {
+                            curr
+                        }
+                    }
                 }
         }
     }
+
+    fun retrySearch() = onSearchQueryChanged(_uiState.value.searchQuery)
 
     fun onFilterSelected(filter: String) {
         _uiState.update { curr -> curr.copy(selectedFilter = filter) }

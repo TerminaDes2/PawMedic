@@ -26,12 +26,18 @@ data class AccountApplicationDto(
 
 @Serializable
 data class BusinessApplicationDto(
-    @SerialName("id") val id: String? = null,
-    @SerialName("business_name") val businessName: String = "",
-    @SerialName("tax_id") val taxId: String = "",
+    @SerialName("id") val id: String,
+    @SerialName("submitted_by") val submittedBy: String? = null,
+    @SerialName("tenant_id") val tenantId: String? = null,
     @SerialName("applicant_name") val applicantName: String = "",
+    @SerialName("legal_name") val legalName: String = "",
+    @SerialName("public_name") val publicName: String = "",
+    @SerialName("tax_id") val taxId: String = "",
     @SerialName("email") val email: String = "",
     @SerialName("phone") val phone: String = "",
     @SerialName("address") val address: String = "",
-    @SerialName("status") val status: String = "PENDIENTE"
+    @SerialName("license_number") val licenseNumber: String = "",
+    @SerialName("status") val status: String = "PENDING",
+    @SerialName("decision_reason") val decisionReason: String? = null,
+    @SerialName("created_at") val createdAt: String? = null
 )

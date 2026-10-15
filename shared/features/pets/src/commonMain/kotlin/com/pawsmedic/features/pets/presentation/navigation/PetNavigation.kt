@@ -19,15 +19,19 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,19 +42,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pawsmedic.features.appointments.data.datasource.InMemoryAppointmentDataSource
+import com.pawsmedic.features.appointments.data.datasource.SupabaseAppointmentDataSource
 import com.pawsmedic.features.appointments.data.repository.DefaultAppointmentRepository
 import com.pawsmedic.features.appointments.presentation.booking.BookingFlowScreen
 import com.pawsmedic.features.appointments.presentation.booking.BookingViewModel
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListScreen
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListViewModel
-import com.pawsmedic.features.businesses.data.datasource.InMemoryBusinessDataSource
+import com.pawsmedic.features.businesses.data.datasource.SupabaseBusinessDataSource
 import com.pawsmedic.features.businesses.data.repository.DefaultBusinessRepository
 import com.pawsmedic.features.businesses.presentation.VeterinaryDetailViewModel
 import com.pawsmedic.features.businesses.presentation.VeterinaryListViewModel
 import com.pawsmedic.features.businesses.presentation.detail.VeterinaryDetailScreen
 import com.pawsmedic.features.businesses.presentation.list.VeterinaryListScreen
-import com.pawsmedic.features.medical_records.data.datasource.InMemoryMedicalRecordDataSource
+import com.pawsmedic.features.medical_records.data.datasource.MedicalRecordDataSource
+import com.pawsmedic.features.medical_records.data.dto.MedicalRecordDto
 import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryScreen
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryViewModel
@@ -67,8 +72,11 @@ import com.pawsmedic.features.pets.presentation.dashboard.PetDashboardScreen
 import com.pawsmedic.features.pets.presentation.detail.PetDetailScreen
 import com.pawsmedic.features.pets.presentation.form.PetFormScreen
 import com.pawsmedic.features.pets.presentation.list.PetListScreen
-import com.pawsmedic.shared.core.common.rememberPhotoPicker
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.launch
 
 sealed interface PetTabScreen {
@@ -81,25 +89,39 @@ sealed interface PetTabScreen {
 sealed interface CitasTabScreen {
     data object List : CitasTabScreen
     data class Detail(val clinicId: String) : CitasTabScreen
-    data class Booking(val clinicId: String) : CitasTabScreen
+    data class Booking(val clinicId: String, val clinicName: String) : CitasTabScreen
     data object Appointments : CitasTabScreen
 }
 
 @Composable
 fun PetNavHost(
     repository: PetRepository,
+    ownerId: String,
+    userName: String,
+    supabaseClient: SupabaseClient,
+    onSignOut: suspend () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(initialPage = 0) { 4 }
     val coroutineScope = rememberCoroutineScope()
 
     var petTabScreen by remember { mutableStateOf<PetTabScreen>(PetTabScreen.List) }
-    var citasTabScreen by remember { mutableStateOf<CitasTabScreen>(CitasTabScreen.List) }
+    var citasTabScreen by remember { mutableStateOf<CitasTabScreen>(CitasTabScreen.Appointments) }
+    var signOutError by remember { mutableStateOf<String?>(null) }
+    var isSigningOut by remember { mutableStateOf(false) }
 
     // Repositories & DataSources
-    val medicalRecordRepository = remember { DefaultMedicalRecordRepository(InMemoryMedicalRecordDataSource()) }
-    val businessRepository = remember { DefaultBusinessRepository(InMemoryBusinessDataSource()) }
-    val appointmentRepository = remember { DefaultAppointmentRepository(InMemoryAppointmentDataSource()) }
+    val medicalRecordRepository = remember(supabaseClient, ownerId) {
+        DefaultMedicalRecordRepository(
+            SupabaseMedicalRecordDataSource(supabaseClient, ownerId)
+        )
+    }
+    val businessRepository = remember(supabaseClient) {
+        DefaultBusinessRepository(SupabaseBusinessDataSource(supabaseClient))
+    }
+    val appointmentRepository = remember(supabaseClient, ownerId) {
+        DefaultAppointmentRepository(SupabaseAppointmentDataSource(supabaseClient, ownerId))
+    }
 
     // Pet Use Cases & ViewModels
     val getPetsUseCase = remember { GetPetsUseCase(repository) }
@@ -108,10 +130,38 @@ fun PetNavHost(
     val updatePetUseCase = remember { UpdatePetUseCase(repository) }
     val deletePetUseCase = remember { DeletePetUseCase(repository) }
 
-    val petListViewModel = remember { PetListViewModel(getPetsUseCase) }
+    val petListViewModel = remember { PetListViewModel(getPetsUseCase, ownerId) }
     val medicalHistoryViewModel = remember { MedicalHistoryViewModel(medicalRecordRepository) }
     val veterinaryListViewModel = remember { VeterinaryListViewModel(businessRepository) }
     val appointmentsListViewModel = remember { AppointmentsListViewModel(appointmentRepository) }
+
+    if (signOutError != null) {
+        AlertDialog(
+            onDismissRequest = { signOutError = null },
+            title = { Text("No se pudo cerrar la sesión") },
+            text = { Text(signOutError.orEmpty()) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        signOutError = null
+                        coroutineScope.launch {
+                            isSigningOut = true
+                            runCatching { onSignOut() }
+                                .onFailure { signOutError = it.message ?: "Inténtalo nuevamente." }
+                            isSigningOut = false
+                        }
+                    }
+                ) {
+                    Text("Reintentar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { signOutError = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -149,8 +199,8 @@ fun PetNavHost(
                     label = "Citas",
                     isSelected = pagerState.currentPage == 2,
                     onClick = {
-                        veterinaryListViewModel.loadClinics()
-                        citasTabScreen = CitasTabScreen.List
+                        appointmentsListViewModel.loadAppointments()
+                        citasTabScreen = CitasTabScreen.Appointments
                         coroutineScope.launch { pagerState.animateScrollToPage(2) }
                     }
                 )
@@ -161,6 +211,21 @@ fun PetNavHost(
                     onClick = {
                         medicalHistoryViewModel.loadHistory()
                         coroutineScope.launch { pagerState.animateScrollToPage(3) }
+                    }
+                )
+                BottomNavItem(
+                    icon = Icons.Default.Logout,
+                    label = if (isSigningOut) "Saliendo" else "Salir",
+                    isSelected = false,
+                    enabled = !isSigningOut,
+                    onClick = {
+                        coroutineScope.launch {
+                            isSigningOut = true
+                            signOutError = null
+                            runCatching { onSignOut() }
+                                .onFailure { signOutError = it.message ?: "Inténtalo nuevamente." }
+                            isSigningOut = false
+                        }
                     }
                 )
             }
@@ -181,7 +246,7 @@ fun PetNavHost(
                         PetDashboardScreen(
                             petViewModel = petListViewModel,
                             appointmentsViewModel = appointmentsListViewModel,
-                            userName = "María",
+                            userName = userName,
                             onNavigateToPetsList = {
                                 petListViewModel.loadPets()
                                 petTabScreen = PetTabScreen.List
@@ -203,11 +268,6 @@ fun PetNavHost(
                             onNavigateToMedicalHistory = {
                                 medicalHistoryViewModel.loadHistory()
                                 coroutineScope.launch { pagerState.animateScrollToPage(3) }
-                            },
-                            onNavigateToBookAppointment = {
-                                veterinaryListViewModel.loadClinics()
-                                citasTabScreen = CitasTabScreen.List
-                                coroutineScope.launch { pagerState.animateScrollToPage(2) }
                             }
                         )
                     }
@@ -248,10 +308,12 @@ fun PetNavHost(
 
                                 PetTabScreen.Add -> {
                                     val addViewModel = remember {
-                                        PetFormViewModel(addPetUseCase, updatePetUseCase, getPetByIdUseCase)
-                                    }
-                                    val launchAddPhotoPicker = rememberPhotoPicker { photoUrl ->
-                                        addViewModel.onPhotoUrlChanged(photoUrl)
+                                        PetFormViewModel(
+                                            addPetUseCase = addPetUseCase,
+                                            updatePetUseCase = updatePetUseCase,
+                                            getPetByIdUseCase = getPetByIdUseCase,
+                                            ownerId = ownerId
+                                        )
                                     }
                                     PetFormScreen(
                                         viewModel = addViewModel,
@@ -259,8 +321,7 @@ fun PetNavHost(
                                         onSaveSuccess = {
                                             petListViewModel.loadPets()
                                             petTabScreen = PetTabScreen.List
-                                        },
-                                        onPickPhoto = launchAddPhotoPicker
+                                        }
                                     )
                                 }
 
@@ -270,11 +331,9 @@ fun PetNavHost(
                                             addPetUseCase = addPetUseCase,
                                             updatePetUseCase = updatePetUseCase,
                                             getPetByIdUseCase = getPetByIdUseCase,
-                                            initialPetId = screen.petId
+                                            initialPetId = screen.petId,
+                                            ownerId = ownerId
                                         )
-                                    }
-                                    val launchEditPhotoPicker = rememberPhotoPicker { photoUrl ->
-                                        editViewModel.onPhotoUrlChanged(photoUrl)
                                     }
                                     PetFormScreen(
                                         viewModel = editViewModel,
@@ -282,8 +341,7 @@ fun PetNavHost(
                                         onSaveSuccess = {
                                             petListViewModel.loadPets()
                                             petTabScreen = PetTabScreen.Detail(screen.petId)
-                                        },
-                                        onPickPhoto = launchEditPhotoPicker
+                                        }
                                     )
                                 }
                             }
@@ -314,14 +372,36 @@ fun PetNavHost(
                                         viewModel = detailVm,
                                         onBackClick = { citasTabScreen = CitasTabScreen.List },
                                         onStartBooking = { clinicId ->
-                                            citasTabScreen = CitasTabScreen.Booking(clinicId)
+                                            citasTabScreen = CitasTabScreen.Booking(
+                                                clinicId = clinicId,
+                                                clinicName = detailVm.uiState.value.clinic?.name.orEmpty()
+                                            )
                                         }
                                     )
                                 }
 
                                 is CitasTabScreen.Booking -> {
                                     val bookingVm = remember(screen.clinicId) {
-                                        BookingViewModel(appointmentRepository)
+                                        BookingViewModel(
+                                            repository = appointmentRepository,
+                                            clinicId = screen.clinicId,
+                                            clinicName = screen.clinicName,
+                                            ownerId = ownerId,
+                                            loadPets = { petOwnerId ->
+                                                repository.listPets(petOwnerId).map { pets ->
+                                                    pets.map { pet ->
+                                                        com.pawsmedic.features.appointments.presentation.booking.BookingPet(
+                                                            id = pet.id,
+                                                            name = pet.name,
+                                                            species = pet.species,
+                                                            breed = pet.breed,
+                                                            age = pet.age,
+                                                            photoUrl = pet.photoUrl
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        )
                                     }
                                     BookingFlowScreen(
                                         viewModel = bookingVm,
@@ -336,7 +416,10 @@ fun PetNavHost(
                                 CitasTabScreen.Appointments -> {
                                     AppointmentsListScreen(
                                         viewModel = appointmentsListViewModel,
-                                        onStartBooking = { citasTabScreen = CitasTabScreen.List }
+                                        onStartBooking = {
+                                            veterinaryListViewModel.loadClinics()
+                                            citasTabScreen = CitasTabScreen.List
+                                        }
                                     )
                                 }
                             }
@@ -344,9 +427,37 @@ fun PetNavHost(
                     }
 
                     3 -> {
-                        MedicalHistoryScreen(
-                            viewModel = medicalHistoryViewModel
-                        )
+                        val historyState by medicalHistoryViewModel.uiState.collectAsState()
+                        when {
+                            historyState.isLoading -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Cargando el historial clínico…", color = PawMedicColors.Gray600)
+                                }
+                            }
+                            historyState.errorMessage != null -> {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(24.dp),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "No se pudo cargar el historial clínico: ${historyState.errorMessage}",
+                                        color = PawMedicColors.Error
+                                    )
+                                    Spacer(Modifier.height(12.dp))
+                                    androidx.compose.material3.Button(
+                                        onClick = medicalHistoryViewModel::loadHistory
+                                    ) {
+                                        Text("Reintentar")
+                                    }
+                                }
+                            }
+                            else -> MedicalHistoryScreen(viewModel = medicalHistoryViewModel)
+                        }
                     }
                 }
             }
@@ -359,11 +470,12 @@ private fun BottomNavItem(
     icon: ImageVector,
     label: String,
     isSelected: Boolean,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier.clickable(enabled = enabled) { onClick() }
     ) {
         Icon(
             imageVector = icon,
@@ -380,3 +492,90 @@ private fun BottomNavItem(
         )
     }
 }
+
+private class SupabaseMedicalRecordDataSource(
+    private val supabase: SupabaseClient,
+    private val ownerId: String
+) : MedicalRecordDataSource {
+    override suspend fun getAllRecords(): List<MedicalRecordDto> {
+        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para consultar el historial." }
+        val pets = supabase.postgrest["pets"]
+            .select {
+                filter { eq("owner_id", ownerId) }
+            }
+            .decodeList<OwnedPetRecord>()
+        if (pets.isEmpty()) return emptyList()
+
+        return pets.flatMap { pet ->
+            getRecordsForPet(pet)
+        }.sortedByDescending(MedicalRecordDto::date)
+    }
+
+    override suspend fun getRecordsByPet(petId: String): List<MedicalRecordDto> {
+        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para consultar el historial." }
+        val pet = supabase.postgrest["pets"]
+            .select {
+                filter {
+                    eq("id", petId)
+                    eq("owner_id", ownerId)
+                }
+            }
+            .decodeList<OwnedPetRecord>()
+            .singleOrNull() ?: return emptyList()
+        return getRecordsForPet(pet)
+    }
+
+    private suspend fun getRecordsForPet(pet: OwnedPetRecord): List<MedicalRecordDto> {
+        val records = supabase.postgrest["medical_records"]
+            .select {
+                filter { eq("pet_id", pet.id) }
+            }
+            .decodeList<MedicalRecordRecord>()
+
+        return records.map { record ->
+            val clinicName = supabase.postgrest["tenants"]
+                .select {
+                    filter { eq("id", record.tenantId) }
+                }
+                .decodeList<TenantRecord>()
+                .singleOrNull()
+                ?.name
+                ?: "Clínica no disponible (${record.tenantId})"
+
+            MedicalRecordDto(
+                id = record.id,
+                petId = pet.id,
+                petName = pet.name,
+                clinicName = clinicName,
+                doctorName = "Autor: ${record.authoredBy}",
+                date = record.createdAt.substringBefore('T'),
+                title = record.title,
+                diagnosis = record.content,
+                treatment = "No especificado en el registro.",
+                vetNotes = null
+            )
+        }
+    }
+}
+
+@Serializable
+private data class OwnedPetRecord(
+    val id: String,
+    val name: String
+)
+
+@Serializable
+private data class MedicalRecordRecord(
+    val id: String,
+    @SerialName("pet_id") val petId: String,
+    @SerialName("tenant_id") val tenantId: String,
+    @SerialName("authored_by") val authoredBy: String,
+    val title: String,
+    val content: String,
+    @SerialName("created_at") val createdAt: String
+)
+
+@Serializable
+private data class TenantRecord(
+    val name: String
+)

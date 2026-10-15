@@ -68,7 +68,7 @@ fun PetListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "PETS",
+                    text = "MASCOTAS",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = PawMedicColors.White,
@@ -77,6 +77,15 @@ fun PetListScreen(
             }
 
             Column(modifier = Modifier.padding(16.dp)) {
+                if (uiState.pets.isEmpty() && !uiState.isLoading) {
+                    Text(
+                        text = "Aún no tienes mascotas registradas. Agrega una para comenzar.",
+                        fontSize = 15.sp,
+                        color = PawMedicColors.Gray600,
+                        modifier = Modifier.padding(vertical = 24.dp)
+                    )
+                }
+
                 // --- TOP HORIZONTAL AVATARS ROW ---
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -184,21 +193,6 @@ fun PetListScreen(
                                     color = PawMedicColors.Gray900
                                 )
 
-                                if (selectedPet.isInsured) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xFFF3E8FF))
-                                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = "Pet Insured",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF6B21A8)
-                                        )
-                                    }
-                                }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -206,33 +200,25 @@ fun PetListScreen(
                             // Grid Info Chips
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 InfoGridChip(
-                                    icon = "⚤",
-                                    text = selectedPet.gender ?: "Macho",
+                                    icon = "🎂",
+                                    text = selectedPet.dateOfBirth ?: "Nacimiento no registrado",
                                     modifier = Modifier.weight(1f)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 InfoGridChip(
-                                    icon = "🎂",
-                                    text = selectedPet.age ?: "2 años",
+                                    icon = "⚖️",
+                                    text = selectedPet.weight ?: "Peso no registrado",
                                     modifier = Modifier.weight(1f)
                                 )
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                InfoGridChip(
-                                    icon = "⏳",
-                                    text = selectedPet.breed ?: selectedPet.species,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                InfoGridChip(
-                                    icon = "⚖️",
-                                    text = selectedPet.weight ?: "4.5 kg",
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                            InfoGridChip(
+                                icon = "🐾",
+                                text = selectedPet.breed ?: "Raza no registrada",
+                                modifier = Modifier.fillMaxWidth()
+                            )
 
                             Spacer(modifier = Modifier.height(20.dp))
 
@@ -246,29 +232,6 @@ fun PetListScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // --- MEDICAL RECORDS SECTION CARDS ---
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(PawMedicColors.White)
-                        .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        RecordRowItem(
-                            icon = "📋",
-                            title = "Medical Records",
-                            badgeColor = PawMedicColors.Teal600
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        RecordRowItem(
-                            icon = "💊",
-                            title = "Prescriptions",
-                            badgeColor = Color(0xFF8B5CF6)
-                        )
-                    }
-                }
             }
         }
 
@@ -313,44 +276,5 @@ private fun InfoGridChip(
                 color = PawMedicColors.Gray800
             )
         }
-    }
-}
-
-@Composable
-private fun RecordRowItem(
-    icon: String,
-    title: String,
-    badgeColor: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(badgeColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = icon, fontSize = 20.sp, color = PawMedicColors.White)
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
-            )
-        }
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = PawMedicColors.Gray400
-        )
     }
 }

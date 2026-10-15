@@ -30,12 +30,25 @@ import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email as SupabaseEmail
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.launch
+
+@Serializable
+private data class BusinessLoginStatus(
+    @SerialName("status") val status: String = "",
+    @SerialName("decision_reason") val decisionReason: String? = null
+)
+
+@Serializable
+private data class TenantLoginStatus(
+    @SerialName("status") val status: String = ""
+)
 
 @Composable
 fun LoginScreen(
     onNavigateToVetMain: (String) -> Unit = {},
-    onNavigateToAdminMain: (String) -> Unit = {},
+    onNavigateToAdminLogin: () -> Unit = {},
     onNavigateToRegister: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
@@ -393,9 +406,6 @@ fun LoginScreen(
                                 Text("Recordarme", fontSize = 12.sp, color = TextSecondary)
                             }
 
-                            TextButton(onClick = {}) {
-                                Text("Olvidé mi contraseña", fontSize = 12.sp, color = ClinicalEmerald, fontWeight = FontWeight.SemiBold)
-                            }
                         }
 
                         // Botón Principal Esmeralda
@@ -406,80 +416,69 @@ fun LoginScreen(
                                     errorMessage = null
                                     try {
                                         val cleanEmail = email.trim()
-                                        val cleanPassword = password.trim()
+                                        val cleanPassword = password
 
                                         if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
                                             throw IllegalArgumentException("Por favor ingrese correo electrónico y contraseña")
                                         }
-
-                                        val isSuperAdmin = cleanEmail.equals("super@gmail.com", ignoreCase = true) ||
-                                                           cleanEmail.equals("admin@pawsmedic.com", ignoreCase = true) ||
-                                                           cleanEmail.lowercase().contains("admin") ||
-                                                           cleanEmail.lowercase().contains("super")
-
-                                        // 0. Limpiar cualquier sesión anterior que haya quedado activa
-                                        try {
-                                            supabase.auth.signOut()
-                                        } catch (e: Exception) {
-                                            // Ignorar
+                                        if (!Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$").matches(cleanEmail)) {
+                                            throw IllegalArgumentException("Ingresa un correo electrónico válido.")
                                         }
 
-                                        // 1. Intentar iniciar sesión en Supabase Auth
-                                        try {
-                                            supabase.auth.signInWith(SupabaseEmail) {
-                                                this.email = cleanEmail
-                                                this.password = cleanPassword
+                                        supabase.auth.signInWith(SupabaseEmail) {
+                                            this.email = cleanEmail
+                                            this.password = cleanPassword
+                                        }
+                                        val session = supabase.auth.currentSessionOrNull()
+                                            ?: error("Supabase no devolvió una sesión autenticada.")
+                                        val userId = session.user?.id
+                                            ?: error("La sesión no contiene un identificador de usuario.")
+                                        val profile = supabase.postgrest["profiles"]
+                                            .select {
+                                                filter { eq("id", userId) }
                                             }
-                                        } catch (signInErr: Exception) {
-                                            // 2. Si el usuario aún no existe en Supabase Cloud, registrarlo automáticamente
-                                            try {
-                                                supabase.auth.signUpWith(SupabaseEmail) {
-                                                    this.email = cleanEmail
-                                                    this.password = cleanPassword
+                                            .decodeSingle<UserProfile>()
+
+                                        when (profile.role) {
+                                            ProfileRole.SUPERADMIN -> onNavigateToAdminLogin()
+                                            ProfileRole.VETERINARY_BUSINESS -> {
+                                                if (profile.tenantId == null) {
+                                                    onNavigateToAdminLogin()
+                                                } else {
+                                                    val tenantId = profile.tenantId
+                                                        ?: error("La cuenta veterinaria todavía no tiene una clínica aprobada.")
+                                                    val tenant = supabase.postgrest["tenants"]
+                                                        .select {
+                                                            filter { eq("id", tenantId) }
+                                                        }
+                                                        .decodeSingle<TenantLoginStatus>()
+                                                    if (tenant.status != "ACTIVE") {
+                                                        error("La clínica no está activa. Contacta al administrador.")
+                                                    }
+                                                    onNavigateToVetMain(cleanEmail)
                                                 }
-                                            } catch (signUpErr: Exception) {
-                                                // Permitir acceso de desarrollo si es una cuenta de prueba
-                                                val isDemoAccount = isSuperAdmin || cleanEmail.lowercase().contains("vet") || cleanEmail.contains("pawsmedic") || cleanEmail.contains("@gmail")
-                                                if (!isDemoAccount) {
-                                                    throw IllegalStateException("Credenciales incorrectas o la cuenta no está registrada.")
-                                                }
+                                            }
+                                            ProfileRole.USER -> {
+                                                error("Esta aplicación de escritorio es exclusiva para negocios veterinarios. Las cuentas de usuario de clientes deben ingresar desde la app móvil.")
                                             }
                                         }
 
-                                        // 3. Obtener sesión activa recién creada si existe
-                                        val session = try { supabase.auth.currentSessionOrNull() } catch (e: Exception) { null }
-                                        val userId = session?.user?.id ?: "local-user-id"
-
-                                        val assignedRole = if (isSuperAdmin) ProfileRole.SUPERADMIN else ProfileRole.VETERINARY_BUSINESS
-
-                                        // 4. Garantizar el perfil del usuario en la tabla 'profiles' de Supabase
-                                        try {
-                                            supabase.postgrest["profiles"].upsert(
-                                                UserProfile(
-                                                    id = userId,
-                                                    email = cleanEmail,
-                                                    displayName = cleanEmail.substringBefore("@"),
-                                                    role = assignedRole
-                                                )
-                                            )
-                                        } catch (e: Exception) {
-                                            // Ignorar si RLS restringe escritura directa
-                                        }
-
-                                        // 5. Guardar la sesión persistentemente en SessionManager
                                         SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
-
-                                        // 6. Enrutamiento Estricto
-                                        if (isSuperAdmin) {
-                                            onNavigateToAdminMain(cleanEmail)
-                                        } else {
-                                            onNavigateToVetMain(cleanEmail)
+                                        } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        println("=== PAWSMEDIC LOGIN ERROR ===")
+                                        println(e.stackTraceToString())
+                                        val rawMsg = e.message.orEmpty()
+                                        errorMessage = when {
+                                            rawMsg.contains("missing email or phone", ignoreCase = true) ||
+                                            rawMsg.contains("invalid_credentials", ignoreCase = true) ||
+                                            rawMsg.contains("invalid login", ignoreCase = true) ->
+                                                "Correo o contraseña incorrectos, o la cuenta no ha sido verificada."
+                                            else -> rawMsg.ifBlank { "Error de acceso. Verifique sus credenciales." }
                                         }
-                                    } catch (e: Throwable) {
-                                        errorMessage = e.message ?: e.localizedMessage ?: "Error de acceso. Verifique sus credenciales."
-                                    } finally {
+                                        } finally {
                                         isLoading = false
-                                    }
+                                        }
                                 }
                             },
                             enabled = !isLoading,
@@ -537,22 +536,24 @@ fun LoginScreen(
             }
         }
 
-        // Botón Secreto Admin en la esquina inferior derecha
-        TextButton(
-            onClick = {
-                SessionManager.saveSession("super@gmail.com", rememberMe = true)
-                onNavigateToAdminMain("super@gmail.com")
-            },
+        // Botón sutil en la esquina inferior derecha para Superadmin
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.BottomEnd
         ) {
-            Text(
-                text = "v1.0",
-                color = Color.Black.copy(alpha = 0.12f),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
+            IconButton(
+                onClick = onNavigateToAdminLogin,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AdminPanelSettings,
+                    contentDescription = "Acceso Superadmin",
+                    tint = TextMuted.copy(alpha = 0.35f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
@@ -562,7 +563,7 @@ fun LoginScreen(
 fun LoginScreenPreview() {
     LoginScreen(
         onNavigateToVetMain = {},
-        onNavigateToAdminMain = {},
+        onNavigateToAdminLogin = {},
         onNavigateToRegister = {}
     )
 }
@@ -570,7 +571,7 @@ fun LoginScreenPreview() {
 fun main() = singleWindowApplication(title = "Preview - Login Screen") {
     LoginScreen(
         onNavigateToVetMain = {},
-        onNavigateToAdminMain = {},
+        onNavigateToAdminLogin = {},
         onNavigateToRegister = {}
     )
 }

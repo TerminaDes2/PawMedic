@@ -26,62 +26,131 @@ import com.pawsmedic.desktop.veterinary.ui.CatalogScreen
 import com.pawsmedic.desktop.veterinary.ui.ExpedientesScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.LoginScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.RegisterScreen
+import com.pawsmedic.desktop.veterinary.ui.auth.SuperadminLoginScreen
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.shared.core.model.ProfileRole
+import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.launch
+
+@Serializable
+private data class BusinessApplicationState(
+    @SerialName("status") val status: String = "",
+    @SerialName("decision_reason") val decisionReason: String? = null
+)
+
+@Serializable
+private data class TenantState(
+    @SerialName("status") val status: String = ""
+)
+
+@Composable
+private fun AccessStatusScreen(
+    message: String,
+    onBackToLogin: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(OffWhiteBg)
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Estado de la cuenta",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = message,
+            fontSize = 15.sp,
+            color = TextSecondary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onBackToLogin,
+            colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
+        ) {
+            Text("Volver al inicio de sesión", color = Color.White)
+        }
+    }
+}
 
 fun main() = application {
     val windowState = rememberWindowState(placement = WindowPlacement.Maximized)
     var showExitDialog by remember { mutableStateOf(false) }
     var currentScreen by remember { mutableStateOf("Login") }
     var activeUserEmail by remember { mutableStateOf("") }
+    var statusMessage by remember { mutableStateOf("") }
 
     val coroutineScope = rememberCoroutineScope()
 
-    // Restauración automática de sesión guardada mediante SessionManager al iniciar
     LaunchedEffect(Unit) {
         try {
-            val savedEmail = SessionManager.getSavedEmail()
-            if (!savedEmail.isNullOrBlank() && SessionManager.isRememberMeEnabled()) {
-                activeUserEmail = savedEmail
-                val isSuperAdmin = savedEmail.equals("super@gmail.com", ignoreCase = true) ||
-                                   savedEmail.equals("admin@pawsmedic.com", ignoreCase = true) ||
-                                   savedEmail.lowercase().contains("admin") ||
-                                   savedEmail.lowercase().contains("super")
-                currentScreen = if (isSuperAdmin) "Admin" else "Agenda"
-            } else {
-                val session = supabase.auth.currentSessionOrNull()
-                if (session != null && session.user?.email != null) {
-                    val email = session.user!!.email!!
-                    activeUserEmail = email
-                    val isSuperAdmin = email.equals("super@gmail.com", ignoreCase = true) ||
-                                       email.equals("admin@pawsmedic.com", ignoreCase = true) ||
-                                       email.lowercase().contains("admin") ||
-                                       email.lowercase().contains("super")
-                    currentScreen = if (isSuperAdmin) "Admin" else "Agenda"
+            val user = supabase.auth.currentSessionOrNull()?.user ?: return@LaunchedEffect
+            val userId = user.id
+            val email = user.email.orEmpty()
+            val profile = supabase.postgrest["profiles"]
+                .select { filter { eq("id", userId) } }
+                .decodeSingle<UserProfile>()
+            activeUserEmail = email
+            currentScreen = when (profile.role) {
+                ProfileRole.SUPERADMIN -> "Admin"
+                ProfileRole.VETERINARY_BUSINESS -> {
+                    val tenantId = profile.tenantId
+                    if (tenantId == null) {
+                        "Admin"
+                    } else {
+                        val tenant = supabase.postgrest["tenants"]
+                            .select { filter { eq("id", tenantId) } }
+                            .decodeSingle<TenantState>()
+                        if (tenant.status == "ACTIVE") "Agenda" else {
+                            statusMessage = "La clínica no está activa. Contacta al Superadmin."
+                            "AccessStatus"
+                        }
+                    }
+                }
+                ProfileRole.USER -> {
+                    val application = supabase.postgrest["businesses"]
+                        .select { filter { eq("submitted_by", userId) } }
+                        .decodeList<BusinessApplicationState>()
+                        .firstOrNull()
+                    statusMessage = when (application?.status) {
+                        "PENDING" -> "Tu solicitud de registro veterinario está pendiente de aprobación."
+                        "REJECTED" -> application.decisionReason
+                            ?: "Tu solicitud de registro veterinario fue rechazada."
+                        else -> "Esta cuenta no tiene acceso a la aplicación de escritorio."
+                    }
+                    "AccessStatus"
                 }
             }
+
         } catch (e: Exception) {
-            // Continuar en Login
+            statusMessage = e.message ?: "No se pudo restaurar la sesión de Supabase."
+            currentScreen = "AccessStatus"
         }
     }
 
     fun handleLogout() {
         coroutineScope.launch {
             SessionManager.clearSession()
-            try {
-                supabase.auth.signOut()
-            } catch (e: Exception) {
-                // Ignorar
-            }
+            supabase.auth.signOut()
             activeUserEmail = ""
+            statusMessage = ""
             currentScreen = "Login"
         }
     }
 
     Window(
         onCloseRequest = {
-            if (currentScreen != "Login") {
+            if (currentScreen == "Agenda" || currentScreen == "Admin" || currentScreen == "Expedientes" || currentScreen == "Catalog") {
                 showExitDialog = true
             } else {
                 exitApplication()
@@ -98,11 +167,17 @@ fun main() = application {
                             activeUserEmail = email
                             currentScreen = "Agenda"
                         },
+                        onNavigateToAdminLogin = {
+                            currentScreen = "AdminLogin"
+                        },
+                        onNavigateToRegister = { currentScreen = "Register" }
+                    )
+                    "AdminLogin" -> SuperadminLoginScreen(
                         onNavigateToAdminMain = { email ->
                             activeUserEmail = email
                             currentScreen = "Admin"
                         },
-                        onNavigateToRegister = { currentScreen = "Register" }
+                        onBackToLogin = { currentScreen = "Login" }
                     )
                     "Register" -> RegisterScreen(
                         onNavigateToVetMain = { currentScreen = "Agenda" },
@@ -125,7 +200,12 @@ fun main() = application {
                     )
                     "Admin" -> SuperadminDashboardScreen(
                         userEmail = activeUserEmail,
-                        onLogout = { handleLogout() }
+                        onLogout = { handleLogout() },
+                        supabaseClient = supabase
+                    )
+                    "AccessStatus" -> AccessStatusScreen(
+                        message = statusMessage,
+                        onBackToLogin = { handleLogout() }
                     )
                 }
 
@@ -192,11 +272,7 @@ fun main() = application {
                                         onClick = {
                                             coroutineScope.launch {
                                                 SessionManager.clearSession()
-                                                try {
-                                                    supabase.auth.signOut()
-                                                } catch (e: Exception) {
-                                                    // Ignorar
-                                                }
+                                                supabase.auth.signOut()
                                                 showExitDialog = false
                                                 exitApplication()
                                             }

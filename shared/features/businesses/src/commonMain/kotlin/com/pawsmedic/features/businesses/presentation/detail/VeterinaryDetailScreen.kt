@@ -64,6 +64,22 @@ fun VeterinaryDetailScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        if (uiState.isLoading) {
+            Text("Cargando perfil de la clínica…", color = PawMedicColors.Gray600)
+        }
+        uiState.errorMessage?.let { message ->
+            Text(
+                text = "No se pudo cargar el perfil: $message",
+                fontSize = 14.sp,
+                color = PawMedicColors.Error
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::loadClinic)
+        }
+        if (clinic == null && !uiState.isLoading && uiState.errorMessage == null) {
+            Text("La clínica no está disponible en el directorio activo.", color = PawMedicColors.Gray600)
+        }
+
         if (clinic != null) {
             // --- GALLERY IMAGE BANNER ---
             Box(
@@ -118,7 +134,11 @@ fun VeterinaryDetailScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "${clinic.rating} (${clinic.reviewCount})",
+                            text = if (clinic.rating > 0) {
+                                "${clinic.rating} (${clinic.reviewCount})"
+                            } else {
+                                clinic.reviewCount
+                            },
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicColors.Gray900,
@@ -149,7 +169,7 @@ fun VeterinaryDetailScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = clinic.address ?: "Calle 100 #15-45, Bogotá, Colombia",
+                    text = clinic.address?.takeIf(String::isNotBlank) ?: "Dirección no registrada",
                     fontSize = 14.sp,
                     color = PawMedicColors.Gray700
                 )
@@ -166,7 +186,7 @@ fun VeterinaryDetailScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = clinic.phone ?: "+57 (601) 555-0199",
+                    text = clinic.phone?.takeIf(String::isNotBlank) ?: "Teléfono no registrado",
                     fontSize = 14.sp,
                     color = PawMedicColors.Gray700
                 )
@@ -174,12 +194,14 @@ fun VeterinaryDetailScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = clinic.description ?: "Ofrecemos atención integral de la más alta calidad...",
-                fontSize = 14.sp,
-                color = PawMedicColors.Gray600,
-                lineHeight = 20.sp
-            )
+            clinic.description?.takeIf(String::isNotBlank)?.let { description ->
+                Text(
+                    text = description,
+                    fontSize = 14.sp,
+                    color = PawMedicColors.Gray600,
+                    lineHeight = 20.sp
+                )
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -209,13 +231,21 @@ fun VeterinaryDetailScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    clinic.hours.forEach { hour ->
+                    if (clinic.hours.isEmpty()) {
                         Text(
-                            text = "• $hour",
+                            text = "Horario no registrado.",
                             fontSize = 13.sp,
-                            color = PawMedicColors.Gray800,
-                            modifier = Modifier.padding(vertical = 2.dp)
+                            color = PawMedicColors.Gray800
                         )
+                    } else {
+                        clinic.hours.forEach { hour ->
+                            Text(
+                                text = "• $hour",
+                                fontSize = 13.sp,
+                                color = PawMedicColors.Gray800,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -252,6 +282,9 @@ fun VeterinaryDetailScreen(
                                     fontWeight = FontWeight.Medium,
                                     color = PawMedicColors.Gray800
                                 )
+                            }
+                            if (clinic.specialties.isEmpty()) {
+                                Text("Especialidades no registradas.", color = PawMedicColors.Gray600)
                             }
                         }
                     }

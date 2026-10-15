@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
@@ -21,7 +23,6 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pawsmedic.shared.core.designsystem.components.GoogleSocialButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
@@ -47,6 +49,7 @@ fun LoginScreen(
     onBackClick: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onLoginSuccess: (String) -> Unit,
+    onGoogleSignInClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -72,7 +75,38 @@ fun LoginScreen(
                 onBackClick = onBackClick
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            if (onGoogleSignInClick != null) {
+                GoogleSocialButton(
+                    text = "Iniciar sesión con Google",
+                    onClick = onGoogleSignInClick,
+                    isLoading = uiState.isLoading
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = PawMedicColors.Gray300
+                    )
+                    Text(
+                        text = "  o continúa con correo  ",
+                        fontSize = 12.sp,
+                        color = PawMedicColors.Gray500
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = PawMedicColors.Gray300
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
 
             PawMedicTextField(
                 value = uiState.email,
@@ -127,18 +161,6 @@ fun LoginScreen(
             )
 
             Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "¿Olvidaste tu contraseña?",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = PawMedicColors.Teal600,
-                textAlign = TextAlign.End,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { /* Handle forgot password */ }
-                    .padding(vertical = 4.dp)
-            )
 
             if (uiState.errorMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))

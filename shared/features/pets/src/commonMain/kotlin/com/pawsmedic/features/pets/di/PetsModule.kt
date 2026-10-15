@@ -1,7 +1,7 @@
 package com.pawsmedic.features.pets.di
 
-import com.pawsmedic.features.pets.data.datasource.InMemoryPetDataSource
 import com.pawsmedic.features.pets.data.datasource.PetDataSource
+import com.pawsmedic.features.pets.data.datasource.SupabasePetDataSource
 import com.pawsmedic.features.pets.data.repository.DefaultPetRepository
 import com.pawsmedic.features.pets.domain.repository.PetRepository
 import com.pawsmedic.features.pets.domain.usecase.AddPetUseCase
@@ -15,14 +15,14 @@ import com.pawsmedic.features.pets.presentation.PetListViewModel
 import org.koin.dsl.module
 
 fun petsModule() = module {
-    single<PetDataSource> { InMemoryPetDataSource() }
+    single<PetDataSource> { SupabasePetDataSource(get()) }
     single<PetRepository> { DefaultPetRepository(get()) }
     factory { GetPetsUseCase(get()) }
     factory { GetPetByIdUseCase(get()) }
     factory { AddPetUseCase(get()) }
     factory { UpdatePetUseCase(get()) }
     factory { DeletePetUseCase(get()) }
-    factory { PetListViewModel(get()) }
+    factory { (ownerId: String) -> PetListViewModel(get(), ownerId) }
     factory { (petId: String) -> PetDetailViewModel(get(), get(), petId) }
-    factory { (petId: String?) -> PetFormViewModel(get(), get(), get(), petId) }
+    factory { (petId: String?, ownerId: String) -> PetFormViewModel(get(), get(), get(), petId, ownerId) }
 }
