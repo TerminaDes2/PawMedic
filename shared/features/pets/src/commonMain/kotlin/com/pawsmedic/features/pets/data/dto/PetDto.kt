@@ -1,37 +1,38 @@
 package com.pawsmedic.features.pets.data.dto
 
 import com.pawsmedic.features.pets.domain.model.Pet
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class PetDto(
-    @SerialName("id") val id: String = "",
-    @SerialName("owner_id") val ownerId: String = "",
-    @SerialName("nombre") val name: String = "",
-    @SerialName("especie") val species: List<String>? = null,
-    @SerialName("raza") val breed: List<String>? = null,
-    @SerialName("edad") val age: Int? = null,
-    @SerialName("sexo") val gender: String? = null,
-    @SerialName("alergias") val allergies: String? = null,
-    @SerialName("foto_url") val photoUrl: String? = null,
-    @SerialName("medical_id") val medicalId: String? = null,
-    @SerialName("peso") val weight: Double? = null,
-    @SerialName("is_insured") val isInsured: Boolean? = null
+    val id: String,
+    val ownerId: String,
+    val name: String,
+    val species: String,
+    val breed: String? = null,
+    val age: String? = null,
+    val dateOfBirth: String? = null,
+    val gender: String? = null,
+    val allergies: String? = null,
+    val photoUrl: String? = null,
+    val medicalId: String? = null,
+    val weight: String? = null,
+    val isInsured: Boolean = false
 ) {
     fun toDomain() = Pet(
         id = id,
         ownerId = ownerId,
         name = name,
-        species = species?.firstOrNull() ?: "Perro",
-        breed = breed?.firstOrNull(),
+        species = species,
+        breed = breed,
         age = age,
+        dateOfBirth = dateOfBirth,
         gender = gender,
         allergies = allergies,
         photoUrl = photoUrl,
         medicalId = medicalId,
         weight = weight,
-        isInsured = isInsured ?: false
+        isInsured = isInsured
     )
 
     companion object {
@@ -39,9 +40,10 @@ data class PetDto(
             id = pet.id,
             ownerId = pet.ownerId,
             name = pet.name,
-            species = listOf(pet.species),
-            breed = pet.breed?.let { listOf(it) },
+            species = pet.species,
+            breed = pet.breed,
             age = pet.age,
+            dateOfBirth = pet.dateOfBirth,
             gender = pet.gender,
             allergies = pet.allergies,
             photoUrl = pet.photoUrl,

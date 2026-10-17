@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.businesses.domain.model.Business
 import com.pawsmedic.features.businesses.presentation.VeterinaryListViewModel
+import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
@@ -127,12 +128,37 @@ fun VeterinaryListScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         // --- CLINICS CARDS LIST ---
-        uiState.clinics.forEach { clinic ->
-            VeterinaryCard(
-                clinic = clinic,
-                onDetailClick = { onNavigateToDetail(clinic.id) }
+        if (uiState.isLoading) {
+            Text(
+                text = "Cargando clínicas activas…",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray600
             )
-            Spacer(modifier = Modifier.height(20.dp))
+        }
+        uiState.errorMessage?.let { message ->
+            Text(
+                text = "No se pudo cargar el directorio: $message",
+                fontSize = 14.sp,
+                color = PawMedicColors.Error
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::retrySearch)
+        }
+        if (!uiState.isLoading && uiState.errorMessage == null && uiState.clinics.isEmpty()) {
+            Text(
+                text = "No hay clínicas activas disponibles en este momento.",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray600
+            )
+        }
+        if (!uiState.isLoading && uiState.errorMessage == null) {
+            uiState.clinics.forEach { clinic ->
+                VeterinaryCard(
+                    clinic = clinic,
+                    onDetailClick = { onNavigateToDetail(clinic.id) }
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+            }
         }
     }
 }
@@ -182,27 +208,29 @@ private fun VeterinaryCard(
                     fontWeight = FontWeight.Bold,
                     color = PawMedicColors.Gray900
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = Color(0xFFF59E0B),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = clinic.rating.toString(),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Gray900,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
+                if (clinic.rating > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFF59E0B),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = clinic.rating.toString(),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PawMedicColors.Gray900,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = clinic.address ?: "Calle 100 #15-45, Bogotá",
+                text = clinic.address?.takeIf(String::isNotBlank) ?: "Dirección no registrada",
                 fontSize = 13.sp,
                 color = PawMedicColors.Gray500
             )
@@ -227,6 +255,13 @@ private fun VeterinaryCard(
                             color = PawMedicColors.Teal600
                         )
                     }
+                }
+                if (clinic.specialties.isEmpty()) {
+                    Text(
+                        text = "Especialidades no registradas",
+                        fontSize = 12.sp,
+                        color = PawMedicColors.Gray500
+                    )
                 }
             }
 

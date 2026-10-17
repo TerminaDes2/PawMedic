@@ -101,7 +101,25 @@ fun AppointmentsListScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (uiState.appointments.isEmpty()) {
+        when {
+            uiState.isLoading -> {
+                Text(
+                    text = "Cargando tus citas…",
+                    fontSize = 14.sp,
+                    color = PawMedicColors.Gray500,
+                    modifier = Modifier.padding(vertical = 32.dp)
+                )
+            }
+            uiState.errorMessage != null -> {
+                Text(
+                    text = "No se pudieron cargar tus citas: ${uiState.errorMessage}",
+                    fontSize = 14.sp,
+                    color = PawMedicColors.Error
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::loadAppointments)
+            }
+            uiState.appointments.isEmpty() -> {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -114,10 +132,12 @@ fun AppointmentsListScreen(
                     color = PawMedicColors.Gray500
                 )
             }
-        } else {
-            uiState.appointments.forEach { app ->
-                AppointmentDetailCard(app = app)
-                Spacer(modifier = Modifier.height(16.dp))
+            }
+            else -> {
+                uiState.appointments.forEach { app ->
+                    AppointmentDetailCard(app = app)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
 
@@ -135,6 +155,7 @@ fun AppointmentsListScreen(
 @Composable
 private fun AppointmentDetailCard(app: Appointment) {
     val isPending = app.status.contains("Pendiente", ignoreCase = true)
+    val isConfirmed = app.status.equals("Confirmada", ignoreCase = true)
 
     Box(
         modifier = Modifier
@@ -184,14 +205,24 @@ private fun AppointmentDetailCard(app: Appointment) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isPending) Color(0xFFFEF3C7) else Color(0xFFE6F4EA))
+                        .background(
+                            when {
+                                isPending -> Color(0xFFFEF3C7)
+                                isConfirmed -> Color(0xFFE6F4EA)
+                                else -> PawMedicColors.Gray100
+                            }
+                        )
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = if (isPending) "Pendiente" else "Confirmada",
+                        text = app.status,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isPending) Color(0xFF92400E) else PawMedicColors.Teal600
+                        color = when {
+                            isPending -> Color(0xFF92400E)
+                            isConfirmed -> PawMedicColors.Teal600
+                            else -> PawMedicColors.Gray700
+                        }
                     )
                 }
             }

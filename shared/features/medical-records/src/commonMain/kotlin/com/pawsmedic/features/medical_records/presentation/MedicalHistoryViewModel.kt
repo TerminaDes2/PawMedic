@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 data class MedicalHistoryUiState(
     val records: List<MedicalRecord> = emptyList(),
     val filteredRecords: List<MedicalRecord> = emptyList(),
-    val selectedPetName: String = "Tobías",
+    val selectedPetName: String = "Todas",
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null

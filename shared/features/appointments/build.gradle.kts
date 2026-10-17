@@ -19,7 +19,6 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
             implementation(libs.supabase.postgrest)
-            implementation(libs.supabase.auth)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)

@@ -26,6 +26,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.admin.model.BusinessApplicationDto
+import com.pawsmedic.desktop.admin.supabase
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.coroutines.launch
 
 val AdminOffWhiteBg = Color(0xFFF8FAFC)
 val AdminDarkSlate = Color(0xFF0F172A)
@@ -44,46 +53,56 @@ data class RegistrationRequest(
     val rfc: String,
     val date: String,
     var status: String,
-    val email: String = "contacto@clinica.com",
-    val phone: String = "+52 55 1234 5678",
-    val address: String = "Av. Principal #123, Col. Centro",
-    val licenseNumber: String = "CÉD-981204-VET"
+    val email: String = "",
+    val phone: String = "",
+    val address: String = "",
+    val licenseNumber: String = ""
+)
+
+@Serializable
+private data class AdminAuditLogDto(
+    @SerialName("actor_id") val actorId: String? = null,
+    @SerialName("action") val action: String,
+    @SerialName("entity_type") val entityType: String,
+    @SerialName("entity_id") val entityId: String? = null,
+    @SerialName("created_at") val createdAt: String
 )
 
 data class AuditLog(
     val timestamp: String,
-    val user: String,
+    val actorId: String,
     val action: String,
-    val module: String,
-    val ip: String,
-    val riskLevel: String
+    val entityType: String,
+    val entityId: String
 )
 
 @Composable
 fun SuperadminDashboardScreen(
-    onLogout: () -> Unit = {}
+    userEmail: String = "",
+    onLogout: () -> Unit = {},
+    supabaseClient: SupabaseClient = supabase
 ) {
-    var selectedModule by remember { mutableStateOf(0) } // 0: Monitoreo, 1: Solicitudes, 2: Auditoría
+    var selectedModule by remember { mutableStateOf(1) }
     var searchQuery by remember { mutableStateOf("") }
 
-    val requests = remember {
-        mutableStateListOf(
-            RegistrationRequest("SOL-2026-089", "Clínica Veterinaria San Miguel", "MVZ Carlos Eduardo Ramos", "VET891204KL2", "27/09/2026", "Pendiente", "contacto@sanmiguelvet.com", "+52 55 8765 4321", "Av. San Miguel #45, Col. Jardines", "CÉD-891204-MVZ"),
-            RegistrationRequest("SOL-2026-090", "VetCare Pets & Specialty", "Dra. Patricia Solís", "VCP1203099X1", "28/09/2026", "Pendiente", "p.solis@vetcarepets.com", "+52 55 9812 3456", "Calle Del Bosque #102, Lomas", "CÉD-120309-MVZ"),
-            RegistrationRequest("SOL-2026-091", "Hospital Veterinario PetSalud", "MVZ Miguel Ángel Torres", "HVP9001153A0", "28/09/2026", "Pendiente", "m.torres@petsalud.org", "+52 55 4567 8901", "Blvd. Los Olivos #78, Centro", "CÉD-900115-MVZ"),
-            RegistrationRequest("SOL-2026-092", "Centro Veterinario Las Lomas", "Dra. Sofía Valenzuela", "CVL18042211B", "28/09/2026", "Pendiente", "s.valenzuela@laslomasvet.com", "+52 55 2345 6789", "Av. Las Lomas #310, Poniente", "CÉD-180422-MVZ"),
-            RegistrationRequest("SOL-2026-093", "AgroVet & Músculo Animal", "MVZ Fernando Castro", "AVM1105189R4", "28/09/2026", "Pendiente", "f.castro@agrovet.mx", "+52 55 3456 7890", "Carretera Nacional Km 12", "CÉD-110518-MVZ")
-        )
-    }
+    val requests = remember { mutableStateListOf<RegistrationRequest>() }
+    val auditLogs = remember { mutableStateListOf<AuditLog>() }
+    var auditLoadError by remember { mutableStateOf<String?>(null) }
 
-    val auditLogs = remember {
-        listOf(
-            AuditLog("28/09/2026 18:42", "root@pawsmedic.com", "Inicio de sesión Superadmin", "Auth", "192.168.1.10", "Bajo"),
-            AuditLog("28/09/2026 17:15", "carlos.ramos@sanmiguel.com", "Registro de clínica completado", "Solicitudes", "201.140.22.8", "Bajo"),
-            AuditLog("28/09/2026 15:30", "sistema_autorun", "Verificación periódica de licencias", "Licencias", "localhost", "Bajo"),
-            AuditLog("28/09/2026 12:10", "unknown_user", "Intento fallido de autenticación admin", "Security", "187.190.45.12", "Alto"),
-            AuditLog("27/09/2026 22:05", "root@pawsmedic.com", "Suspensión preventiva de VetExpress", "Cuentas", "192.168.1.10", "Medio")
-        )
+    LaunchedEffect(supabaseClient) {
+        try {
+            val rows = try {
+                supabaseClient.postgrest["audit_logs"].select().decodeList<AdminAuditLogDto>()
+            } catch (_: Exception) {
+                try { listOf(supabaseClient.postgrest["audit_logs"].select().decodeSingle<AdminAuditLogDto>()) } catch (_: Exception) { emptyList() }
+            }
+            auditLogs.clear()
+            auditLogs.addAll(rows.map { item ->
+                AuditLog(item.createdAt, item.actorId ?: "sistema", item.action, item.entityType, item.entityId ?: "—")
+            })
+        } catch (e: Exception) {
+            auditLoadError = e.message ?: "No se pudo cargar la auditoría."
+        }
     }
 
     Box(
@@ -196,9 +215,9 @@ fun SuperadminDashboardScreen(
                 ) {
                     Text(
                         text = when (selectedModule) {
-                            0 -> "Monitoreo del Sistema & Servidores"
-                            1 -> "Solicitudes de Registro de Veterinarias"
-                            else -> "Auditoría, Licencias & Seguridad"
+                            0 -> "Supervisión de veterinarias"
+                            1 -> "Solicitudes de incorporación veterinaria"
+                            else -> "Auditoría administrativa"
                         },
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
@@ -237,7 +256,7 @@ fun SuperadminDashboardScreen(
                                 ) {
                                     if (searchQuery.isEmpty()) {
                                         Text(
-                                            text = "Buscar clínica, folio, IP...",
+                                            text = "Buscar veterinaria, solicitante o RFC...",
                                             fontSize = 13.sp,
                                             color = AdminTextMuted,
                                             maxLines = 1
@@ -259,6 +278,7 @@ fun SuperadminDashboardScreen(
                         }
 
                         // Profile Root & Cerrar Sesión
+                        val displayName = if (userEmail.isNotBlank()) userEmail.substringBefore("@") else "admin"
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -274,23 +294,23 @@ fun SuperadminDashboardScreen(
                                         .background(AdminSelectedBg),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "SA",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = AdminSelectedText
+                                    Icon(
+                                        imageVector = Icons.Default.AdminPanelSettings,
+                                        contentDescription = null,
+                                        tint = AdminSelectedText,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
 
                                 Column {
                                     Text(
-                                        text = "Sesión Activa: Root",
+                                        text = displayName,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = AdminTextPrimary
                                     )
                                     Text(
-                                        text = "Control Central",
+                                        text = userEmail.ifBlank { "Control Central" },
                                         fontSize = 11.sp,
                                         color = AdminTextMuted
                                     )
@@ -337,9 +357,9 @@ fun SuperadminDashboardScreen(
                         .padding(20.dp)
                 ) {
                     when (selectedModule) {
-                        0 -> MonitoreoModule()
-                        1 -> SolicitudesModule(requests)
-                        2 -> AuditoriaModule(auditLogs)
+                        0 -> MonitoreoModule(supabaseClient)
+                        1 -> SolicitudesModule(requests, supabaseClient, searchQuery)
+                        2 -> AuditoriaModule(auditLogs, auditLoadError)
                     }
                 }
             }
@@ -349,150 +369,117 @@ fun SuperadminDashboardScreen(
 
 // MÓDULO 1: MONITOREO
 @Composable
-fun MonitoreoModule() {
-    Column(modifier = Modifier.fillMaxSize()) {
-        // TARJETAS DE MÉTRICAS (4 Columnas)
+fun MonitoreoModule(supabaseClient: SupabaseClient) {
+    val businesses = remember { mutableStateListOf<BusinessApplicationDto>() }
+    var isLoading by remember { mutableStateOf(true) }
+    var busyBusinessId by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(supabaseClient) {
+        try {
+            businesses.clear()
+            val list = try {
+                supabaseClient.postgrest["businesses"].select().decodeList<BusinessApplicationDto>()
+            } catch (_: Exception) {
+                try { listOf(supabaseClient.postgrest["businesses"].select().decodeSingle<BusinessApplicationDto>()) } catch (_: Exception) { emptyList() }
+            }
+            businesses.addAll(
+                list.filter { it.status == "APPROVED" || it.status == "SUSPENDED" }
+            )
+        } catch (e: Exception) {
+            errorMessage = e.message ?: "No se pudieron cargar las veterinarias."
+        } finally {
+            isLoading = false
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        val activeCount = businesses.count { it.status == "APPROVED" }
+        val suspendedCount = businesses.count { it.status == "SUSPENDED" }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val metrics = listOf(
-                Triple("Total Veterinarias", "142", "+12 este mes"),
-                Triple("Usuarios Activos", "1,280", "Médicos & Asistentes"),
-                Triple("Solicitudes Pendientes", "18", "Requieren revisión"),
-                Triple("Salud del Sistema", "99.9%", "En línea & Operativo")
-            )
-
-            metrics.forEach { (title, valStr, sub) ->
-                Box(
+            listOf(
+                "Veterinarias activas" to activeCount,
+                "Veterinarias suspendidas" to suspendedCount
+            ).forEach { (label, count) ->
+                Column(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White)
+                        .background(AdminOffWhiteBg)
                         .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
                         .padding(16.dp)
                 ) {
-                    Column {
-                        Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AdminTextMuted)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(valStr, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                        Text(sub, fontSize = 11.sp, color = AdminSelectedText)
-                    }
+                    Text(label, fontSize = 13.sp, color = AdminTextSecondary)
+                    Text(count.toString(), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Text("Supervisión de veterinarias", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
+        errorMessage?.let { Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp) }
+        if (isLoading) CircularProgressIndicator(color = AdminEmeraldGreen)
+        if (!isLoading && businesses.isEmpty() && errorMessage == null) {
+            Text("No hay veterinarias aprobadas para mostrar.", color = AdminTextSecondary)
+        }
 
-        Row(
+        LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Estado de Servidores / Microservicios
-            Box(
-                modifier = Modifier
-                    .weight(0.40f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
-                    .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
-                    .padding(20.dp)
-            ) {
-                Column {
-                    Text("Salud de Microservicios", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val services = listOf(
-                        "Base de Datos Principal" to "Operativo (12ms)",
-                        "Servicio de Autenticación" to "Operativo (0 errores)",
-                        "Servidor de Almacenamiento" to "Operativo (2.4 TB libre)",
-                        "Motor de Notificaciones Push" to "Operativo",
-                        "API Gateway Central" to "Operativo (99.99%)"
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        services.forEach { (sName, status) ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(AdminOffWhiteBg)
-                                    .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp))
-                                    .padding(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(8.dp)
-                                                .clip(CircleShape)
-                                                .background(AdminEmeraldGreen)
-                                        )
-                                        Text(sName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                                    }
-                                    Text(status, fontSize = 11.sp, color = AdminTextSecondary)
-                                }
-                            }
-                        }
+            items(businesses) { business ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(AdminOffWhiteBg)
+                        .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp))
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(business.publicName, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
+                        Text("Estado: ${business.status}", fontSize = 12.sp, color = AdminTextSecondary)
                     }
-                }
-            }
-
-            // Registro de Sesiones Activas
-            Box(
-                modifier = Modifier
-                    .weight(0.60f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
-                    .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
-                    .padding(20.dp)
-            ) {
-                Column {
-                    Text("Sesiones de Veterinarias en Tiempo Real", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val activeClinics = listOf(
-                        "PawsMedic Clínica Principal" to "Plan Enterprise · 14 usuarios",
-                        "VetCare Pets & Specialty" to "Plan Pro · 6 usuarios",
-                        "Hospital Veterinario PetSalud" to "Plan Pro · 8 usuarios",
-                        "Centro Veterinario Las Lomas" to "Plan Basic · 2 usuarios"
-                    )
-
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items(activeClinics) { (cName, detail) ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(AdminOffWhiteBg)
-                                    .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp))
-                                    .padding(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(cName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                                        Text(detail, fontSize = 12.sp, color = AdminTextSecondary)
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(AdminSelectedBg)
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Text("En Línea", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AdminSelectedText)
-                                    }
+                    val nextStatus = if (business.status == "APPROVED") "SUSPENDED" else "APPROVED"
+                    Button(
+                        enabled = busyBusinessId == null,
+                        onClick = {
+                            coroutineScope.launch {
+                                busyBusinessId = business.id
+                                errorMessage = null
+                                try {
+                                    supabaseClient.postgrest.rpc(
+                                        "set_business_status",
+                                        buildJsonObject {
+                                            put("p_business_id", business.id)
+                                            put("p_status", nextStatus)
+                                        }
+                                    )
+                                    val index = businesses.indexOf(business)
+                                    if (index >= 0) businesses[index] = business.copy(status = nextStatus)
+                                } catch (e: Exception) {
+                                    errorMessage = e.message ?: "No se pudo cambiar el estado."
+                                } finally {
+                                    busyBusinessId = null
                                 }
                             }
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AdminEmeraldGreen)
+                    ) {
+                        Text(if (nextStatus == "SUSPENDED") "Suspender" else "Reactivar")
                     }
                 }
             }
@@ -500,11 +487,82 @@ fun MonitoreoModule() {
     }
 }
 
-// MÓDULO 2: SOLICITUDES CON DETALLE EN DOBLE CLICK
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
+fun SolicitudesModule(
+    requests: MutableList<RegistrationRequest>,
+    supabaseClient: SupabaseClient,
+    searchQuery: String
+) {
     var selectedRequestForDetail by remember { mutableStateOf<RegistrationRequest?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isActionLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    val visibleRequests = requests.filter { request ->
+        searchQuery.isBlank() || listOf(
+            request.id, request.name, request.rep, request.rfc, request.email
+        ).any { it.contains(searchQuery, ignoreCase = true) }
+    }
+
+    LaunchedEffect(supabaseClient) {
+        try {
+            val fetchedApps = try {
+                supabaseClient.postgrest["businesses"].select().decodeList<BusinessApplicationDto>()
+            } catch (_: Exception) {
+                try { listOf(supabaseClient.postgrest["businesses"].select().decodeSingle<BusinessApplicationDto>()) } catch (_: Exception) { emptyList() }
+            }
+            requests.clear()
+            requests.addAll(fetchedApps.map { dto ->
+                RegistrationRequest(
+                    id = dto.id,
+                    name = dto.publicName,
+                    rep = dto.applicantName,
+                    rfc = dto.taxId,
+                    date = dto.createdAt?.substringBefore("T") ?: "—",
+                    status = when (dto.status) {
+                        "APPROVED" -> "Aprobado"
+                        "REJECTED" -> "Rechazado"
+                        "SUSPENDED" -> "Suspendido"
+                        else -> "Pendiente"
+                    },
+                    email = dto.email,
+                    phone = dto.phone,
+                    address = dto.address,
+                    licenseNumber = dto.licenseNumber
+                )
+            })
+        } catch (e: Exception) {
+            errorMessage = e.message ?: "No se pudieron cargar las solicitudes."
+        } finally {
+            isLoading = false
+        }
+    }
+
+    fun updateStatus(req: RegistrationRequest, newStatus: String) {
+        coroutineScope.launch {
+            isActionLoading = true
+            errorMessage = null
+            try {
+                val parameters = buildJsonObject {
+                    put("p_business_id", req.id)
+                    if (newStatus == "Rechazado") put("p_reason", "")
+                }
+                val function = if (newStatus == "Aprobado") {
+                    "approve_business_application"
+                } else {
+                    "reject_business_application"
+                }
+                supabaseClient.postgrest.rpc(function, parameters)
+                val idx = requests.indexOf(req)
+                if (idx >= 0) requests[idx] = req.copy(status = newStatus)
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "No se pudo guardar la decisión."
+            } finally {
+                isActionLoading = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -522,22 +580,68 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
             ) {
                 Column {
                     Text("Solicitudes de Registro Pendientes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                    Text("Aprueba o rechaza el alta de nuevas clínicas. Haz doble clic en una fila para ver los detalles completos.", fontSize = 12.sp, color = AdminTextSecondary)
+                    Text("Revisa los datos y decide la incorporación de cada clínica.", fontSize = 12.sp, color = AdminTextSecondary)
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(AdminSelectedBg)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isLoading = true
+                            errorMessage = null
+                            try {
+                                val fetchedApps = try {
+                                    supabaseClient.postgrest["businesses"].select().decodeList<BusinessApplicationDto>()
+                                } catch (_: Exception) {
+                                    try { listOf(supabaseClient.postgrest["businesses"].select().decodeSingle<BusinessApplicationDto>()) } catch (_: Exception) { emptyList() }
+                                }
+                                requests.clear()
+                                requests.addAll(fetchedApps.map { dto ->
+                                    RegistrationRequest(
+                                        id = dto.id,
+                                        name = dto.publicName,
+                                        rep = dto.applicantName,
+                                        rfc = dto.taxId,
+                                        date = dto.createdAt?.substringBefore("T") ?: "—",
+                                        status = when (dto.status) {
+                                            "APPROVED" -> "Aprobado"
+                                            "REJECTED" -> "Rechazado"
+                                            "SUSPENDED" -> "Suspendido"
+                                            else -> "Pendiente"
+                                        },
+                                        email = dto.email,
+                                        phone = dto.phone,
+                                        address = dto.address,
+                                        licenseNumber = dto.licenseNumber
+                                    )
+                                })
+                            } catch (e: Exception) {
+                                errorMessage = e.message ?: "No se pudieron cargar las solicitudes."
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AdminEmeraldGreen),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(36.dp)
                 ) {
-                    Text(
-                        text = "💡 Tip: Doble clic abre detalle",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AdminSelectedText
-                    )
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Refrescar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage.orEmpty(),
+                    color = Color(0xFFB91C1C),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            if (isLoading) {
+                CircularProgressIndicator(color = AdminEmeraldGreen)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -554,7 +658,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
             ) {
                 Text("FOLIO", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.12f))
                 Text("NOMBRE VETERINARIA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.28f))
-                Text("REPRESENTANTE / MVZ", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.22f))
+                Text("SOLICITANTE / MVZ", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.22f))
                 Text("RFC / CÉDULA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.15f))
                 Text("FECHA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
                 Text("ACCIONES", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.13f))
@@ -566,7 +670,17 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(requests) { req ->
+                if (!isLoading && visibleRequests.isEmpty() && errorMessage == null) {
+                    item {
+                        Text(
+                            "No hay solicitudes de veterinarias para mostrar.",
+                            color = AdminTextSecondary,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+                items(visibleRequests) { req ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -597,10 +711,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                         .height(32.dp)
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(AdminEmeraldGreen)
-                                        .clickable {
-                                            val idx = requests.indexOf(req)
-                                            if (idx != -1) requests[idx] = req.copy(status = "Aprobado")
-                                        },
+                                        .clickable(enabled = !isActionLoading) { updateStatus(req, "Aprobado") },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text("Aprobar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -613,10 +724,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(Color.White)
                                         .border(1.dp, AdminBorderLight, RoundedCornerShape(6.dp))
-                                        .clickable {
-                                            val idx = requests.indexOf(req)
-                                            if (idx != -1) requests[idx] = req.copy(status = "Rechazado")
-                                        },
+                                        .clickable(enabled = !isActionLoading) { updateStatus(req, "Rechazado") },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text("Rechazar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
@@ -741,17 +849,17 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             DetailItem(label = "RUC / ID Fiscal", value = req.rfc, icon = Icons.Default.Badge)
-                            DetailItem(label = "Dirección de la Clínica", value = req.address, icon = Icons.Default.LocationOn)
+                            DetailItem(label = "Dirección Registrada", value = req.address, icon = Icons.Default.LocationOn)
                             DetailItem(label = "Correo Administrador", value = req.email, icon = Icons.Default.Email)
                         }
 
-                        // Columna 2: Datos Responsable Médico
+                        // Columna 2: Datos Responsable Médico / Operador
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            DetailItem(label = "Veterinario Responsable", value = req.rep, icon = Icons.Default.Person)
-                            DetailItem(label = "Cédula Profesional", value = req.licenseNumber, icon = Icons.Default.Verified)
+                            DetailItem(label = "Solicitante Responsable", value = req.rep, icon = Icons.Default.Person)
+                            DetailItem(label = "Cédula / Licencia", value = req.licenseNumber, icon = Icons.Default.Verified)
                             DetailItem(label = "Teléfono de Contacto", value = req.phone, icon = Icons.Default.Phone)
                         }
                     }
@@ -775,8 +883,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 OutlinedButton(
                                     onClick = {
-                                        val idx = requests.indexOf(req)
-                                        if (idx != -1) requests[idx] = req.copy(status = "Rechazado")
+                                        updateStatus(req, "Rechazado")
                                         selectedRequestForDetail = null
                                     },
                                     shape = RoundedCornerShape(8.dp),
@@ -787,14 +894,13 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
 
                                 Button(
                                     onClick = {
-                                        val idx = requests.indexOf(req)
-                                        if (idx != -1) requests[idx] = req.copy(status = "Aprobado")
+                                        updateStatus(req, "Aprobado")
                                         selectedRequestForDetail = null
                                     },
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = AdminEmeraldGreen)
                                 ) {
-                                    Text("Aprobar Solicitud", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("Aprobar Habilitación", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                             }
                         }
@@ -830,7 +936,7 @@ private fun DetailItem(label: String, value: String, icon: ImageVector) {
 
 // MÓDULO 3: AUDITORÍA
 @Composable
-fun AuditoriaModule(logs: List<AuditLog>) {
+fun AuditoriaModule(logs: List<AuditLog>, loadError: String? = null) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -842,6 +948,10 @@ fun AuditoriaModule(logs: List<AuditLog>) {
         Column(modifier = Modifier.fillMaxSize()) {
             Text("Registro de Auditoría & Seguridad", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
             Text("Historial inmutable de eventos del sistema y cambios de configuración.", fontSize = 12.sp, color = AdminTextSecondary)
+            loadError?.let { Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp) }
+            if (logs.isEmpty() && loadError == null) {
+                Text("No hay eventos de auditoría para mostrar.", fontSize = 13.sp, color = AdminTextSecondary)
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -855,12 +965,11 @@ fun AuditoriaModule(logs: List<AuditLog>) {
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("FECHA & HORA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.18f))
-                Text("USUARIO / SISTEMA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.22f))
-                Text("ACCIÓN REALIZADA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.30f))
-                Text("MÓDULO", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.12f))
-                Text("IP ORIGEN", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
-                Text("RIESGO", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.08f))
+                Text("FECHA & HORA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.20f))
+                Text("ACTOR", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.22f))
+                Text("ACCIÓN", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.25f))
+                Text("ENTIDAD", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.16f))
+                Text("ID", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.17f))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -879,26 +988,11 @@ fun AuditoriaModule(logs: List<AuditLog>) {
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(log.timestamp, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.18f))
-                        Text(log.user, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary, modifier = Modifier.weight(0.22f))
-                        Text(log.action, fontSize = 12.sp, color = AdminTextSecondary, modifier = Modifier.weight(0.30f))
-                        Text(log.module, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.12f))
-                        Text(log.ip, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
-
-                        Box(
-                            modifier = Modifier
-                                .weight(0.08f)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(if (log.riskLevel == "Alto") Color(0xFFFEE2E2) else AdminOffWhiteBg),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = log.riskLevel,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (log.riskLevel == "Alto") Color(0xFF991B1B) else AdminTextSecondary
-                            )
-                        }
+                        Text(log.timestamp, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.20f))
+                        Text(log.actorId, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary, modifier = Modifier.weight(0.22f))
+                        Text(log.action, fontSize = 12.sp, color = AdminTextSecondary, modifier = Modifier.weight(0.25f))
+                        Text(log.entityType, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.16f))
+                        Text(log.entityId, fontSize = 11.sp, color = AdminTextMuted, modifier = Modifier.weight(0.17f))
                     }
                 }
             }

@@ -2,85 +2,100 @@ package com.pawsmedic.features.pets.data.datasource
 
 import com.pawsmedic.features.pets.data.dto.PetDto
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-/**
- * Fuente de datos remota para Mascotas utilizando Supabase Postgrest.
- */
 class SupabasePetDataSource(
     private val supabase: SupabaseClient
 ) : PetDataSource {
-
-    override suspend fun listPets(ownerId: String): List<PetDto> {
-        val activeOwnerId = if (ownerId.isBlank() || ownerId == "owner-1") {
-            supabase.auth.currentUserOrNull()?.id ?: ownerId
-        } else {
-            ownerId
-        }
-        return supabase.postgrest["pets"]
+    override suspend fun listPets(ownerId: String): List<PetDto> =
+        supabase.postgrest["pets"]
             .select {
                 filter {
-                    if (activeOwnerId.isNotBlank() && activeOwnerId != "owner-1") {
-                        eq("owner_id", activeOwnerId)
-                    }
+                    eq("owner_id", ownerId)
                 }
             }
-            .decodeList<PetDto>()
-    }
+            .decodeList<PetRecord>()
+            .map { it.toPetDto() }
 
-    override suspend fun getPetById(id: String): PetDto? {
-        return supabase.postgrest["pets"]
+    override suspend fun getPetById(id: String): PetDto? =
+        supabase.postgrest["pets"]
             .select {
-                filter {
-                    eq("id", id)
-                }
+                filter { eq("id", id) }
             }
-            .decodeSingleOrNull<PetDto>()
-    }
+            .decodeList<PetRecord>()
+            .singleOrNull()
+            ?.toPetDto()
 
-    override suspend fun addPet(pet: PetDto): PetDto {
-        val activeOwnerId = if (pet.ownerId.isBlank() || pet.ownerId == "owner-1") {
-            supabase.auth.currentUserOrNull()?.id ?: pet.ownerId
-        } else {
-            pet.ownerId
-        }
-        val petToInsert = pet.copy(ownerId = activeOwnerId)
-        return supabase.postgrest["pets"]
-            .insert(petToInsert) {
+    override suspend fun addPet(pet: PetDto): PetDto =
+        supabase.postgrest["pets"]
+            .insert(pet.toWriteRecord()) {
                 select()
             }
-            .decodeSingle<PetDto>()
-    }
+            .decodeSingle<PetRecord>()
+            .toPetDto()
 
-    override suspend fun updatePet(pet: PetDto): PetDto {
-        val activeOwnerId = if (pet.ownerId.isBlank() || pet.ownerId == "owner-1") {
-            supabase.auth.currentUserOrNull()?.id ?: pet.ownerId
-        } else {
-            pet.ownerId
-        }
-        val petToUpdate = pet.copy(ownerId = activeOwnerId)
-        return supabase.postgrest["pets"]
-            .update(petToUpdate) {
-                filter {
-                    eq("id", pet.id)
-                }
+    override suspend fun updatePet(pet: PetDto): PetDto =
+        supabase.postgrest["pets"]
+            .update(pet.toWriteRecord()) {
+                filter { eq("id", pet.id) }
                 select()
             }
-            .decodeSingle<PetDto>()
-    }
+            .decodeSingle<PetRecord>()
+            .toPetDto()
 
-    override suspend fun deletePet(id: String): Boolean {
-        return try {
-            supabase.postgrest["pets"]
-                .delete {
-                    filter {
-                        eq("id", id)
-                    }
-                }
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
+    override suspend fun deletePet(id: String): Boolean =
+        supabase.postgrest["pets"]
+            .delete {
+                filter { eq("id", id) }
+                select()
+            }
+            .decodeList<PetRecord>()
+            .isNotEmpty()
+
+    private fun PetDto.toWriteRecord() = PetWriteRecord(
+        ownerId = ownerId,
+        name = name,
+        species = species,
+        breed = breed,
+        dateOfBirth = dateOfBirth,
+        weightGrams = weight?.removeSuffix(" kg")?.toDoubleOrNull()
+            ?.let { (it * 1000).toInt() },
+        notes = allergies
+    )
+
+    private fun PetRecord.toPetDto() = PetDto(
+        id = id,
+        ownerId = ownerId,
+        name = name,
+        species = species,
+        breed = breed,
+        dateOfBirth = dateOfBirth,
+        allergies = notes,
+        weight = weightGrams?.let { grams -> "${grams / 1000.0} kg" }
+    )
 }
+
+@Serializable
+private data class PetRecord(
+    val id: String,
+    @SerialName("owner_id") val ownerId: String,
+    val name: String,
+    val species: String,
+    val breed: String? = null,
+    @SerialName("date_of_birth") val dateOfBirth: String? = null,
+    @SerialName("weight_grams") val weightGrams: Int? = null,
+    val notes: String? = null
+)
+
+@Serializable
+private data class PetWriteRecord(
+    @SerialName("owner_id") val ownerId: String,
+    val name: String,
+    val species: String,
+    val breed: String? = null,
+    @SerialName("date_of_birth") val dateOfBirth: String? = null,
+    @SerialName("weight_grams") val weightGrams: Int? = null,
+    val notes: String? = null
+)

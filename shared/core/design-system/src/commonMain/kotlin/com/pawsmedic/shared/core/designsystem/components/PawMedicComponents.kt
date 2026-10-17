@@ -3,7 +3,6 @@ package com.pawsmedic.shared.core.designsystem.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +20,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -31,13 +28,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -144,6 +139,57 @@ fun PawMedicSecondaryButton(
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium
         )
+    }
+}
+
+@Composable
+fun GoogleSocialButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
+    text: String = "Continuar con Google"
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled && !isLoading,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = ButtonDefaults.outlinedButtonBorder.copy(
+            brush = androidx.compose.ui.graphics.SolidColor(PawMedicColors.Gray300)
+        ),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = PawMedicColors.White,
+            contentColor = PawMedicColors.Gray800
+        )
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(22.dp),
+                color = PawMedicColors.Teal600,
+                strokeWidth = 2.5.dp
+            )
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "G",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF4285F4)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = text,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PawMedicColors.Gray800
+                )
+            }
+        }
     }
 }
 

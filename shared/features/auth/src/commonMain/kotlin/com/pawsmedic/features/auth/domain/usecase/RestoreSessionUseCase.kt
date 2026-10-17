@@ -4,5 +4,8 @@ import com.pawsmedic.features.auth.domain.model.AuthenticatedSession
 import com.pawsmedic.features.auth.domain.repository.AuthRepository
 
 class RestoreSessionUseCase(private val repository: AuthRepository) {
-    suspend operator fun invoke(): AuthenticatedSession? = repository.restoreSession()
+    suspend operator fun invoke(): AuthenticatedSession? {
+        val session = repository.restoreSession() ?: return null
+        return repository.requireCustomerSession(session)
+    }
 }

@@ -1,5 +1,4 @@
 import java.util.Properties
-import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
@@ -23,14 +22,30 @@ android {
         val properties = Properties()
         val localPropertiesFile = rootProject.file(".env")
         if (localPropertiesFile.exists()) {
-            properties.load(FileInputStream(localPropertiesFile))
+            localPropertiesFile.inputStream().use(properties::load)
         }
 
-        val supabaseUrl = properties.getProperty("SUPABASE_URL") ?: System.getenv("SUPABASE_URL") ?: "https://fmcsdyupvmdjvlbzjgml.supabase.co"
-        val supabaseAnonKey = properties.getProperty("SUPABASE_ANON_KEY") ?: System.getenv("SUPABASE_ANON_KEY") ?: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtY3NkeXVwdm1kanZsYnpqZ21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTE0MDMsImV4cCI6MjEwNTg2NzQwM30.y4dIbAKuGdFujQNos3HXGH-TYbtCMMEFw083SbGwkVc"
+        val rawUrl = properties.getProperty("SUPABASE_URL") ?: System.getenv("SUPABASE_URL") ?: ""
+        val rawKey = properties.getProperty("SUPABASE_ANON_KEY") ?: System.getenv("SUPABASE_ANON_KEY") ?: ""
+        val googleClientId = properties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: System.getenv("GOOGLE_WEB_CLIENT_ID") ?: ""
 
-        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        val cleanUrl = rawUrl.replace("\"", "").trim()
+        val cleanKey = rawKey.replace("\"", "").trim()
+        val cleanGoogleClientId = googleClientId.replace("\"", "").trim()
+        require(cleanUrl.isNotBlank() && cleanKey.isNotBlank()) {
+            "Configura SUPABASE_URL y SUPABASE_ANON_KEY en .env antes de compilar mobile-android."
+        }
+        fun buildConfigString(value: String) =
+            "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
+        buildConfigField("String", "SUPABASE_URL", buildConfigString(cleanUrl))
+        buildConfigField("String", "SUPABASE_ANON_KEY", buildConfigString(cleanKey))
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", buildConfigString(cleanGoogleClientId))
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     
     buildFeatures { 
@@ -44,7 +59,14 @@ dependencies {
     implementation(project(":shared:features:auth"))
     implementation(project(":shared:features:pets"))
     implementation(project(":shared:core:design-system"))
+    implementation(project(":shared:core:network"))
+    implementation(project(":shared:core:model"))
+    implementation(libs.supabase.auth)
+    implementation(libs.ktor.client.cio)
     implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation(libs.koin.core)
     implementation(libs.supabase.postgrest)
 }

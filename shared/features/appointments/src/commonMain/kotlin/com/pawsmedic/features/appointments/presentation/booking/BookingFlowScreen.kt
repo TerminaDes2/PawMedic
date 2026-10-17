@@ -20,8 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -52,7 +50,6 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicLogoIcon
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
-import com.pawsmedic.shared.core.designsystem.components.TimePickerModal
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
 @Composable
@@ -71,6 +68,7 @@ fun BookingFlowScreen(
                     uiState = uiState,
                     onServiceSelected = viewModel::selectService,
                     onNext = viewModel::nextStep,
+                    onRetry = viewModel::retryLoadBookingData,
                     onBack = onBackClick
                 )
             }
@@ -80,6 +78,7 @@ fun BookingFlowScreen(
                     uiState = uiState,
                     onPetSelected = viewModel::selectPet,
                     onNext = viewModel::nextStep,
+                    onRetry = viewModel::retryLoadBookingData,
                     onBack = viewModel::previousStep
                 )
             }
@@ -89,7 +88,6 @@ fun BookingFlowScreen(
                     uiState = uiState,
                     onDateSelected = viewModel::selectDate,
                     onTimeSlotSelected = viewModel::selectTimeSlot,
-                    onTimeFromPickerSelected = viewModel::selectTimeFromPicker,
                     onNext = viewModel::nextStep,
                     onBack = viewModel::previousStep
                 )
@@ -98,7 +96,6 @@ fun BookingFlowScreen(
             BookingStep.CONFIRM -> {
                 ConfirmBookingStep(
                     uiState = uiState,
-                    onNotesChanged = viewModel::onNotesChanged,
                     onSubmit = { viewModel.submitBooking(onBookingComplete) },
                     onBack = viewModel::previousStep
                 )
@@ -119,6 +116,7 @@ private fun SelectServiceStep(
     uiState: BookingUiState,
     onServiceSelected: (VeterinaryService) -> Unit,
     onNext: () -> Unit,
+    onRetry: () -> Unit,
     onBack: () -> Unit
 ) {
     Column(
@@ -143,6 +141,18 @@ private fun SelectServiceStep(
         )
 
         Spacer(modifier = Modifier.height(20.dp))
+
+        if (uiState.isLoadingServices) {
+            Text("Cargando servicios activos…", fontSize = 14.sp, color = PawMedicColors.Gray600)
+        } else if (uiState.services.isEmpty()) {
+            Text(
+                text = "Todavía no hay servicios disponibles para esta clínica.",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray600,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         uiState.services.forEach { service ->
             val isSelected = service.id == uiState.selectedService?.id
@@ -220,11 +230,18 @@ private fun SelectServiceStep(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
+        uiState.errorMessage?.let { error ->
+            Text(error, fontSize = 13.sp, color = PawMedicColors.Error)
+            Spacer(modifier = Modifier.height(8.dp))
+            PawMedicSecondaryButton(text = "Reintentar", onClick = onRetry)
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         PawMedicPrimaryButton(
             text = "Continuar",
-            onClick = onNext
+            onClick = onNext,
+            enabled = uiState.services.isNotEmpty()
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -237,6 +254,7 @@ private fun SelectPetStep(
     uiState: BookingUiState,
     onPetSelected: (BookingPet) -> Unit,
     onNext: () -> Unit,
+    onRetry: () -> Unit,
     onBack: () -> Unit
 ) {
     Column(
@@ -262,8 +280,20 @@ private fun SelectPetStep(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        if (uiState.isLoadingPets) {
+            Text("Cargando tus mascotas…", fontSize = 14.sp, color = PawMedicColors.Gray600)
+        } else if (uiState.userPets.isEmpty()) {
+            Text(
+                text = "No tienes mascotas registradas para reservar una cita.",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray600,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         uiState.userPets.forEach { pet ->
-            val isSelected = pet.id == (uiState.selectedPet?.id ?: "pet-1")
+            val isSelected = pet.id == uiState.selectedPet?.id
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -306,7 +336,7 @@ private fun SelectPetStep(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = pet.age ?: "1 año",
+                                text = pet.age ?: "Edad no registrada",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PawMedicColors.Teal600
@@ -334,11 +364,18 @@ private fun SelectPetStep(
             Spacer(modifier = Modifier.height(14.dp))
         }
 
+        uiState.errorMessage?.let { error ->
+            Text(error, fontSize = 13.sp, color = PawMedicColors.Error)
+            Spacer(modifier = Modifier.height(8.dp))
+            PawMedicSecondaryButton(text = "Reintentar", onClick = onRetry)
+        }
+
         Spacer(modifier = Modifier.height(28.dp))
 
         PawMedicPrimaryButton(
             text = "Continuar",
-            onClick = onNext
+            onClick = onNext,
+            enabled = uiState.userPets.isNotEmpty()
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -382,14 +419,12 @@ private fun BookingPetAvatar(
 @Composable
 private fun SelectDateTimeStep(
     uiState: BookingUiState,
-    onDateSelected: (String, Long?) -> Unit,
-    onTimeSlotSelected: (String) -> Unit,
-    onTimeFromPickerSelected: (Int, Int, String) -> Unit,
+    onDateSelected: (String, Long?, String) -> Unit,
+    onTimeSlotSelected: (com.pawsmedic.features.appointments.domain.model.AvailableAppointmentSlot) -> Unit,
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
     var showDatePickerModal by remember { mutableStateOf(false) }
-    var showTimePickerModal by remember { mutableStateOf(false) }
 
     if (showDatePickerModal) {
         DatePickerModal(
@@ -397,22 +432,11 @@ private fun SelectDateTimeStep(
                 if (selectedMillis != null) {
                     val isoDate = convertMillisToIsoDateString(selectedMillis)
                     val displayDate = formatIsoToDisplayDate(isoDate)
-                    onDateSelected("Día $displayDate", selectedMillis)
+                    onDateSelected(isoDate, selectedMillis, displayDate)
                 }
                 showDatePickerModal = false
             },
             onDismiss = { showDatePickerModal = false }
-        )
-    }
-
-    if (showTimePickerModal) {
-        TimePickerModal(
-            initialHour = 11,
-            initialMinute = 0,
-            onTimeSelected = { hour, minute, formatted ->
-                onTimeFromPickerSelected(hour, minute, formatted)
-            },
-            onDismiss = { showTimePickerModal = false }
         )
     }
 
@@ -463,7 +487,7 @@ private fun SelectDateTimeStep(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = uiState.selectedDate,
+                            text = uiState.selectedDateLabel.ifBlank { "Seleccionar fecha" },
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicColors.Teal600
@@ -483,59 +507,60 @@ private fun SelectDateTimeStep(
 
         // --- TIME SELECTION SECTION ---
         Text(
-            text = "Hora de Atención (11:00 AM - 07:00 PM)",
+            text = "Horarios disponibles",
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = PawMedicColors.Gray800,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // LARGE TIME PICKER BUTTON
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(PawMedicColors.White)
-                .border(1.5.dp, PawMedicColors.Teal600, RoundedCornerShape(16.dp))
-                .clickable { showTimePickerModal = true }
-                .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = PawMedicColors.Teal600,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Seleccionar hora",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Gray900
-                    )
-                }
-
+        when {
+            uiState.isLoadingSlots -> Text(
+                text = "Consultando horarios de la clínica…",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray600
+            )
+            uiState.selectedDate.isBlank() -> Text(
+                text = "Selecciona una fecha para consultar los horarios disponibles.",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray600
+            )
+            uiState.availableTimeSlots.isEmpty() -> Text(
+                text = "No hay horarios disponibles para esta fecha.",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray600
+            )
+            else -> uiState.availableTimeSlots.forEach { slot ->
+                val selected = slot.startsAt == uiState.selectedSlot?.startsAt
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(PawMedicColors.Teal50)
-                        .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(10.dp))
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (selected) PawMedicColors.Teal50 else PawMedicColors.White)
+                        .border(
+                            width = if (selected) 2.dp else 1.dp,
+                            color = if (selected) PawMedicColors.Teal600 else PawMedicColors.Gray200,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .clickable { onTimeSlotSelected(slot) }
+                        .padding(14.dp)
                 ) {
-                    Text(
-                        text = uiState.selectedTimeSlot,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = PawMedicColors.Teal600,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = slot.label,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PawMedicColors.Gray900
+                        )
+                    }
                 }
             }
         }
@@ -565,7 +590,6 @@ private fun SelectDateTimeStep(
 @Composable
 private fun ConfirmBookingStep(
     uiState: BookingUiState,
-    onNotesChanged: (String) -> Unit,
     onSubmit: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -611,56 +635,26 @@ private fun ConfirmBookingStep(
                 SummaryItem(
                     icon = "🐾",
                     label = "Mascota",
-                    value = "${uiState.selectedPet?.name ?: "Tobías"} (${uiState.selectedPet?.species ?: "Gato"} • ${uiState.selectedPet?.breed ?: "Persa Mestizo"})"
+                    value = uiState.selectedPet?.let { pet ->
+                        "${pet.name} (${pet.species}${pet.breed?.let { " • $it" }.orEmpty()})"
+                    }.orEmpty()
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 SummaryItem(
                     icon = "🩺",
                     label = "Servicio",
-                    value = uiState.selectedService?.title ?: "Consulta Médica General"
+                    value = uiState.selectedService?.title.orEmpty()
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 SummaryItem(
                     icon = "📅",
                     label = "Fecha y Hora",
-                    value = "${uiState.selectedDate} • ${uiState.selectedTimeSlot}"
+                    value = "${uiState.selectedDateLabel} • ${uiState.selectedTimeSlot}"
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = "Notas para la veterinaria (Opcional)",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray800,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
-
-        OutlinedTextField(
-            value = uiState.notes,
-            onValueChange = onNotesChanged,
-            placeholder = {
-                Text(
-                    text = "Ej: Presenta decaimiento leve desde ayer, o necesita refuerzo de vacunas específicas...",
-                    color = PawMedicColors.Gray400,
-                    fontSize = 13.sp
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(90.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PawMedicColors.Teal600,
-                unfocusedBorderColor = PawMedicColors.Gray300,
-                focusedContainerColor = PawMedicColors.White,
-                unfocusedContainerColor = PawMedicColors.White
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         // WARNING ALERT BANNER
         Box(
@@ -686,6 +680,15 @@ private fun ConfirmBookingStep(
                     lineHeight = 17.sp
                 )
             }
+        }
+
+        uiState.errorMessage?.let { error ->
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = error,
+                fontSize = 13.sp,
+                color = PawMedicColors.Error
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))

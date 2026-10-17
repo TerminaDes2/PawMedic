@@ -28,7 +28,7 @@ import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 fun SplashScreen(
     viewModel: SplashViewModel,
     onNavigateToWelcome: () -> Unit,
-    onNavigateToHome: (String) -> Unit,
+    onNavigateToHome: (String, String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -36,7 +36,7 @@ fun SplashScreen(
     LaunchedEffect(uiState) {
         when (val state = uiState) {
             is SplashUiState.NavigateToWelcome -> onNavigateToWelcome()
-            is SplashUiState.NavigateToHome -> onNavigateToHome(state.userId)
+            is SplashUiState.NavigateToHome -> onNavigateToHome(state.userId, state.email)
             SplashUiState.Loading -> Unit
         }
     }

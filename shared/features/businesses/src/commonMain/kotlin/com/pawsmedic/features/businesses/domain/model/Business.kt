@@ -10,8 +10,8 @@ data class Business(
     val address: String? = null,
     val phone: String? = null,
     val description: String? = null,
-    val rating: Double = 4.9,
-    val reviewCount: String = "120+ opiniones",
+    val rating: Double = 0.0,
+    val reviewCount: String = "Sin reseñas",
     val specialties: List<String> = emptyList(),
     val hours: List<String> = emptyList(),
     val imageUrl: String? = null

@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 sealed interface SplashUiState {
     data object Loading : SplashUiState
     data object NavigateToWelcome : SplashUiState
-    data class NavigateToHome(val userId: String) : SplashUiState
+    data class NavigateToHome(val userId: String, val email: String?) : SplashUiState
 }
 
 class SplashViewModel(
@@ -34,7 +34,7 @@ class SplashViewModel(
             runCatching { restoreSession() }
                 .onSuccess { session ->
                     if (session != null) {
-                        _uiState.value = SplashUiState.NavigateToHome(session.userId)
+                        _uiState.value = SplashUiState.NavigateToHome(session.userId, session.email)
                     } else {
                         _uiState.value = SplashUiState.NavigateToWelcome
                     }
