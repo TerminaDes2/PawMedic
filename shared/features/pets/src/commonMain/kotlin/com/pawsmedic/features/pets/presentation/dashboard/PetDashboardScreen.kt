@@ -27,16 +27,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pawsmedic.shared.core.designsystem.components.PawMedicLogoIcon
+import com.pawsmedic.features.pets.domain.model.Pet
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
 @Composable
 fun PetDashboardScreen(
-    userName: String = "María",
+    userName: String = "Usuario",
+    activePet: Pet? = null,
     onNavigateToPetsList: () -> Unit,
     onNavigateToAddPet: () -> Unit,
     onNavigateToPetDetail: (String) -> Unit,
+    onNavigateToAppointments: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -62,7 +64,7 @@ fun PetDashboardScreen(
                         .background(PawMedicColors.Teal100),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "👩🏻", fontSize = 24.sp)
+                    Text(text = "👤", fontSize = 24.sp)
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
@@ -96,58 +98,92 @@ fun PetDashboardScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         // --- ACTIVE PET BANNER ---
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(PawMedicColors.Teal50)
-                .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(20.dp))
-                .clickable { onNavigateToPetDetail("pet-1") }
-                .padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+        if (activePet != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(PawMedicColors.Teal50)
+                    .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(20.dp))
+                    .clickable { onNavigateToPetDetail(activePet.id) }
+                    .padding(16.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(PawMedicColors.Teal100),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (activePet.species.lowercase().contains("gato")) "🐱" else "🐶",
+                                fontSize = 32.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column {
+                            Text(
+                                text = activePet.name,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PawMedicColors.Gray900
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "${activePet.species} • ${activePet.breed}",
+                                fontSize = 13.sp,
+                                color = PawMedicColors.Gray600
+                            )
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(PawMedicColors.Teal100),
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(PawMedicColors.Teal600)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
-                        Text(text = "🐱", fontSize = 32.sp)
-                    }
-                    Spacer(modifier = Modifier.width(14.dp))
-                    Column {
                         Text(
-                            text = "Tobías",
-                            fontSize = 18.sp,
+                            text = "Activo",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Gato • Persa Mestizo • 2 años",
-                            fontSize = 13.sp,
-                            color = PawMedicColors.Gray600
+                            color = PawMedicColors.White
                         )
                     }
                 }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PawMedicColors.Teal600)
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
+            }
+        } else {
+            // Estado vacío cuando el usuario registrado no tiene mascotas en Supabase
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(PawMedicColors.White)
+                    .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
+                    .clickable { onNavigateToAddPet() }
+                    .padding(20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "🐾", fontSize = 36.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Activo",
-                        fontSize = 12.sp,
+                        text = "Aún no tienes mascotas registradas",
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.White
+                        color = PawMedicColors.Gray800
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Toca aquí para agregar tu primera mascota",
+                        fontSize = 13.sp,
+                        color = PawMedicColors.Teal600
                     )
                 }
             }
@@ -181,7 +217,7 @@ fun PetDashboardScreen(
                 icon = "📅",
                 title = "Mis citas",
                 backgroundColor = Color(0xFFFEF7E0),
-                onClick = { },
+                onClick = onNavigateToAppointments,
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -213,91 +249,35 @@ fun PetDashboardScreen(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicColors.Teal600,
-                modifier = Modifier.clickable { }
+                modifier = Modifier.clickable { onNavigateToAppointments() }
             )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        AppointmentCard(
-            petName = "Tobías (Gato)",
-            doctor = "Dra. Ana Milena • Clinipet Central",
-            date = "Mañana, 10:00 AM",
-            isHighlight = true
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        AppointmentCard(
-            petName = "Rocky (Perro)",
-            doctor = "Dr. Carlos Ruiz • Hospital Canino Norte",
-            date = "24 Nov, 4:30 PM",
-            isHighlight = false
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        PawMedicPrimaryButton(
-            text = "Agendar cita",
-            onClick = { }
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- VETERINARIES AVAILABLE ---
-        Text(
-            text = "Veterinarias Disponibles",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray900
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
+        // Estado vacío por defecto si no hay citas registradas en la BD
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(PawMedicColors.White)
                 .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
-                .padding(16.dp)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Clinipet Central",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Gray900
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "⭐", fontSize = 14.sp)
-                        Text(
-                            text = "4.9",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Calle 100 #15-45, Bog.",
-                    fontSize = 13.sp,
-                    color = PawMedicColors.Gray500
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Urgencias, Cirugía, Consulta",
-                    fontSize = 12.sp,
-                    color = PawMedicColors.Gray400
-                )
-            }
+            Text(
+                text = "No tienes citas programadas",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray500
+            )
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        PawMedicPrimaryButton(
+            text = "Agendar cita",
+            onClick = onNavigateToAppointments
+        )
     }
 }
 
@@ -325,55 +305,5 @@ private fun QuickAccessCard(
             fontWeight = FontWeight.SemiBold,
             color = PawMedicColors.Gray800
         )
-    }
-}
-
-@Composable
-private fun AppointmentCard(
-    petName: String,
-    doctor: String,
-    date: String,
-    isHighlight: Boolean
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
-            .padding(14.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(PawMedicColors.Teal50),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "📅", fontSize = 20.sp)
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = petName,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
-                )
-                Text(
-                    text = doctor,
-                    fontSize = 12.sp,
-                    color = PawMedicColors.Gray500
-                )
-                Text(
-                    text = date,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isHighlight) Color(0xFFD97706) else PawMedicColors.Teal600,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-        }
     }
 }

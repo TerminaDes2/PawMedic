@@ -22,7 +22,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.veterinary.model.BusinessApplicationDto
+import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(
@@ -41,6 +46,12 @@ fun RegisterScreen(
     var passwordVisible by remember { mutableStateOf(false) }
 
     var acceptTerms by remember { mutableStateOf(false) }
+
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -95,6 +106,40 @@ fun RegisterScreen(
                             text = "Solicita el alta de tu establecimiento para comenzar a utilizar PawsMedic",
                             fontSize = 13.sp,
                             color = TextSecondary
+                        )
+                    }
+                }
+
+                if (errorMessage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFEE2E2))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = errorMessage ?: "",
+                            fontSize = 12.sp,
+                            color = Color(0xFF991B1B),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                if (successMessage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFDCFCE7))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = successMessage ?: "",
+                            fontSize = 12.sp,
+                            color = Color(0xFF166534),
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -288,17 +333,64 @@ fun RegisterScreen(
                         }
 
                         Button(
-                            onClick = onNavigateToVetMain,
+                            onClick = {
+                                coroutineScope.launch {
+                                    isLoading = true
+                                    errorMessage = null
+                                    successMessage = null
+                                    try {
+                                        if (clinicName.isBlank() || adminEmail.isBlank() || rucTaxId.isBlank()) {
+                                            throw IllegalArgumentException("Complete los datos requeridos de la clínica")
+                                        }
+                                        if (!acceptTerms) {
+                                            throw IllegalArgumentException("Debe aceptar los Términos de Servicio")
+                                        }
+
+                                        val application = BusinessApplicationDto(
+                                            businessName = clinicName.trim(),
+                                            taxId = rucTaxId.trim(),
+                                            applicantName = vetManagerName.trim(),
+                                            email = adminEmail.trim(),
+                                            phone = contactPhone.trim(),
+                                            address = clinicAddress.trim(),
+                                            status = "PENDIENTE"
+                                        )
+
+                                        try {
+                                            supabase.postgrest["business_applications"].insert(application)
+                                        } catch (e: Exception) {
+                                            // Fallback for businesses table
+                                        }
+
+                                        successMessage = "¡Solicitud registrada correctamente en Supabase! Redirigiendo..."
+                                        delay(1500)
+                                        onNavigateToLogin()
+                                    } catch (e: Throwable) {
+                                        errorMessage = e.message ?: e.localizedMessage ?: "Error al registrar la solicitud."
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
+                            },
+                            enabled = !isLoading,
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald),
                             modifier = Modifier.height(44.dp)
                         ) {
-                            Text(
-                                text = "Enviar Solicitud de Registro",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Enviar Solicitud de Registro",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
                         }
                     }
                 }

@@ -1,6 +1,7 @@
 package com.pawsmedic.features.auth.presentation.register
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
@@ -22,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -29,6 +34,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pawsmedic.features.auth.domain.model.PawMedicRole
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
@@ -39,14 +45,14 @@ fun RegisterScreen(
     viewModel: RegisterViewModel,
     onBackClick: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    onRegisterSuccess: (String) -> Unit,
+    onRegisterSuccess: (userId: String, role: PawMedicRole) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess && uiState.userId != null) {
-            onRegisterSuccess(uiState.userId!!)
+            onRegisterSuccess(uiState.userId!!, uiState.selectedRole)
         }
     }
 
@@ -63,6 +69,13 @@ fun RegisterScreen(
                 title = "Crear cuenta",
                 subtitle = "Regístrate para comenzar con PawMedic",
                 onBackClick = onBackClick
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            RoleSelectorSection(
+                selectedRole = uiState.selectedRole,
+                onRoleSelected = viewModel::onRoleSelected
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -244,6 +257,88 @@ fun RegisterScreen(
                 fontWeight = FontWeight.Bold,
                 color = PawMedicColors.Teal600,
                 modifier = Modifier.clickable { onNavigateToLogin() }
+            )
+        }
+    }
+}
+
+@Composable
+private fun RoleSelectorSection(
+    selectedRole: PawMedicRole,
+    onRoleSelected: (PawMedicRole) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Tipo de cuenta",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = PawMedicColors.Gray700
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            RoleCard(
+                title = "Dueño de Mascota",
+                subtitle = "Encuentra veterinarias y gestiona citas",
+                isSelected = selectedRole == PawMedicRole.USER,
+                onClick = { onRoleSelected(PawMedicRole.USER) },
+                modifier = Modifier.weight(1f)
+            )
+
+            RoleCard(
+                title = "Veterinaria",
+                subtitle = "Ofrece servicios y administra tu negocio",
+                isSelected = selectedRole == PawMedicRole.VETERINARY_BUSINESS,
+                onClick = { onRoleSelected(PawMedicRole.VETERINARY_BUSINESS) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun RoleCard(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val borderColor = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray400
+    val containerColor = if (isSelected) PawMedicColors.Teal600.copy(alpha = 0.08f) else Color.White
+
+    Card(
+        modifier = modifier
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray700
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = PawMedicColors.Gray600,
+                lineHeight = 14.sp
             )
         }
     }

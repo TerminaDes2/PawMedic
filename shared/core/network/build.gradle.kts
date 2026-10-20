@@ -6,10 +6,27 @@ plugins {
 kotlin {
     androidTarget()
     jvm("desktop")
+
     sourceSets {
-        commonMain.dependencies { api(libs.ktor.client.core) }
-        commonTest.dependencies { implementation(kotlin("test")) }
+        commonMain.dependencies {
+            api(libs.ktor.client.core)
+            api(libs.supabase.postgrest)
+        }
+
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }
 
-android { namespace = "com.pawsmedic.shared.core.network"; compileSdk = libs.versions.android.compileSdk.get().toInt(); defaultConfig { minSdk = libs.versions.android.minSdk.get().toInt() } }
+android {
+    namespace = "com.pawsmedic.shared.core.network"
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    defaultConfig {
+        minSdk = libs.versions.android.minSdk.get().toInt()
+    }
+}

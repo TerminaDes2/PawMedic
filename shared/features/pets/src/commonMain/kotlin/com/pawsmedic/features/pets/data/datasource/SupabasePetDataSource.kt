@@ -1,39 +1,61 @@
 package com.pawsmedic.features.pets.data.datasource
 
-import com.pawsmedic.shared.core.model.PetModel
+import com.pawsmedic.features.pets.data.dto.PetDto
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 
 /**
- * Fuente de datos remota para Mascotas utilizando Supabase Postgrest.
- * Todas las consultas respetan las políticas RLS activas en la tabla 'pets'.
+ * Fuente de datos remota para Mascotas utilizando Supabase Postgrest (Solo Lectura).
+ * Las inserciones y actualizaciones de mascotas han sido deshabilitadas en esta rama
+ * ya que están siendo desarrolladas en una rama independiente por otro desarrollador.
  */
 class SupabasePetDataSource(
     private val supabase: SupabaseClient
-) {
-    /**
-     * Consulta las mascotas del usuario autenticado.
-     * Gracias a RLS en la tabla 'pets', el filtro 'owner_id = ownerId' es validado
-     * automáticamente por la sesión activa de Supabase Auth.
-     */
-    suspend fun listPetsByOwner(ownerId: String): List<PetModel> {
-        return supabase.postgrest["pets"]
-            .select {
-                filter {
-                    eq("owner_id", ownerId)
+) : PetDataSource {
+
+    override suspend fun listPets(ownerId: String): List<PetDto> {
+        return try {
+            val currentUser = supabase.auth.currentUserOrNull() ?: return emptyList()
+            val validOwnerId = if (ownerId.isNotBlank() && ownerId != "owner-1") ownerId else currentUser.id
+
+            supabase.postgrest["pets"]
+                .select {
+                    filter {
+                        eq("owner_id", validOwnerId)
+                    }
                 }
-            }
-            .decodeList<PetModel>()
+                .decodeList<PetDto>()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
-    /**
-     * Registra una nueva mascota asociada al cliente autenticado.
-     */
-    suspend fun insertPet(pet: PetModel): PetModel {
-        return supabase.postgrest["pets"]
-            .insert(pet) {
-                select()
-            }
-            .decodeSingle<PetModel>()
+    override suspend fun getPetById(id: String): PetDto? {
+        return try {
+            supabase.postgrest["pets"]
+                .select {
+                    filter {
+                        eq("id", id)
+                    }
+                }
+                .decodeSingleOrNull<PetDto>()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    override suspend fun addPet(pet: PetDto): PetDto {
+        // Deshabilitado: La inserción de mascotas se gestiona en otra rama.
+        throw UnsupportedOperationException("El registro de mascotas se gestiona en otra rama.")
+    }
+
+    override suspend fun updatePet(pet: PetDto): PetDto {
+        // Deshabilitado: La actualización de mascotas se gestiona en otra rama.
+        throw UnsupportedOperationException("La actualización de mascotas se gestiona en otra rama.")
+    }
+
+    override suspend fun deletePet(id: String): Boolean {
+        return false
     }
 }

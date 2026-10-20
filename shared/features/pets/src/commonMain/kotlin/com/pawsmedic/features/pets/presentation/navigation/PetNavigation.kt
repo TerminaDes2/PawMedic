@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +54,10 @@ import com.pawsmedic.features.pets.presentation.detail.PetDetailScreen
 import com.pawsmedic.features.pets.presentation.form.PetFormScreen
 import com.pawsmedic.features.pets.presentation.list.PetListScreen
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.model.UserProfile
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.from
 
 sealed interface PetScreenState {
     data object Dashboard : PetScreenState
@@ -70,9 +75,30 @@ sealed interface PetScreenState {
 @Composable
 fun PetNavHost(
     repository: PetRepository,
+    supabaseClient: SupabaseClient? = null,
+    userName: String = "Usuario",
     modifier: Modifier = Modifier
 ) {
     var currentScreen by remember { mutableStateOf<PetScreenState>(PetScreenState.Dashboard) }
+    var resolvedUserName by remember(userName) { mutableStateOf(userName) }
+
+    // Consulta la base de datos para obtener el nombre real guardado en profiles
+    LaunchedEffect(supabaseClient) {
+        if (supabaseClient != null) {
+            runCatching {
+                val userId = supabaseClient.auth.currentUserOrNull()?.id
+                if (userId != null) {
+                    val profile = supabaseClient.from("profiles")
+                        .select { filter { eq("id", userId) } }
+                        .decodeSingle<UserProfile>()
+                    val realName = profile.displayName
+                    if (realName.isNotBlank() && realName != "Usuario") {
+                        resolvedUserName = realName
+                    }
+                }
+            }
+        }
+    }
 
     // Repositories & DataSources
     val medicalRecordRepository = remember { DefaultMedicalRecordRepository(InMemoryMedicalRecordDataSource()) }
@@ -98,7 +124,7 @@ fun PetNavHost(
                     when (screen) {
                         PetScreenState.Dashboard -> {
                             PetDashboardScreen(
-                                userName = "María",
+                                userName = resolvedUserName,
                                 onNavigateToPetsList = {
                                     petListViewModel.loadPets()
                                     currentScreen = PetScreenState.PetList
@@ -106,6 +132,10 @@ fun PetNavHost(
                                 onNavigateToAddPet = { currentScreen = PetScreenState.AddPet },
                                 onNavigateToPetDetail = { petId ->
                                     currentScreen = PetScreenState.PetDetail(petId)
+                                },
+                                onNavigateToAppointments = {
+                                    veterinaryListViewModel.loadClinics()
+                                    currentScreen = PetScreenState.VeterinaryList
                                 }
                             )
                         }
@@ -250,9 +280,9 @@ fun PetNavHost(
                     icon = "📅",
                     label = "Citas",
                     isSelected = currentScreen is PetScreenState.VeterinaryList ||
-                        currentScreen is PetScreenState.VeterinaryDetail ||
-                        currentScreen is PetScreenState.BookingFlow ||
-                        currentScreen is PetScreenState.AppointmentsList,
+                            currentScreen is PetScreenState.VeterinaryDetail ||
+                            currentScreen is PetScreenState.BookingFlow ||
+                            currentScreen is PetScreenState.AppointmentsList,
                     onClick = {
                         veterinaryListViewModel.loadClinics()
                         currentScreen = PetScreenState.VeterinaryList

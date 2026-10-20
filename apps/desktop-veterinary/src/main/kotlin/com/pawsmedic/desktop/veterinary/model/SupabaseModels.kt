@@ -1,23 +1,16 @@
 package com.pawsmedic.desktop.veterinary.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class UserProfile(
-    val id: String,
-    val tenant_id: String? = null,
-    val full_name: String? = null,
-    val role: String = "veterinary"
-)
-
-@Serializable
-data class BusinessApplication(
-    val id: String? = null,
-    val business_name: String,
-    val tax_id: String,
-    val applicant_name: String,
-    val email: String,
-    val phone: String,
-    val address: String,
-    val status: String = "pending"
+data class BusinessApplicationDto(
+    @SerialName("id") val id: String? = null,
+    @SerialName("business_name") val businessName: String = "",
+    @SerialName("tax_id") val taxId: String = "",
+    @SerialName("applicant_name") val applicantName: String = "",
+    @SerialName("email") val email: String = "",
+    @SerialName("phone") val phone: String = "",
+    @SerialName("address") val address: String = "",
+    @SerialName("status") val status: String = "PENDIENTE"
 )

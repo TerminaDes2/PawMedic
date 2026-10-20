@@ -7,5 +7,6 @@ data class RegisterParams(
     val fullName: String,
     val email: String,
     val phone: String,
-    val password: String
+    val password: String,
+    val role: PawMedicRole = PawMedicRole.USER
 )
