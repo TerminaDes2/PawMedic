@@ -20,10 +20,12 @@ import com.pawsmedic.features.auth.presentation.register.RegisterViewModel
 import com.pawsmedic.features.auth.presentation.splash.SplashViewModel
 import com.pawsmedic.mobile.auth.GoogleSignInHelper
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicTheme
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         val supabaseClient = provideSupabaseClient(

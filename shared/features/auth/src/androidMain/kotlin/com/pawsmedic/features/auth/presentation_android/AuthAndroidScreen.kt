@@ -29,8 +29,8 @@ fun AuthAndroidScreen(
             viewModel = registerViewModel,
             onBackClick = { isRegistering = false },
             onNavigateToLogin = { isRegistering = false },
-            onRegisterSuccess = { userId, role ->
-                onAuthSuccess(userId, role)
+            onRegisterSuccess = { userId ->
+                onAuthSuccess(userId, PawMedicRole.USER)
             },
             modifier = modifier
         )
@@ -39,8 +39,8 @@ fun AuthAndroidScreen(
             viewModel = loginViewModel,
             onBackClick = onBackClick,
             onNavigateToRegister = { isRegistering = true },
-            onLoginSuccess = { userId, role ->
-                onAuthSuccess(userId, role ?: PawMedicRole.USER)
+            onLoginSuccess = { userId ->
+                onAuthSuccess(userId, PawMedicRole.USER)
             },
             modifier = modifier
         )
