@@ -1,7 +1,6 @@
 package com.pawsmedic.features.auth.presentation.login
 
 import com.pawsmedic.features.auth.domain.model.LoginParams
-import com.pawsmedic.features.auth.domain.model.PawMedicRole
 import com.pawsmedic.features.auth.domain.usecase.LoginUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,8 +18,7 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isSuccess: Boolean = false,
-    val userId: String? = null,
-    val userRole: PawMedicRole? = null
+    val userId: String? = null
 )
 
 class LoginViewModel(
@@ -62,8 +60,7 @@ class LoginViewModel(
                     it.copy(
                         isLoading = false,
                         isSuccess = true,
-                        userId = session.userId,
-                        userRole = session.role
+                        userId = session.userId
                     )
                 }
             }.onFailure { error ->

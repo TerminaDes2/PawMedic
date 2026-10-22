@@ -1,6 +1,5 @@
 package com.pawsmedic.features.auth.presentation.register
 
-import com.pawsmedic.features.auth.domain.model.PawMedicRole
 import com.pawsmedic.features.auth.domain.model.RegisterParams
 import com.pawsmedic.features.auth.domain.usecase.RegisterUseCase
 import kotlinx.coroutines.CoroutineScope
@@ -18,7 +17,6 @@ data class RegisterUiState(
     val phone: String = "",
     val password: String = "",
     val confirmPassword: String = "",
-    val selectedRole: PawMedicRole = PawMedicRole.USER,
     val termsAccepted: Boolean = false,
     val isPasswordVisible: Boolean = false,
     val isConfirmPasswordVisible: Boolean = false,
@@ -44,10 +42,7 @@ class RegisterViewModel(
     }
 
     fun onPhoneChanged(value: String) {
-        val phoneCharacters = value.filter {
-            it.isDigit() || it in "+- ()"
-        }
-        _uiState.update { it.copy(phone = phoneCharacters, errorMessage = null) }
+        _uiState.update { it.copy(phone = value, errorMessage = null) }
     }
 
     fun onPasswordChanged(value: String) {
@@ -56,10 +51,6 @@ class RegisterViewModel(
 
     fun onConfirmPasswordChanged(value: String) {
         _uiState.update { it.copy(confirmPassword = value, errorMessage = null) }
-    }
-
-    fun onRoleSelected(role: PawMedicRole) {
-        _uiState.update { it.copy(selectedRole = role, errorMessage = null) }
     }
 
     fun toggleTermsAccepted() {
@@ -76,26 +67,16 @@ class RegisterViewModel(
 
     fun register() {
         val s = _uiState.value
-        val cleanFullName = s.fullName.trim()
-        val cleanEmail = s.email.trim()
-        val cleanPhone = s.phone
-            .filter { it.isDigit() || it in "+- ()" }
-            .trim()
-
-        if (cleanFullName.isBlank()) {
+        if (s.fullName.isBlank()) {
             _uiState.update { it.copy(errorMessage = "Ingresa tu nombre completo") }
             return
         }
-        if (cleanEmail.isBlank()) {
+        if (s.email.isBlank()) {
             _uiState.update { it.copy(errorMessage = "Ingresa tu correo electrónico") }
             return
         }
-        if (cleanPhone.isBlank()) {
+        if (s.phone.isBlank()) {
             _uiState.update { it.copy(errorMessage = "Ingresa tu número de teléfono") }
-            return
-        }
-        if (!cleanPhone.any(Char::isDigit)) {
-            _uiState.update { it.copy(errorMessage = "El teléfono debe contener números") }
             return
         }
         if (s.password.length < 6) {
@@ -116,11 +97,10 @@ class RegisterViewModel(
             runCatching {
                 registerUseCase(
                     RegisterParams(
-                        fullName = cleanFullName,
-                        email = cleanEmail,
-                        phone = cleanPhone,
-                        password = s.password,
-                        role = s.selectedRole
+                        fullName = s.fullName,
+                        email = s.email,
+                        phone = s.phone,
+                        password = s.password
                     )
                 )
             }.onSuccess { session ->
@@ -132,26 +112,10 @@ class RegisterViewModel(
                     )
                 }
             }.onFailure { error ->
-                val rawMsg = error.message.orEmpty()
-                val userFriendlyMessage = if (
-                    rawMsg.lowercase().contains("unable to resolve host") ||
-                    rawMsg.lowercase().contains("no address associated") ||
-                    rawMsg.lowercase().contains("unknownhost") ||
-                    rawMsg.lowercase().contains("connection timed out") ||
-                    rawMsg.lowercase().contains("request timeout") ||
-                    rawMsg.lowercase().contains("timeout") ||
-                    rawMsg.lowercase().contains("eai_nodata") ||
-                    rawMsg.lowercase().contains("eai_again") ||
-                    rawMsg.lowercase().contains("verifica tu conexión")
-                ) {
-                    "La conexión con Supabase tardó demasiado. Verifica tu internet e inténtalo de nuevo."
-                } else {
-                    rawMsg.ifBlank { "Error al registrarse. Inténtalo de nuevo." }
-                }
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = userFriendlyMessage
+                        errorMessage = error.message ?: "Error al registrarse. Inténtalo de nuevo."
                     )
                 }
             }
