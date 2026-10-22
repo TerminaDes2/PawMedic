@@ -4,7 +4,7 @@
 
     <style name="Theme.PawMedic.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@android:color/white</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/logo</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_avd_anim</item>
         <item name="postSplashScreenTheme">@style/Theme.PawMedic</item>
     </style>
 </resources>

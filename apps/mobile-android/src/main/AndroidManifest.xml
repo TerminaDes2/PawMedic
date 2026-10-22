@@ -8,8 +8,8 @@
     <application
         android:theme="@style/Theme.PawMedic.Starting"
         android:label="PawMedic"
-        android:icon="@drawable/logo"
-        android:roundIcon="@drawable/logo"
+        android:icon="@drawable/logo_avd_anim"
+        android:roundIcon="@drawable/logo_avd_anim"
         android:usesCleartextTraffic="true">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
