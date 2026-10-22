@@ -17,7 +17,6 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.pawsmedic.desktop.admin.createDesktopSupabaseClient
 import com.pawsmedic.desktop.admin.ui.BusinessApplicationsAdminScreen
 import com.pawsmedic.desktop.veterinary.ui.AgendaScreen
 import com.pawsmedic.desktop.veterinary.ui.CatalogScreen
@@ -25,6 +24,9 @@ import com.pawsmedic.desktop.veterinary.ui.ExpedientesScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.BusinessApplicationStatusScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.LoginScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.RegisterScreen
+import com.pawsmedic.features.products.data.datasource.SupabaseProductDataSource
+import com.pawsmedic.features.products.data.repository.DefaultProductRepository
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -56,9 +58,12 @@ fun main() = application {
 
 @Composable
 private fun VeterinaryDesktopApp() {
-    val supabaseClient = remember { createDesktopSupabaseClient() }
+    val supabaseClient: SupabaseClient = remember { supabase }
     val authRepository = remember(supabaseClient) {
         DesktopAuthRepository(supabaseClient)
+    }
+    val productRepository = remember(supabaseClient) {
+        DefaultProductRepository(SupabaseProductDataSource(supabaseClient))
     }
     val coroutineScope = rememberCoroutineScope()
 
@@ -66,12 +71,16 @@ private fun VeterinaryDesktopApp() {
     var loginNotice by remember { mutableStateOf<String?>(null) }
     var pendingRefreshError by remember { mutableStateOf<String?>(null) }
     var isRefreshingPending by remember { mutableStateOf(false) }
+    var activeTenantId by remember { mutableStateOf<String?>(null) }
 
     fun navigateForAccess(access: DesktopAccess) {
         pendingRefreshError = null
         currentScreen = when (access) {
             DesktopAccess.Administrator -> DesktopScreen.AdminApplications
-            is DesktopAccess.ApprovedVeterinary -> DesktopScreen.Agenda
+            is DesktopAccess.ApprovedVeterinary -> {
+                activeTenantId = access.tenantId
+                DesktopScreen.Agenda
+            }
             is DesktopAccess.PendingVeterinary ->
                 DesktopScreen.Pending(access.userId, access.application)
             is DesktopAccess.RejectedVeterinary ->
@@ -120,25 +129,27 @@ private fun VeterinaryDesktopApp() {
 
         DesktopScreen.Login -> LoginScreen(
             onLogin = { email, password ->
-                val access = authRepository.signIn(email, password)
-                loginNotice = null
-                navigateForAccess(access)
-                access
+                try {
+                    val access = authRepository.signIn(email, password)
+                    loginNotice = null
+                    navigateForAccess(access)
+                } catch (error: Exception) {
+                    loginNotice = error.message ?: "No se pudo iniciar sesión."
+                }
             },
-            message = loginNotice,
             onNavigateToRegister = {
                 loginNotice = null
                 currentScreen = DesktopScreen.Register
+            },
+            loginNotice = loginNotice,
+            onNavigateToAdminMain = {
+                currentScreen = DesktopScreen.AdminApplications
             }
         )
 
         DesktopScreen.Register -> RegisterScreen(
-            onSubmit = { registration ->
-                val access = authRepository.registerBusiness(registration)
-                if (access != null) {
-                    navigateForAccess(access)
-                }
-                access
+            onNavigateToVetMain = {
+                currentScreen = DesktopScreen.Agenda
             },
             onNavigateToLogin = {
                 currentScreen = DesktopScreen.Login
@@ -205,6 +216,9 @@ private fun VeterinaryDesktopApp() {
         )
 
         DesktopScreen.Catalog -> CatalogScreen(
+            repository = productRepository,
+            tenantId = activeTenantId
+                ?: error("No hay una clínica asociada a la sesión."),
             onNavigate = { destination ->
                 currentScreen = when (destination) {
                     "Agenda" -> DesktopScreen.Agenda

@@ -40,6 +40,8 @@ import com.pawsmedic.features.medical_records.data.datasource.InMemoryMedicalRec
 import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryScreen
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryViewModel
+import com.pawsmedic.features.products.data.datasource.SupabaseProductDataSource
+import com.pawsmedic.features.products.data.repository.DefaultProductRepository
 import com.pawsmedic.features.pets.domain.repository.PetRepository
 import com.pawsmedic.features.pets.domain.usecase.AddPetUseCase
 import com.pawsmedic.features.pets.domain.usecase.DeletePetUseCase
@@ -104,6 +106,11 @@ fun PetNavHost(
     val medicalRecordRepository = remember { DefaultMedicalRecordRepository(InMemoryMedicalRecordDataSource()) }
     val businessRepository = remember { DefaultBusinessRepository(InMemoryBusinessDataSource()) }
     val appointmentRepository = remember { DefaultAppointmentRepository(InMemoryAppointmentDataSource()) }
+    val productRepository = remember(supabaseClient) {
+        supabaseClient?.let {
+            DefaultProductRepository(SupabaseProductDataSource(it))
+        }
+    }
 
     // Pet Use Cases & ViewModels
     val getPetsUseCase = remember { GetPetsUseCase(repository) }
@@ -215,6 +222,7 @@ fun PetNavHost(
                             }
                             VeterinaryDetailScreen(
                                 viewModel = detailVm,
+                                productRepository = productRepository,
                                 onBackClick = { currentScreen = PetScreenState.VeterinaryList },
                                 onStartBooking = { clinicId ->
                                     currentScreen = PetScreenState.BookingFlow(clinicId)

@@ -16,6 +16,7 @@ kotlin {
             implementation(project(":shared:features:appointments"))
             implementation(project(":shared:features:businesses"))
             implementation(project(":shared:features:medical-records"))
+            implementation(project(":shared:features:products"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)

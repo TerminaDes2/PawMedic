@@ -18,8 +18,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.businesses.presentation.VeterinaryDetailViewModel
+import com.pawsmedic.features.products.domain.model.Product
+import com.pawsmedic.features.products.domain.model.formattedPrice
+import com.pawsmedic.features.products.domain.repository.ProductRepository
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
@@ -35,12 +42,39 @@ import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 @Composable
 fun VeterinaryDetailScreen(
     viewModel: VeterinaryDetailViewModel,
+    productRepository: ProductRepository? = null,
     onBackClick: () -> Unit,
+
     onStartBooking: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val clinic = uiState.clinic
+    var products by remember(clinic?.id) {
+        mutableStateOf<List<Product>>(emptyList())
+    }
+    var productsLoading by remember(clinic?.id) {
+        mutableStateOf(false)
+    }
+    var productsError by remember(clinic?.id) {
+        mutableStateOf<String?>(null)
+    }
+
+    LaunchedEffect(clinic?.id, productRepository) {
+        val tenantId = clinic?.id ?: return@LaunchedEffect
+        val repository = productRepository ?: return@LaunchedEffect
+        productsLoading = true
+        productsError = null
+        try {
+            products = repository.getProductsByTenant(tenantId)
+        } catch (error: kotlinx.coroutines.CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            productsError = error.message ?: "No se pudo cargar el catálogo."
+        } finally {
+            productsLoading = false
+        }
+    }
 
     Column(
         modifier = modifier
@@ -218,6 +252,72 @@ fun VeterinaryDetailScreen(
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = PawMedicColors.Gray800
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Text(
+                text = "Productos disponibles",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = PawMedicColors.Gray900
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            when {
+                productsLoading -> Text(
+                    text = "Cargando catálogo...",
+                    color = PawMedicColors.Gray600
+                )
+                productsError != null -> Text(
+                    text = productsError.orEmpty(),
+                    color = Color(0xFFB91C1C)
+                )
+                products.isEmpty() -> Text(
+                    text = "No hay productos disponibles.",
+                    color = PawMedicColors.Gray600
+                )
+                else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    products.forEach { product ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(PawMedicColors.White)
+                                .border(
+                                    1.dp,
+                                    PawMedicColors.Gray200,
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .padding(14.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    text = product.name,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PawMedicColors.Gray900
+                                )
+                                if (!product.description.isNullOrBlank()) {
+                                    Text(
+                                        text = product.description.orEmpty(),
+                                        fontSize = 13.sp,
+                                        color = PawMedicColors.Gray600,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
+                                Text(
+                                    text = product.formattedPrice(),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PawMedicColors.Teal600,
+                                    modifier = Modifier.padding(top = 8.dp)
                                 )
                             }
                         }

@@ -41,7 +41,7 @@ data class BusinessApplicationRecord(
 
 sealed interface DesktopAccess {
     data object Administrator : DesktopAccess
-    data class ApprovedVeterinary(val userId: String) : DesktopAccess
+    data class ApprovedVeterinary(val userId: String, val tenantId: String) : DesktopAccess
     data class PendingVeterinary(
         val userId: String,
         val application: BusinessApplicationRecord
@@ -54,7 +54,8 @@ sealed interface DesktopAccess {
 
 @Serializable
 private data class ProfileRoleRecord(
-    @SerialName("role") val role: String
+    @SerialName("role") val role: String,
+    @SerialName("tenant_id") val tenantId: String? = null
 )
 
 class DesktopAuthRepository(
@@ -127,7 +128,7 @@ class DesktopAuthRepository(
 
         val profile = supabaseClient
             .from("profiles")
-            .select(columns = Columns.list("role")) {
+            .select(columns = Columns.list("role", "tenant_id")) {
                 filter { eq("id", userId) }
             }
             .decodeSingle<ProfileRoleRecord>()
@@ -157,7 +158,13 @@ class DesktopAuthRepository(
                         "La solicitud está aprobada, pero el perfil no tiene el rol veterinario. Contacta al Superadmin."
                     )
                 }
-                DesktopAccess.ApprovedVeterinary(userId)
+                DesktopAccess.ApprovedVeterinary(
+                    userId = userId,
+                    tenantId = profile.tenantId
+                        ?: throw IllegalStateException(
+                            "El perfil veterinario no tiene una clínica asociada."
+                        )
+                )
             }
             else -> throw IllegalStateException(
                 "La solicitud tiene un estado no reconocido: ${application.status}"

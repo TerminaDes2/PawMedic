@@ -23,17 +23,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onNavigateToVetMain: () -> Unit,
-    onNavigateToAdminMain: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onLogin: suspend (email: String, password: String) -> Unit,
+    onNavigateToRegister: () -> Unit,
+    loginNotice: String? = null,
+    onNavigateToAdminMain: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val cardDarkIllustration = Color(0xFF1C2A3A)
     val borderDark = Color(0xFF2A3C4E)
@@ -369,9 +372,22 @@ fun LoginScreen(
                             }
                         }
 
+                        if (loginNotice != null) {
+                            Text(
+                                text = loginNotice,
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
                         // Botón Principal Esmeralda
                         Button(
-                            onClick = onNavigateToVetMain,
+                            onClick = {
+                                coroutineScope.launch {
+                                    onLogin(email, password)
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(46.dp),
@@ -439,16 +455,14 @@ fun LoginScreen(
 @Composable
 fun LoginScreenPreview() {
     LoginScreen(
-        onNavigateToVetMain = {},
-        onNavigateToAdminMain = {},
+        onLogin = { _, _ -> },
         onNavigateToRegister = {}
     )
 }
 
 fun main() = singleWindowApplication(title = "Preview - Login Screen") {
     LoginScreen(
-        onNavigateToVetMain = {},
-        onNavigateToAdminMain = {},
+        onLogin = { _, _ -> },
         onNavigateToRegister = {}
     )
 }
