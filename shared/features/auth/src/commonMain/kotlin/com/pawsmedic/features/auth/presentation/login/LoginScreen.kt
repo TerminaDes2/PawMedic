@@ -29,7 +29,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pawsmedic.features.auth.domain.model.PawMedicRole
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
@@ -40,14 +39,14 @@ fun LoginScreen(
     viewModel: LoginViewModel,
     onBackClick: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    onLoginSuccess: (userId: String, role: PawMedicRole?) -> Unit,
+    onLoginSuccess: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess && uiState.userId != null) {
-            onLoginSuccess(uiState.userId!!, uiState.userRole)
+            onLoginSuccess(uiState.userId!!)
         }
     }
 
