@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,23 +42,33 @@ import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.pets.presentation.AgeInputMode
 import com.pawsmedic.features.pets.presentation.PetFormUiState
 import com.pawsmedic.features.pets.presentation.PetFormViewModel
+import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.common.convertMillisToIsoDateString
 import com.pawsmedic.shared.core.common.formatIsoToDisplayDate
+import com.pawsmedic.shared.core.common.rememberPhotoPicker
 import com.pawsmedic.shared.core.designsystem.components.DatePickerModal
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import io.github.jan.supabase.SupabaseClient
 
 @Composable
 fun PetFormScreen(
     viewModel: PetFormViewModel,
     onBackClick: () -> Unit,
     onSaveSuccess: () -> Unit,
+    supabaseClient: SupabaseClient,
+    onPickPhoto: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val defaultPhotoPicker = rememberPhotoPicker(
+        supabaseClient = supabaseClient,
+        onPhotoPicked = viewModel::onFoto_urlChanged,
+        onUploadError = viewModel::onPhotoUploadError
+    )
 
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
@@ -75,6 +86,15 @@ fun PetFormScreen(
         PawMedicTopBar(
             title = if (uiState.isEditMode) "Editar Mascota" else "Registrar Mascota",
             onBackClick = onBackClick
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        PhotoPickerCard(
+            foto_url = uiState.foto_url,
+            species = uiState.species,
+            isEditMode = uiState.isEditMode,
+            onClick = { onPickPhoto?.invoke() ?: defaultPhotoPicker() }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -108,6 +128,13 @@ fun PetFormScreen(
             placeholder = "Selecciona la raza (opcional)",
             options = uiState.availableBreeds,
             onOptionSelected = viewModel::onBreedChanged
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        GenderSelector(
+            selectedGender = uiState.gender,
+            onGenderSelected = viewModel::onGenderChanged
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -167,6 +194,120 @@ fun PetFormScreen(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun PhotoPickerCard(
+    foto_url: String,
+    species: String,
+    isEditMode: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(PawMedicColors.Teal50)
+            .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 20.dp, horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            PetAvatarImage(
+                foto_url = foto_url.takeIf(String::isNotBlank),
+                species = species,
+                size = if (foto_url.isBlank()) 64.dp else 80.dp
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = when {
+                    foto_url.isNotBlank() && isEditMode -> "Cambiar foto de perfil"
+                    foto_url.isNotBlank() -> "Foto seleccionada (Click para cambiar)"
+                    else -> "Subir foto de tu mascota"
+                },
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = PawMedicColors.Teal600,
+                textAlign = TextAlign.Center
+            )
+            if (foto_url.isBlank() && !isEditMode) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Formatos aceptados: JPG, PNG (Max 5MB)",
+                    fontSize = 12.sp,
+                    color = PawMedicColors.Gray400,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GenderSelector(
+    selectedGender: String,
+    onGenderSelected: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Sexo de la mascota",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = PawMedicColors.Gray800,
+            modifier = Modifier.padding(bottom = 6.dp)
+        )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            GenderChip(
+                text = "Macho",
+                isSelected = selectedGender == "Macho",
+                selectedColor = Color(0xFFE0F2FE),
+                selectedBorderColor = Color(0xFF7DD3FC),
+                onClick = { onGenderSelected("Macho") },
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            GenderChip(
+                text = "Hembra",
+                isSelected = selectedGender == "Hembra",
+                selectedColor = Color(0xFFFCE7F3),
+                selectedBorderColor = Color(0xFFF9A8D4),
+                onClick = { onGenderSelected("Hembra") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun GenderChip(
+    text: String,
+    isSelected: Boolean,
+    selectedColor: Color,
+    selectedBorderColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(46.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isSelected) selectedColor else PawMedicColors.White)
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) selectedBorderColor else PawMedicColors.Gray300,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = PawMedicColors.Gray700
+        )
     }
 }
 

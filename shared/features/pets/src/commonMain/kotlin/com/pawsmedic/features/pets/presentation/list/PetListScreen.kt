@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +52,9 @@ fun PetListScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val selectedPet = uiState.selectedPet ?: uiState.pets.firstOrNull()
+    val selectedPet = uiState.selectedPet
+        ?.let { selected -> uiState.pets.firstOrNull { it.id == selected.id } }
+        ?: uiState.pets.firstOrNull()
 
     Box(modifier = modifier.fillMaxSize().background(PawMedicColors.BackgroundScreen)) {
         Column(
@@ -107,11 +110,13 @@ fun PetListScreen(
                                         shape = CircleShape
                                     )
                             ) {
-                                PetAvatarImage(
-                                    photoUrl = pet.photoUrl,
-                                    species = pet.species,
-                                    size = 68.dp
-                                )
+                                key(pet.id, pet.foto_url) {
+                                    PetAvatarImage(
+                                        foto_url = pet.foto_url,
+                                        species = pet.species,
+                                        size = 68.dp
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -172,11 +177,13 @@ fun PetListScreen(
                                     .background(PawMedicColors.Teal50),
                                 contentAlignment = Alignment.Center
                             ) {
-                                PetAvatarImage(
-                                    photoUrl = selectedPet.photoUrl,
-                                    species = selectedPet.species,
-                                    size = 140.dp
-                                )
+                                key(selectedPet.id, selectedPet.foto_url) {
+                                    PetAvatarImage(
+                                        foto_url = selectedPet.foto_url,
+                                        species = selectedPet.species,
+                                        size = 140.dp
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))

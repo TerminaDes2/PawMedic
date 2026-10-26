@@ -60,6 +60,8 @@ class SupabasePetDataSource(
         species = species,
         breed = breed,
         dateOfBirth = dateOfBirth,
+        gender = gender,
+        foto_url = foto_url,
         weightGrams = weight?.removeSuffix(" kg")?.toDoubleOrNull()
             ?.let { (it * 1000).toInt() },
         notes = allergies
@@ -72,6 +74,8 @@ class SupabasePetDataSource(
         species = species,
         breed = breed,
         dateOfBirth = dateOfBirth,
+        gender = gender,
+        foto_url = foto_url,
         allergies = notes,
         weight = weightGrams?.let { grams -> "${grams / 1000.0} kg" }
     )
@@ -85,6 +89,8 @@ private data class PetRecord(
     val species: String,
     val breed: String? = null,
     @SerialName("date_of_birth") val dateOfBirth: String? = null,
+    @SerialName("sexo") val gender: String? = null,
+    @SerialName("foto_url") val foto_url: String? = null,
     @SerialName("weight_grams") val weightGrams: Int? = null,
     val notes: String? = null
 )
@@ -96,6 +102,8 @@ private data class PetWriteRecord(
     val species: String,
     val breed: String? = null,
     @SerialName("date_of_birth") val dateOfBirth: String? = null,
+    @SerialName("sexo") val gender: String? = null,
+    @SerialName("foto_url") val foto_url: String? = null,
     @SerialName("weight_grams") val weightGrams: Int? = null,
     val notes: String? = null
 )

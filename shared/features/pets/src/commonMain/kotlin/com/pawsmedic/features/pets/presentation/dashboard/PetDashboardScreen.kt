@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -94,7 +95,9 @@ fun PetDashboardContent(
     modifier: Modifier = Modifier
 ) {
 
-    val selectedPet = petState.selectedPet ?: petState.pets.firstOrNull()
+    val selectedPet = petState.selectedPet
+        ?.let { selected -> petState.pets.firstOrNull { it.id == selected.id } }
+        ?: petState.pets.firstOrNull()
     val appointments = appointmentsState.appointments
     val pendingAppointments = appointments.filter { it.status.contains("Pendiente", ignoreCase = true) }
     val pendingCount = pendingAppointments.size
@@ -263,11 +266,13 @@ fun PetDashboardContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        PetAvatarImage(
-                            photoUrl = selectedPet.photoUrl,
-                            species = selectedPet.species,
-                            size = 64.dp
-                        )
+                        key(selectedPet.id, selectedPet.foto_url) {
+                            PetAvatarImage(
+                                foto_url = selectedPet.foto_url,
+                                species = selectedPet.species,
+                                size = 64.dp
+                            )
+                        }
                         Spacer(modifier = Modifier.width(14.dp))
                         Column {
                             Text(

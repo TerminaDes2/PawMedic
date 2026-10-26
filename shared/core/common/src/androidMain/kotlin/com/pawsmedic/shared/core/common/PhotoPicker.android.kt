@@ -4,15 +4,35 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import io.github.jan.supabase.SupabaseClient
+import kotlinx.coroutines.launch
 
 @Composable
 actual fun rememberPhotoPicker(
-    onPhotoPicked: (String) -> Unit
+    supabaseClient: SupabaseClient,
+    onPhotoPicked: (String) -> Unit,
+    onUploadError: (String) -> Unit
 ): () -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        uri?.let { onPhotoPicked(it.toString()) }
+        uri?.let { selectedUri ->
+            scope.launch {
+                val result = uploadImageToSupabase(
+                    context = context,
+                    supabaseClient = supabaseClient,
+                    imageUri = selectedUri
+                )
+                result.onSuccess(onPhotoPicked)
+                    .onFailure { error ->
+                        onUploadError(error.message ?: "No se pudo subir la imagen")
+                    }
+            }
+        }
     }
     return {
         launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))

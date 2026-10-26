@@ -17,7 +17,7 @@ import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
 @Composable
 fun PetAvatarImage(
-    photoUrl: String?,
+    foto_url: String?,
     species: String?,
     size: Dp = 64.dp,
     backgroundColor: Color = PawMedicColors.Teal100,
@@ -39,9 +39,9 @@ fun PetAvatarImage(
         }
         val fontSize = (size.value * 0.45f).sp
 
-        if (!photoUrl.isNullOrBlank()) {
+        if (!foto_url.isNullOrBlank()) {
             AsyncPetImage(
-                photoUrl = photoUrl,
+                foto_url = foto_url,
                 fallbackEmoji = emoji,
                 size = size
             )

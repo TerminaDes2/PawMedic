@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 actual fun AsyncPetImage(
-    photoUrl: String,
+    foto_url: String,
     fallbackEmoji: String,
     size: Dp,
     modifier: Modifier

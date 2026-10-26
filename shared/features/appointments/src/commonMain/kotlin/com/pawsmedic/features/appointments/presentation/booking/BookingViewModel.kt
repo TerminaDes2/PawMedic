@@ -22,7 +22,7 @@ data class BookingPet(
     val species: String,
     val breed: String? = null,
     val age: String? = null,
-    val photoUrl: String? = null
+    val foto_url: String? = null
 )
 
 enum class BookingStep {

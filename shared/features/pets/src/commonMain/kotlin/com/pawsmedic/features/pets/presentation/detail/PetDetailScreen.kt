@@ -29,6 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -106,11 +107,13 @@ fun PetDetailScreen(
                         .clip(CircleShape)
                         .border(3.dp, PawMedicColors.Teal600, CircleShape)
                 ) {
-                    PetAvatarImage(
-                        photoUrl = pet.photoUrl,
-                        species = pet.species,
-                        size = 110.dp
-                    )
+                    key(pet.id, pet.foto_url) {
+                        PetAvatarImage(
+                            foto_url = pet.foto_url,
+                            species = pet.species,
+                            size = 110.dp
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))

@@ -19,14 +19,14 @@ import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
 @Composable
 actual fun AsyncPetImage(
-    photoUrl: String,
+    foto_url: String,
     fallbackEmoji: String,
     size: Dp,
     modifier: Modifier
 ) {
     val context = LocalContext.current
 
-    if (photoUrl.isBlank()) {
+    if (foto_url.isBlank()) {
         Box(
             modifier = modifier
                 .size(size)
@@ -39,7 +39,7 @@ actual fun AsyncPetImage(
     } else {
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .data(photoUrl)
+                .data(foto_url)
                 .crossfade(true)
                 .build(),
             contentDescription = "Pet Photo",

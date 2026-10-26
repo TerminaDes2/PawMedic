@@ -41,9 +41,12 @@ class PetListViewModel(
             getPetsUseCase(ownerId)
                 .onSuccess { list ->
                     _uiState.update { curr ->
+                        val selectedPet = curr.selectedPet
+                            ?.let { selected -> list.firstOrNull { it.id == selected.id } }
+                            ?: list.firstOrNull()
                         curr.copy(
                             pets = list,
-                            selectedPet = curr.selectedPet ?: list.firstOrNull(),
+                            selectedPet = selectedPet,
                             isLoading = false
                         )
                     }
@@ -127,6 +130,8 @@ data class PetFormUiState(
     val name: String = "",
     val species: String = "",
     val breed: String = "",
+    val gender: String = "",
+    val foto_url: String = "",
     val ageMode: AgeInputMode = AgeInputMode.EXACT_DATE,
     val ageNumber: String = "",
     val ageUnit: String = "Años",
@@ -186,6 +191,8 @@ class PetFormViewModel(
                             name = p.name,
                             species = if (p.species.contains("Gato", true)) "Felino" else if (p.species.contains("Perro", true)) "Canino" else p.species,
                             breed = p.breed ?: "Mestizo",
+                            gender = p.gender.orEmpty(),
+                            foto_url = p.foto_url.orEmpty(),
                             ageNumber = num,
                             ageUnit = unit,
                             exactBirthDate = p.dateOfBirth.orEmpty(),
@@ -214,6 +221,14 @@ class PetFormViewModel(
     }
 
     fun onBreedChanged(v: String) = _uiState.update { curr -> curr.copy(breed = v, errorMessage = null) }
+
+    fun onGenderChanged(v: String) = _uiState.update { curr -> curr.copy(gender = v, errorMessage = null) }
+
+    fun onFoto_urlChanged(v: String) = _uiState.update { curr -> curr.copy(foto_url = v, errorMessage = null) }
+
+    fun onPhotoUploadError(message: String) {
+        _uiState.update { curr -> curr.copy(errorMessage = message) }
+    }
 
     fun onAgeModeChanged(mode: AgeInputMode) = _uiState.update { curr -> curr.copy(ageMode = mode, errorMessage = null) }
 
@@ -370,9 +385,11 @@ class PetFormViewModel(
             name = s.name.trim(),
             species = s.species,
             breed = s.breed.takeIf(String::isNotBlank),
+            gender = s.gender.takeIf(String::isNotBlank),
             age = if (s.ageNumber.isBlank()) null else "${s.ageNumber} ${s.ageUnit}",
             dateOfBirth = calculatedBirthDate,
             allergies = if (s.allergies.isBlank()) null else s.allergies,
+            foto_url = s.foto_url.takeIf(String::isNotBlank),
             weight = s.weightKg.takeIf(String::isNotBlank)?.let { "$it kg" }
         )
 

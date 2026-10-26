@@ -1,6 +1,8 @@
 package com.pawsmedic.shared.core.common
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -9,8 +11,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.storage.storage
+import io.ktor.http.ContentType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.util.UUID
 
 // 1. Selector de imágenes reutilizable para cualquier pantalla de Compose
@@ -31,27 +35,42 @@ suspend fun uploadImageToSupabase(
     imageUri: Uri,
     bucketName: String = "pets",
     folderName: String = "uploads"
-): String? {
+): Result<String> {
     return withContext(Dispatchers.IO) {
         try {
-            // Convertir el Uri de Android a un ByteArray para Supabase
-            val bytes = context.contentResolver.openInputStream(imageUri)?.use { it.readBytes() }
-                ?: return@withContext null
-
-            // Generar un nombre único para evitar sobreescribir archivos
+            val bitmap = context.contentResolver.openInputStream(imageUri)?.use {
+                BitmapFactory.decodeStream(it)
+            }
+            if (bitmap == null) {
+                return@withContext Result.failure(
+                    IllegalArgumentException("No se pudo leer la imagen seleccionada")
+                )
+            }
+            val output = ByteArrayOutputStream()
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)) {
+                bitmap.recycle()
+                return@withContext Result.failure(
+                    IllegalArgumentException("La imagen seleccionada está vacía")
+                )
+            }
+            bitmap.recycle()
+            val bytes = output.toByteArray()
             val fileName = "$folderName/${UUID.randomUUID()}.jpg"
 
-            // Subir al bucket de Supabase
             val bucket = supabaseClient.storage.from(bucketName)
             bucket.upload(fileName, bytes) {
-                upsert = true
+                upsert = false
+                contentType = ContentType.Image.JPEG
             }
 
-            // Retornar la URL pública de la imagen
-            bucket.publicUrl(fileName)
+            Result.success(bucket.publicUrl(fileName))
         } catch (e: Exception) {
-            e.printStackTrace()
-            null
+            Result.failure(
+                IllegalStateException(
+                    "No se pudo subir la imagen. Verifica que exista el bucket de mascotas en Supabase.",
+                    e
+                )
+            )
         }
     }
 }

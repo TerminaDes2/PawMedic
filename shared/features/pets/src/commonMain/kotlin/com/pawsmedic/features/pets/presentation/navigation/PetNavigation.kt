@@ -318,6 +318,7 @@ fun PetNavHost(
                                     PetFormScreen(
                                         viewModel = addViewModel,
                                         onBackClick = { petTabScreen = PetTabScreen.List },
+                                        supabaseClient = supabaseClient,
                                         onSaveSuccess = {
                                             petListViewModel.loadPets()
                                             petTabScreen = PetTabScreen.List
@@ -338,6 +339,7 @@ fun PetNavHost(
                                     PetFormScreen(
                                         viewModel = editViewModel,
                                         onBackClick = { petTabScreen = PetTabScreen.Detail(screen.petId) },
+                                        supabaseClient = supabaseClient,
                                         onSaveSuccess = {
                                             petListViewModel.loadPets()
                                             petTabScreen = PetTabScreen.Detail(screen.petId)
@@ -396,7 +398,7 @@ fun PetNavHost(
                                                             species = pet.species,
                                                             breed = pet.breed,
                                                             age = pet.age,
-                                                            photoUrl = pet.photoUrl
+                                                            foto_url = pet.foto_url
                                                         )
                                                     }
                                                 }

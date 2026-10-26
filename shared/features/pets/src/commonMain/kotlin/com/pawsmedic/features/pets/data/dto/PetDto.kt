@@ -14,7 +14,7 @@ data class PetDto(
     val dateOfBirth: String? = null,
     val gender: String? = null,
     val allergies: String? = null,
-    val photoUrl: String? = null,
+    val foto_url: String? = null,
     val medicalId: String? = null,
     val weight: String? = null,
     val isInsured: Boolean = false
@@ -29,7 +29,7 @@ data class PetDto(
         dateOfBirth = dateOfBirth,
         gender = gender,
         allergies = allergies,
-        photoUrl = photoUrl,
+        foto_url = foto_url,
         medicalId = medicalId,
         weight = weight,
         isInsured = isInsured
@@ -46,7 +46,7 @@ data class PetDto(
             dateOfBirth = pet.dateOfBirth,
             gender = pet.gender,
             allergies = pet.allergies,
-            photoUrl = pet.photoUrl,
+            foto_url = pet.foto_url,
             medicalId = pet.medicalId,
             weight = pet.weight,
             isInsured = pet.isInsured

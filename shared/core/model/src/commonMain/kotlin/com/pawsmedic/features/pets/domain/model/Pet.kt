@@ -13,7 +13,7 @@ data class Pet(
     val dateOfBirth: String? = null,
     val gender: String? = null,
     val allergies: String? = null,
-    val photoUrl: String? = null,
+    val foto_url: String? = null,
     val medicalId: String? = null,
     val weight: String? = null,
     val isInsured: Boolean = false
