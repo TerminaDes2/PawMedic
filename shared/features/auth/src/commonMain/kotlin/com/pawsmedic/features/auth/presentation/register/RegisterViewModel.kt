@@ -266,6 +266,10 @@ class RegisterViewModel(
         }
     }
 
+    fun resetAfterSignOut() {
+        _uiState.value = RegisterUiState()
+    }
+
     fun onGoogleSignInError(message: String) {
         _uiState.update { it.copy(isLoading = false, errorMessage = message) }
     }

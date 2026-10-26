@@ -110,7 +110,11 @@ fun AuthNavHost(
                     userId = screen.userId,
                     email = screen.email,
                     supabaseClient = supabaseClient,
-                    onSignOut = { currentScreen = AuthScreenState.Welcome }
+                    onSignOut = {
+                        loginViewModel.resetAfterSignOut()
+                        registerViewModel.resetAfterSignOut()
+                        currentScreen = AuthScreenState.Welcome
+                    }
                 )
             }
         }
