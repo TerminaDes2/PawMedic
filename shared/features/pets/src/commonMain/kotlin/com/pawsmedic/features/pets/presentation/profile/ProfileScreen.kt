@@ -20,6 +20,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,6 +55,10 @@ fun ProfileScreen(
     pets: List<Pet>,
     appointmentsCount: Int,
     onBackClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onSignOut: () -> Unit,
+    drawerOnly: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -65,14 +73,44 @@ fun ProfileScreen(
         onUploadError = viewModel::onError
     )
 
-    Column(
+    Row(
         modifier = modifier
             .fillMaxSize()
             .background(PawMedicColors.BackgroundScreen)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
-        PawMedicTopBar(title = "Mi perfil", onBackClick = onBackClick)
+        Column(
+            modifier = Modifier
+                .width(if (drawerOnly) 300.dp else 156.dp)
+                .fillMaxSize()
+                .background(PawMedicColors.White)
+                .padding(vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "PawMedic",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = PawMedicColors.Teal600
+            )
+            ProfileSidebarItem(Icons.Default.Person, "Perfil", true) { }
+            ProfileSidebarItem(Icons.Default.Notifications, "Notificaciones") { onNotificationsClick() }
+            ProfileSidebarItem(Icons.Default.Settings, "Configuración") { onSettingsClick() }
+            Spacer(modifier = Modifier.weight(1f))
+            ProfileSidebarItem(Icons.Default.Logout, "Salir", onClick = onSignOut)
+        }
+
+        if (drawerOnly) {
+            Spacer(modifier = Modifier.weight(1f))
+        } else {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+            PawMedicTopBar(title = "Mi perfil", onBackClick = onBackClick)
         Spacer(modifier = Modifier.height(20.dp))
 
         Box(
@@ -152,6 +190,7 @@ fun ProfileScreen(
                             isEditingUsername = true
                         }) {
                             Icon(Icons.Default.Edit, contentDescription = "Editar username", tint = PawMedicColors.Teal600)
+                            }
                         }
                     }
                 }
@@ -177,6 +216,38 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text(state.errorMessage.orEmpty(), color = PawMedicColors.Error, fontSize = 13.sp)
         }
+        }
+    }
+}
+
+@Composable
+private fun ProfileSidebarItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    selected: Boolean = false,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .background(if (selected) PawMedicColors.Teal50 else PawMedicColors.White)
+            .padding(horizontal = 16.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (selected) PawMedicColors.Teal600 else PawMedicColors.Gray600,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = label,
+            color = if (selected) PawMedicColors.Teal700 else PawMedicColors.Gray700,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
     }
 }
 

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -27,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
@@ -39,6 +39,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -112,6 +115,8 @@ fun PetNavHost(
     var citasTabScreen by remember { mutableStateOf<CitasTabScreen>(CitasTabScreen.Appointments) }
     var signOutError by remember { mutableStateOf<String?>(null) }
     var isSigningOut by remember { mutableStateOf(false) }
+    var showNotifications by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
 
     // Repositories & DataSources
     val medicalRecordRepository = remember(supabaseClient, ownerId) {
@@ -141,6 +146,54 @@ fun PetNavHost(
     val medicalHistoryViewModel = remember { MedicalHistoryViewModel(medicalRecordRepository) }
     val veterinaryListViewModel = remember { VeterinaryListViewModel(businessRepository) }
     val appointmentsListViewModel = remember { AppointmentsListViewModel(appointmentRepository) }
+
+    if (showNotifications) {
+        val pendingAppointments = appointmentsListViewModel.uiState.value.appointments
+            .filter { it.status.contains("Pendiente", ignoreCase = true) }
+        AlertDialog(
+            onDismissRequest = { showNotifications = false },
+            title = { Text("Notificaciones de Citas (${pendingAppointments.size})") },
+            text = {
+                Column {
+                    if (pendingAppointments.isEmpty()) {
+                        Text("No tienes citas pendientes por aprobación.")
+                    } else {
+                        pendingAppointments.forEach { appointment ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFFEF3C7), RoundedCornerShape(12.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Text(appointment.serviceName, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
+                                Text("${appointment.businessName} • ${appointment.petName}")
+                                Text(
+                                    "Fecha: ${appointment.date} • ${appointment.time}",
+                                    fontWeight = FontWeight.Bold,
+                                    color = PawMedicColors.Teal600
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNotifications = false }) { Text("Cerrar") }
+            }
+        )
+    }
+
+    if (showSettings) {
+        AlertDialog(
+            onDismissRequest = { showSettings = false },
+            title = { Text("Configuración") },
+            text = { Text("La configuración estará disponible próximamente.") },
+            confirmButton = {
+                TextButton(onClick = { showSettings = false }) { Text("Cerrar") }
+            }
+        )
+    }
 
     if (signOutError != null) {
         AlertDialog(
@@ -224,22 +277,6 @@ fun PetNavHost(
                         coroutineScope.launch { pagerState.animateScrollToPage(3) }
                     }
                 )
-                BottomNavItem(
-                    icon = Icons.Default.Logout,
-                    label = if (isSigningOut) "Saliendo" else "Salir",
-                    isSelected = false,
-                    enabled = !isSigningOut,
-                    onClick = {
-                        showProfile = false
-                        coroutineScope.launch {
-                            isSigningOut = true
-                            signOutError = null
-                            runCatching { onSignOut() }
-                                .onFailure { signOutError = it.message ?: "Inténtalo nuevamente." }
-                            isSigningOut = false
-                        }
-                    }
-                )
             }
         }
     ) { innerPadding ->
@@ -249,15 +286,7 @@ fun PetNavHost(
                 .background(PawMedicColors.BackgroundScreen)
                 .padding(innerPadding)
         ) {
-            if (showProfile) {
-                ProfileScreen(
-                    viewModel = profileViewModel,
-                    supabaseClient = supabaseClient,
-                    pets = petListViewModel.uiState.value.pets,
-                    appointmentsCount = appointmentsListViewModel.uiState.value.appointments.size,
-                    onBackClick = { showProfile = false }
-                )
-            } else HorizontalPager(
+            HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
@@ -368,6 +397,7 @@ fun PetNavHost(
                                         }
                                     )
                                 }
+
                             }
                         }
                     }
@@ -448,6 +478,7 @@ fun PetNavHost(
                                 }
                             }
                         }
+
                     }
 
                     3 -> {
@@ -483,6 +514,51 @@ fun PetNavHost(
                             else -> MedicalHistoryScreen(viewModel = medicalHistoryViewModel)
                         }
                     }
+                }
+
+            }
+
+            if (showProfile) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(1f)
+                ) {
+                    ProfileScreen(
+                        viewModel = profileViewModel,
+                        supabaseClient = supabaseClient,
+                        pets = petListViewModel.uiState.value.pets,
+                        appointmentsCount = appointmentsListViewModel.uiState.value.appointments.size,
+                        onBackClick = { showProfile = false },
+                        onNotificationsClick = {
+                            appointmentsListViewModel.loadAppointments()
+                            showNotifications = true
+                            showProfile = false
+                        },
+                        onSettingsClick = {
+                            showSettings = true
+                            showProfile = false
+                        },
+                        onSignOut = {
+                            showProfile = false
+                            coroutineScope.launch {
+                                isSigningOut = true
+                                signOutError = null
+                                runCatching { onSignOut() }
+                                    .onFailure { signOutError = it.message ?: "Inténtalo nuevamente." }
+                                isSigningOut = false
+                            }
+                        },
+                        drawerOnly = true,
+                        modifier = Modifier.width(300.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.45f))
+                            .clickable { showProfile = false }
+                    )
                 }
             }
         }

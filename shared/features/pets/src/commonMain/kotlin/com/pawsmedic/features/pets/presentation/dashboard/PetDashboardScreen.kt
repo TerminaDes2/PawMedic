@@ -18,15 +18,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.FolderShared
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -105,73 +102,6 @@ fun PetDashboardContent(
         ?.let { selected -> petState.pets.firstOrNull { it.id == selected.id } }
         ?: petState.pets.firstOrNull()
     val appointments = appointmentsState.appointments
-    val pendingAppointments = appointments.filter { it.status.contains("Pendiente", ignoreCase = true) }
-    val pendingCount = pendingAppointments.size
-
-    var showNotificationsModal by remember { mutableStateOf(false) }
-
-    if (showNotificationsModal) {
-        AlertDialog(
-            onDismissRequest = { showNotificationsModal = false },
-            title = {
-                Text(
-                    text = "Notificaciones de Citas ($pendingCount)",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-            },
-            text = {
-                Column {
-                    if (pendingAppointments.isEmpty()) {
-                        Text(
-                            text = "No tienes citas pendientes por aprobación.",
-                            fontSize = 14.sp,
-                            color = PawMedicColors.Gray600
-                        )
-                    } else {
-                        pendingAppointments.forEach { app ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFFEF3C7))
-                                    .padding(12.dp)
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "⏳ ${app.serviceName}",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF92400E)
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = "${app.businessName} • ${app.petName}",
-                                        fontSize = 12.sp,
-                                        color = PawMedicColors.Gray700
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = "Fecha: ${app.date} • ${app.time}",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PawMedicColors.Teal600
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showNotificationsModal = false }) {
-                    Text("Cerrar", fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
-                }
-            }
-        )
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -227,40 +157,6 @@ fun PetDashboardContent(
                 }
             }
 
-            // NOTIFICATION BELL WITH PENDING BADGE
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(PawMedicColors.White)
-                    .border(1.dp, PawMedicColors.Gray200, CircleShape)
-                    .clickable { showNotificationsModal = true },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notificaciones",
-                    tint = PawMedicColors.Gray700,
-                    modifier = Modifier.size(22.dp)
-                )
-                if (pendingCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(18.dp)
-                            .clip(CircleShape)
-                            .background(PawMedicColors.Error),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = pendingCount.toString(),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.White
-                        )
-                    }
-                }
-            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
