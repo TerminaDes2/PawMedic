@@ -49,7 +49,7 @@ fun ProfileScreen(
         supabaseClient = supabaseClient,
         bucketName = "profiles",
         folderName = viewModel.userId,
-        onPhotoPicked = viewModel::updateFoto_url,
+        onPhotoPicked = viewModel::updatePhotoUrl,
         onUploadError = viewModel::onError
     )
 
@@ -76,7 +76,7 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     PetAvatarImage(
-                        foto_url = profile?.foto_url,
+                        photo_url = profile?.photo_url,
                         species = null,
                         size = 112.dp
                     )
@@ -90,7 +90,7 @@ fun ProfileScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = listOf(profile?.nombre.orEmpty(), profile?.apellidos.orEmpty())
+                    text = listOf(profile?.firstName.orEmpty(), profile?.lastName.orEmpty())
                         .joinToString(" ")
                         .trim()
                         .ifBlank { "Usuario" },
@@ -104,7 +104,7 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
         ProfileInfoRow("Email", profile?.email.orEmpty())
-        ProfileInfoRow("Número", profile?.numTel ?: "No registrado")
+        ProfileInfoRow("Número", profile?.phone ?: "No registrado")
         ProfileInfoRow("Cuenta creada", profile?.createdAt?.takeIf { it.isNotBlank() }?.substringBefore("T") ?: "No disponible")
         ProfileInfoRow("Estado", "Manzanillo, Colima")
 

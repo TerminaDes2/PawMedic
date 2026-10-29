@@ -61,10 +61,10 @@ class SupabasePetDataSource(
         breed = breed,
         dateOfBirth = dateOfBirth,
         gender = gender,
-        foto_url = foto_url,
+        photo_url = photo_url,
         weightGrams = weight?.removeSuffix(" kg")?.toDoubleOrNull()
             ?.let { (it * 1000).toInt() },
-        notes = allergies
+        allergies = allergies
     )
 
     private fun PetRecord.toPetDto() = PetDto(
@@ -75,8 +75,8 @@ class SupabasePetDataSource(
         breed = breed,
         dateOfBirth = dateOfBirth,
         gender = gender,
-        foto_url = foto_url,
-        allergies = notes,
+        photo_url = photo_url,
+        allergies = allergies,
         weight = weightGrams?.let { grams -> "${grams / 1000.0} kg" }
     )
 }
@@ -89,10 +89,15 @@ private data class PetRecord(
     val species: String,
     val breed: String? = null,
     @SerialName("date_of_birth") val dateOfBirth: String? = null,
-    @SerialName("sexo") val gender: String? = null,
-    @SerialName("foto_url") val foto_url: String? = null,
+    @SerialName("sex") val gender: String? = null,
+    @SerialName("photo_url") val photo_url: String? = null,
     @SerialName("weight_grams") val weightGrams: Int? = null,
-    val notes: String? = null
+    val allergies: String? = null,
+    @SerialName("medical_id") val medicalId: String? = null,
+    @SerialName("is_insured") val isInsured: Boolean? = null,
+    val notes: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
 )
 
 @Serializable
@@ -102,8 +107,11 @@ private data class PetWriteRecord(
     val species: String,
     val breed: String? = null,
     @SerialName("date_of_birth") val dateOfBirth: String? = null,
-    @SerialName("sexo") val gender: String? = null,
-    @SerialName("foto_url") val foto_url: String? = null,
+    @SerialName("sex") val gender: String? = null,
+    @SerialName("photo_url") val photo_url: String? = null,
     @SerialName("weight_grams") val weightGrams: Int? = null,
+    val allergies: String? = null,
+    @SerialName("medical_id") val medicalId: String? = null,
+    @SerialName("is_insured") val isInsured: Boolean? = null,
     val notes: String? = null
 )

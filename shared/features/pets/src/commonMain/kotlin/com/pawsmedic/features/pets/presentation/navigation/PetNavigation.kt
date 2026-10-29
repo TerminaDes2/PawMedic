@@ -262,7 +262,7 @@ fun PetNavHost(
                             petViewModel = petListViewModel,
                             appointmentsViewModel = appointmentsListViewModel,
                             userName = userName,
-                            profileFoto_url = profileState.profile?.foto_url,
+                            profilePhotoUrl = profileState.profile?.photo_url,
                             onNavigateToPetsList = {
                                 petListViewModel.loadPets()
                                 petTabScreen = PetTabScreen.List
@@ -415,7 +415,7 @@ fun PetNavHost(
                                                             species = pet.species,
                                                             breed = pet.breed,
                                                             age = pet.age,
-                                                            foto_url = pet.foto_url
+                                                            photo_url = pet.photo_url
                                                         )
                                                     }
                                                 }

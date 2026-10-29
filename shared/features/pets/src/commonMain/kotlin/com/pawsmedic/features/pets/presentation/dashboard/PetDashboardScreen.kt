@@ -59,7 +59,7 @@ fun PetDashboardScreen(
     petViewModel: PetListViewModel,
     appointmentsViewModel: AppointmentsListViewModel,
     userName: String,
-    profileFoto_url: String? = null,
+    profilePhotoUrl: String? = null,
     onNavigateToPetsList: () -> Unit,
     onNavigateToAddPet: () -> Unit,
     onNavigateToPetDetail: (String) -> Unit,
@@ -75,7 +75,7 @@ fun PetDashboardScreen(
         petState = petState,
         appointmentsState = appointmentsState,
         userName = userName,
-        profileFoto_url = profileFoto_url,
+        profilePhotoUrl = profilePhotoUrl,
         onNavigateToPetsList = onNavigateToPetsList,
         onNavigateToAddPet = onNavigateToAddPet,
         onNavigateToPetDetail = onNavigateToPetDetail,
@@ -91,7 +91,7 @@ fun PetDashboardContent(
     petState: PetListUiState,
     appointmentsState: AppointmentsListUiState,
     userName: String,
-    profileFoto_url: String? = null,
+    profilePhotoUrl: String? = null,
     onNavigateToPetsList: () -> Unit = {},
     onNavigateToAddPet: () -> Unit = {},
     onNavigateToPetDetail: (String) -> Unit = {},
@@ -196,7 +196,7 @@ fun PetDashboardContent(
                         .clickable(onClick = onNavigateToProfile),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (profileFoto_url.isNullOrBlank()) {
+                    if (profilePhotoUrl.isNullOrBlank()) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
@@ -205,7 +205,7 @@ fun PetDashboardContent(
                         )
                     } else {
                         PetAvatarImage(
-                            foto_url = profileFoto_url,
+                            photo_url = profilePhotoUrl,
                             species = null,
                             size = 48.dp
                         )
@@ -281,9 +281,9 @@ fun PetDashboardContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        key(selectedPet.id, selectedPet.foto_url) {
+                        key(selectedPet.id, selectedPet.photo_url) {
                             PetAvatarImage(
-                                foto_url = selectedPet.foto_url,
+                                photo_url = selectedPet.photo_url,
                                 species = selectedPet.species,
                                 size = 64.dp
                             )

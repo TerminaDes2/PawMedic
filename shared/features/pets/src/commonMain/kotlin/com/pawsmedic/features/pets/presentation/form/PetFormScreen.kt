@@ -66,7 +66,7 @@ fun PetFormScreen(
     val uiState by viewModel.uiState.collectAsState()
     val defaultPhotoPicker = rememberPhotoPicker(
         supabaseClient = supabaseClient,
-        onPhotoPicked = viewModel::onFoto_urlChanged,
+        onPhotoPicked = viewModel::onPhotoUrlChanged,
         onUploadError = viewModel::onPhotoUploadError
     )
 
@@ -91,7 +91,7 @@ fun PetFormScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         PhotoPickerCard(
-            foto_url = uiState.foto_url,
+            photo_url = uiState.photo_url,
             species = uiState.species,
             isEditMode = uiState.isEditMode,
             onClick = { onPickPhoto?.invoke() ?: defaultPhotoPicker() }
@@ -199,7 +199,7 @@ fun PetFormScreen(
 
 @Composable
 private fun PhotoPickerCard(
-    foto_url: String,
+    photo_url: String,
     species: String,
     isEditMode: Boolean,
     onClick: () -> Unit
@@ -216,15 +216,15 @@ private fun PhotoPickerCard(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             PetAvatarImage(
-                foto_url = foto_url.takeIf(String::isNotBlank),
+                photo_url = photo_url.takeIf(String::isNotBlank),
                 species = species,
-                size = if (foto_url.isBlank()) 64.dp else 80.dp
+                size = if (photo_url.isBlank()) 64.dp else 80.dp
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = when {
-                    foto_url.isNotBlank() && isEditMode -> "Cambiar foto de perfil"
-                    foto_url.isNotBlank() -> "Foto seleccionada (Click para cambiar)"
+                    photo_url.isNotBlank() && isEditMode -> "Cambiar foto de perfil"
+                    photo_url.isNotBlank() -> "Foto seleccionada (Click para cambiar)"
                     else -> "Subir foto de tu mascota"
                 },
                 fontSize = 15.sp,
@@ -232,7 +232,7 @@ private fun PhotoPickerCard(
                 color = PawMedicColors.Teal600,
                 textAlign = TextAlign.Center
             )
-            if (foto_url.isBlank() && !isEditMode) {
+            if (photo_url.isBlank() && !isEditMode) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Formatos aceptados: JPG, PNG (Max 5MB)",

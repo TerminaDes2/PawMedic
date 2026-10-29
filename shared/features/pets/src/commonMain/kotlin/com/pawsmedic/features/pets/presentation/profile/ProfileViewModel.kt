@@ -52,17 +52,17 @@ class ProfileViewModel(
         }
     }
 
-    fun updateFoto_url(url: String) {
+    fun updatePhotoUrl(url: String) {
         scope.launch {
             runCatching {
                 supabase.postgrest["profiles"].update(
-                    buildJsonObject { put("foto_url", url) }
+                    buildJsonObject { put("photo_url", url) }
                 ) {
                     filter { eq("id", userId) }
                 }
             }.onSuccess {
                 _uiState.update { current ->
-                    current.copy(profile = current.profile?.copy(foto_url = url))
+                    current.copy(profile = current.profile?.copy(photo_url = url))
                 }
             }.onFailure { error ->
                 _uiState.update {

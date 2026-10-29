@@ -110,9 +110,9 @@ fun PetListScreen(
                                         shape = CircleShape
                                     )
                             ) {
-                                key(pet.id, pet.foto_url) {
+                                key(pet.id, pet.photo_url) {
                                     PetAvatarImage(
-                                        foto_url = pet.foto_url,
+                                        photo_url = pet.photo_url,
                                         species = pet.species,
                                         size = 68.dp
                                     )
@@ -177,9 +177,9 @@ fun PetListScreen(
                                     .background(PawMedicColors.Teal50),
                                 contentAlignment = Alignment.Center
                             ) {
-                                key(selectedPet.id, selectedPet.foto_url) {
+                                key(selectedPet.id, selectedPet.photo_url) {
                                     PetAvatarImage(
-                                        foto_url = selectedPet.foto_url,
+                                        photo_url = selectedPet.photo_url,
                                         species = selectedPet.species,
                                         size = 140.dp
                                     )

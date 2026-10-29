@@ -107,9 +107,9 @@ fun PetDetailScreen(
                         .clip(CircleShape)
                         .border(3.dp, PawMedicColors.Teal600, CircleShape)
                 ) {
-                    key(pet.id, pet.foto_url) {
+                    key(pet.id, pet.photo_url) {
                         PetAvatarImage(
-                            foto_url = pet.foto_url,
+                            photo_url = pet.photo_url,
                             species = pet.species,
                             size = 110.dp
                         )
