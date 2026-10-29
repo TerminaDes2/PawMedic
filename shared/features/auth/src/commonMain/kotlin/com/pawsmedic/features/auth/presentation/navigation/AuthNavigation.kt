@@ -16,6 +16,7 @@ import com.pawsmedic.features.auth.presentation.login.LoginViewModel
 import com.pawsmedic.features.auth.presentation.otp.OtpVerificationScreen
 import com.pawsmedic.features.auth.presentation.register.RegisterScreen
 import com.pawsmedic.features.auth.presentation.register.RegisterViewModel
+import com.pawsmedic.features.auth.presentation.register.RegistrationSuccessScreen
 import com.pawsmedic.features.auth.presentation.splash.SplashScreen
 import com.pawsmedic.features.auth.presentation.splash.SplashViewModel
 import com.pawsmedic.features.auth.presentation.welcome.WelcomeScreen
@@ -30,6 +31,7 @@ sealed interface AuthScreenState {
     data object Login : AuthScreenState
     data object Register : AuthScreenState
     data object OtpVerification : AuthScreenState
+    data class RegistrationSuccess(val userId: String, val email: String?) : AuthScreenState
     data class Authenticated(val userId: String, val email: String?) : AuthScreenState
 }
 
@@ -91,7 +93,10 @@ fun AuthNavHost(
                     onBackClick = { currentScreen = AuthScreenState.Welcome },
                     onNavigateToLogin = { currentScreen = AuthScreenState.Login },
                     onRegisterSuccess = { userId ->
-                        currentScreen = AuthScreenState.Authenticated(userId, registerViewModel.uiState.value.userEmail)
+                        currentScreen = AuthScreenState.RegistrationSuccess(
+                            userId,
+                            registerViewModel.uiState.value.userEmail
+                        )
                     },
                     onGoogleSignInClick = onGoogleRegisterClick
                 )
@@ -101,7 +106,17 @@ fun AuthNavHost(
                     viewModel = registerViewModel,
                     onBackClick = { currentScreen = AuthScreenState.Register },
                     onVerificationSuccess = { userId ->
-                        currentScreen = AuthScreenState.Authenticated(userId, registerViewModel.uiState.value.userEmail)
+                        currentScreen = AuthScreenState.RegistrationSuccess(
+                            userId,
+                            registerViewModel.uiState.value.userEmail
+                        )
+                    }
+                )
+            }
+            is AuthScreenState.RegistrationSuccess -> {
+                RegistrationSuccessScreen(
+                    onContinue = {
+                        currentScreen = AuthScreenState.Authenticated(screen.userId, screen.email)
                     }
                 )
             }

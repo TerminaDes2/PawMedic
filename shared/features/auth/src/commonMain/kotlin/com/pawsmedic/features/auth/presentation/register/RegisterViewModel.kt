@@ -15,14 +15,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class RegisterUiState(
-    val fullName: String = "",
+    val step: Int = 1,
+    val firstName: String = "",
+    val lastName: String = "",
+    val username: String = "",
     val email: String = "",
     val phone: String = "",
     val password: String = "",
-    val confirmPassword: String = "",
     val termsAccepted: Boolean = false,
     val isPasswordVisible: Boolean = false,
-    val isConfirmPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val requiresOtpVerification: Boolean = false,
@@ -45,8 +46,19 @@ class RegisterViewModel(
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
-    fun onFullNameChanged(value: String) {
-        _uiState.update { it.copy(fullName = value, errorMessage = null) }
+    fun onFirstNameChanged(value: String) {
+        val lettersAndSpaces = value.filter { it.isLetter() || it.isWhitespace() }
+        _uiState.update { it.copy(firstName = lettersAndSpaces, errorMessage = null) }
+    }
+
+    fun onLastNameChanged(value: String) {
+        val lettersAndSpaces = value.filter { it.isLetter() || it.isWhitespace() }
+        _uiState.update { it.copy(lastName = lettersAndSpaces, errorMessage = null) }
+    }
+
+    fun onUsernameChanged(value: String) {
+        val allowedCharacters = value.filter { it.isLetterOrDigit() || it == '.' || it == '_' || it == '-' }
+        _uiState.update { it.copy(username = allowedCharacters.take(30), errorMessage = null) }
     }
 
     fun onEmailChanged(value: String) {
@@ -54,15 +66,11 @@ class RegisterViewModel(
     }
 
     fun onPhoneChanged(value: String) {
-        _uiState.update { it.copy(phone = value, errorMessage = null) }
+        _uiState.update { it.copy(phone = value.filter(Char::isDigit).take(10), errorMessage = null) }
     }
 
     fun onPasswordChanged(value: String) {
         _uiState.update { it.copy(password = value, errorMessage = null) }
-    }
-
-    fun onConfirmPasswordChanged(value: String) {
-        _uiState.update { it.copy(confirmPassword = value, errorMessage = null) }
     }
 
     fun onOtpCodeChanged(value: String) {
@@ -83,37 +91,48 @@ class RegisterViewModel(
         _uiState.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
 
-    fun toggleConfirmPasswordVisibility() {
-        _uiState.update { it.copy(isConfirmPasswordVisible = !it.isConfirmPasswordVisible) }
+    fun continueToAccount() {
+        val s = _uiState.value
+        val error = when {
+            s.firstName.trim().length < 2 -> "Ingresa tus nombres"
+            s.lastName.trim().length < 2 -> "Ingresa tus apellidos"
+            else -> null
+        }
+        if (error != null) {
+            _uiState.update { it.copy(errorMessage = error) }
+        } else {
+            _uiState.update { it.copy(step = 2, errorMessage = null) }
+        }
+    }
+
+    fun continueToSecurity() {
+        val s = _uiState.value
+        val email = s.email.trim()
+        val phoneDigits = s.phone.filter(Char::isDigit)
+        val error = when {
+            !s.username.matches(Regex("^[A-Za-z0-9._-]{3,30}$")) ->
+                "El nombre de usuario debe tener entre 3 y 30 caracteres"
+            !EMAIL_REGEX.matches(email) -> "Ingresa un correo electrónico válido"
+            phoneDigits.length != 10 -> "Ingresa un teléfono válido de 10 dígitos"
+            else -> null
+        }
+        if (error != null) {
+            _uiState.update { it.copy(errorMessage = error) }
+        } else {
+            _uiState.update { it.copy(step = 3, errorMessage = null) }
+        }
+    }
+
+    fun backToIdentity() {
+        _uiState.update { it.copy(step = (_uiState.value.step - 1).coerceAtLeast(1), errorMessage = null) }
     }
 
     fun register() {
         val s = _uiState.value
         val email = s.email.trim()
 
-        if (s.fullName.trim().length < 2) {
-            _uiState.update { it.copy(errorMessage = "Ingresa tu nombre completo") }
-            return
-        }
-        if (email.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Ingresa tu correo electrónico") }
-            return
-        }
-        if (!EMAIL_REGEX.matches(email)) {
-            _uiState.update { it.copy(errorMessage = "Ingresa un correo electrónico válido (ej. usuario@dominio.com)") }
-            return
-        }
-        val phoneDigits = s.phone.filter(Char::isDigit)
-        if (phoneDigits.length !in 8..15) {
-            _uiState.update { it.copy(errorMessage = "Ingresa un teléfono válido (entre 8 y 15 dígitos)") }
-            return
-        }
         if (s.password.length < 6) {
             _uiState.update { it.copy(errorMessage = "La contraseña debe tener al menos 6 caracteres") }
-            return
-        }
-        if (s.password != s.confirmPassword) {
-            _uiState.update { it.copy(errorMessage = "Las contraseñas no coinciden") }
             return
         }
         if (!s.termsAccepted) {
@@ -126,7 +145,9 @@ class RegisterViewModel(
             runCatching {
                 registerUseCase(
                     RegisterParams(
-                        fullName = s.fullName,
+                        firstName = s.firstName.trim(),
+                        lastName = s.lastName.trim(),
+                        username = s.username,
                         email = email,
                         phone = s.phone,
                         password = s.password
@@ -270,7 +291,11 @@ class RegisterViewModel(
         _uiState.value = RegisterUiState()
     }
 
-    fun onGoogleSignInError(message: String) {
+    fun onError(message: String) {
         _uiState.update { it.copy(isLoading = false, errorMessage = message) }
+    }
+
+    fun onGoogleSignInError(message: String) {
+        onError(message)
     }
 }

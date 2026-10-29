@@ -67,7 +67,7 @@ suspend fun uploadImageToSupabase(
         } catch (e: Exception) {
             Result.failure(
                 IllegalStateException(
-                    "No se pudo subir la imagen. Verifica que exista el bucket de mascotas en Supabase.",
+                    "No se pudo subir la imagen. Verifica que exista el bucket \"$bucketName\" en Supabase.",
                     e
                 )
             )

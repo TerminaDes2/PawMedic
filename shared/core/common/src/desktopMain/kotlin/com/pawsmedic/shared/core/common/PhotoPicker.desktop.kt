@@ -15,3 +15,18 @@ actual fun rememberPhotoPicker(
         // Desktop mock photo picker
     }
 }
+
+@Composable
+actual fun rememberDeferredPhotoPicker(
+    supabaseClient: SupabaseClient,
+    bucketName: String,
+    folderName: String,
+    onPhotoPicked: (String) -> Unit
+): DeferredPhotoPicker {
+    return DeferredPhotoPicker(
+        pick = {},
+        upload = {
+            Result.failure<String>(UnsupportedOperationException("La selección de imágenes no está disponible en escritorio"))
+        }
+    )
+}

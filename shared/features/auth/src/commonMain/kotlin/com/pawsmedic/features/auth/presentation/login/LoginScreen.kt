@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -50,6 +51,7 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onLoginSuccess: (String) -> Unit,
     onGoogleSignInClick: (() -> Unit)? = null,
+    onForgotPasswordClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -159,6 +161,22 @@ fun LoginScreen(
                     )
                 }
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextButton(
+                onClick = onForgotPasswordClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "¿Olvidaste tu contraseña?",
+                    color = PawMedicColors.Teal600,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 

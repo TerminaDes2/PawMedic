@@ -23,7 +23,7 @@ interface SupabaseAuthDataSource {
         email = params.email,
         password = params.password,
         role = PawMedicRole.USER,
-        fullName = params.fullName,
+        fullName = "${params.firstName} ${params.lastName}",
         phone = params.phone
     )
     suspend fun verifyEmailOtp(email: String, code: String): AuthSessionDto

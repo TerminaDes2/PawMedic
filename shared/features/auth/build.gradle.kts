@@ -12,6 +12,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared:core:design-system"))
+            implementation(project(":shared:core:common"))
             implementation(project(":shared:features:pets"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
