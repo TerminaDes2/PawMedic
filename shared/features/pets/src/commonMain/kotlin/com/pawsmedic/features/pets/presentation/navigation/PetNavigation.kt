@@ -72,6 +72,8 @@ import com.pawsmedic.features.pets.presentation.dashboard.PetDashboardScreen
 import com.pawsmedic.features.pets.presentation.detail.PetDetailScreen
 import com.pawsmedic.features.pets.presentation.form.PetFormScreen
 import com.pawsmedic.features.pets.presentation.list.PetListScreen
+import com.pawsmedic.features.pets.presentation.profile.ProfileScreen
+import com.pawsmedic.features.pets.presentation.profile.ProfileViewModel
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -106,6 +108,7 @@ fun PetNavHost(
     val coroutineScope = rememberCoroutineScope()
 
     var petTabScreen by remember { mutableStateOf<PetTabScreen>(PetTabScreen.List) }
+    var showProfile by remember { mutableStateOf(false) }
     var citasTabScreen by remember { mutableStateOf<CitasTabScreen>(CitasTabScreen.Appointments) }
     var signOutError by remember { mutableStateOf<String?>(null) }
     var isSigningOut by remember { mutableStateOf(false) }
@@ -131,6 +134,10 @@ fun PetNavHost(
     val deletePetUseCase = remember { DeletePetUseCase(repository) }
 
     val petListViewModel = remember { PetListViewModel(getPetsUseCase, ownerId) }
+    val profileViewModel = remember(supabaseClient, ownerId) {
+        ProfileViewModel(supabaseClient, ownerId)
+    }
+    val profileState by profileViewModel.uiState.collectAsState()
     val medicalHistoryViewModel = remember { MedicalHistoryViewModel(medicalRecordRepository) }
     val veterinaryListViewModel = remember { VeterinaryListViewModel(businessRepository) }
     val appointmentsListViewModel = remember { AppointmentsListViewModel(appointmentRepository) }
@@ -237,7 +244,15 @@ fun PetNavHost(
                 .background(PawMedicColors.BackgroundScreen)
                 .padding(innerPadding)
         ) {
-            HorizontalPager(
+            if (showProfile) {
+                ProfileScreen(
+                    viewModel = profileViewModel,
+                    supabaseClient = supabaseClient,
+                    pets = petListViewModel.uiState.value.pets,
+                    appointmentsCount = appointmentsListViewModel.uiState.value.appointments.size,
+                    onBackClick = { showProfile = false }
+                )
+            } else HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
@@ -247,6 +262,7 @@ fun PetNavHost(
                             petViewModel = petListViewModel,
                             appointmentsViewModel = appointmentsListViewModel,
                             userName = userName,
+                            profileFoto_url = profileState.profile?.foto_url,
                             onNavigateToPetsList = {
                                 petListViewModel.loadPets()
                                 petTabScreen = PetTabScreen.List
@@ -260,6 +276,7 @@ fun PetNavHost(
                                 petTabScreen = PetTabScreen.Detail(petId)
                                 coroutineScope.launch { pagerState.animateScrollToPage(1) }
                             },
+                            onNavigateToProfile = { showProfile = true },
                             onNavigateToAppointments = {
                                 appointmentsListViewModel.loadAppointments()
                                 citasTabScreen = CitasTabScreen.Appointments

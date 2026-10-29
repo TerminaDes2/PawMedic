@@ -12,6 +12,8 @@ import kotlinx.coroutines.launch
 @Composable
 actual fun rememberPhotoPicker(
     supabaseClient: SupabaseClient,
+    bucketName: String,
+    folderName: String,
     onPhotoPicked: (String) -> Unit,
     onUploadError: (String) -> Unit
 ): () -> Unit {
@@ -22,12 +24,13 @@ actual fun rememberPhotoPicker(
     ) { uri ->
         uri?.let { selectedUri ->
             scope.launch {
-                val result = uploadImageToSupabase(
+                uploadImageToSupabase(
                     context = context,
                     supabaseClient = supabaseClient,
-                    imageUri = selectedUri
-                )
-                result.onSuccess(onPhotoPicked)
+                    imageUri = selectedUri,
+                    bucketName = bucketName,
+                    folderName = folderName
+                ).onSuccess(onPhotoPicked)
                     .onFailure { error ->
                         onUploadError(error.message ?: "No se pudo subir la imagen")
                     }

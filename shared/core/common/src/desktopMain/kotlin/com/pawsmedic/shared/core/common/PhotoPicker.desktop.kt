@@ -6,6 +6,8 @@ import io.github.jan.supabase.SupabaseClient
 @Composable
 actual fun rememberPhotoPicker(
     supabaseClient: SupabaseClient,
+    bucketName: String,
+    folderName: String,
     onPhotoPicked: (String) -> Unit,
     onUploadError: (String) -> Unit
 ): () -> Unit {

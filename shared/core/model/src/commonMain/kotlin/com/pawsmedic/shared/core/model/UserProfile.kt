@@ -32,6 +32,7 @@ data class UserProfile(
     @SerialName("nombre") val nombre: String = "",
     @SerialName("apellidos") val apellidos: String = "",
     @SerialName("num_tel") val numTel: String? = null,
+    @SerialName("foto_url") val foto_url: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

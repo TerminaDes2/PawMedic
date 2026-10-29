@@ -59,9 +59,11 @@ fun PetDashboardScreen(
     petViewModel: PetListViewModel,
     appointmentsViewModel: AppointmentsListViewModel,
     userName: String,
+    profileFoto_url: String? = null,
     onNavigateToPetsList: () -> Unit,
     onNavigateToAddPet: () -> Unit,
     onNavigateToPetDetail: (String) -> Unit,
+    onNavigateToProfile: () -> Unit,
     onNavigateToAppointments: () -> Unit,
     onNavigateToMedicalHistory: () -> Unit,
     modifier: Modifier = Modifier
@@ -73,9 +75,11 @@ fun PetDashboardScreen(
         petState = petState,
         appointmentsState = appointmentsState,
         userName = userName,
+        profileFoto_url = profileFoto_url,
         onNavigateToPetsList = onNavigateToPetsList,
         onNavigateToAddPet = onNavigateToAddPet,
         onNavigateToPetDetail = onNavigateToPetDetail,
+        onNavigateToProfile = onNavigateToProfile,
         onNavigateToAppointments = onNavigateToAppointments,
         onNavigateToMedicalHistory = onNavigateToMedicalHistory,
         modifier = modifier
@@ -87,9 +91,11 @@ fun PetDashboardContent(
     petState: PetListUiState,
     appointmentsState: AppointmentsListUiState,
     userName: String,
+    profileFoto_url: String? = null,
     onNavigateToPetsList: () -> Unit = {},
     onNavigateToAddPet: () -> Unit = {},
     onNavigateToPetDetail: (String) -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
     onNavigateToAppointments: () -> Unit = {},
     onNavigateToMedicalHistory: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -186,18 +192,27 @@ fun PetDashboardContent(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(PawMedicColors.Teal100),
+                        .background(PawMedicColors.Teal100)
+                        .clickable(onClick = onNavigateToProfile),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = PawMedicColors.Teal600,
-                        modifier = Modifier.size(26.dp)
-                    )
+                    if (profileFoto_url.isNullOrBlank()) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = PawMedicColors.Teal600,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    } else {
+                        PetAvatarImage(
+                            foto_url = profileFoto_url,
+                            species = null,
+                            size = 48.dp
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
+                Column(modifier = Modifier.clickable(onClick = onNavigateToProfile)) {
                     Text(
                         text = "Hola, $userName 👋",
                         fontSize = 20.sp,
@@ -288,19 +303,6 @@ fun PetDashboardContent(
                                 color = PawMedicColors.Gray600
                             )
                         }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PawMedicColors.Teal600)
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Activa",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.White
-                        )
                     }
                 }
             }
