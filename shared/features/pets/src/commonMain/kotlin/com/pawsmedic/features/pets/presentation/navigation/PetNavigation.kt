@@ -188,6 +188,7 @@ fun PetNavHost(
                     label = "Inicio",
                     isSelected = pagerState.currentPage == 0,
                     onClick = {
+                        showProfile = false
                         coroutineScope.launch { pagerState.animateScrollToPage(0) }
                     }
                 )
@@ -196,6 +197,7 @@ fun PetNavHost(
                     label = "Mascotas",
                     isSelected = pagerState.currentPage == 1,
                     onClick = {
+                        showProfile = false
                         petListViewModel.loadPets()
                         petTabScreen = PetTabScreen.List
                         coroutineScope.launch { pagerState.animateScrollToPage(1) }
@@ -206,6 +208,7 @@ fun PetNavHost(
                     label = "Citas",
                     isSelected = pagerState.currentPage == 2,
                     onClick = {
+                        showProfile = false
                         appointmentsListViewModel.loadAppointments()
                         citasTabScreen = CitasTabScreen.Appointments
                         coroutineScope.launch { pagerState.animateScrollToPage(2) }
@@ -216,6 +219,7 @@ fun PetNavHost(
                     label = "Historial",
                     isSelected = pagerState.currentPage == 3,
                     onClick = {
+                        showProfile = false
                         medicalHistoryViewModel.loadHistory()
                         coroutineScope.launch { pagerState.animateScrollToPage(3) }
                     }
@@ -226,6 +230,7 @@ fun PetNavHost(
                     isSelected = false,
                     enabled = !isSigningOut,
                     onClick = {
+                        showProfile = false
                         coroutineScope.launch {
                             isSigningOut = true
                             signOutError = null

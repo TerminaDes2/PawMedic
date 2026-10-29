@@ -12,14 +12,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +40,7 @@ import com.pawsmedic.features.pets.domain.model.Pet
 import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.common.rememberPhotoPicker
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
+import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import io.github.jan.supabase.SupabaseClient
 
@@ -45,6 +55,8 @@ fun ProfileScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val profile = state.profile
+    var isEditingUsername by remember(profile?.username) { mutableStateOf(false) }
+    var usernameDraft by remember(profile?.username) { mutableStateOf(profile?.username.orEmpty()) }
     val photoPicker = rememberPhotoPicker(
         supabaseClient = supabaseClient,
         bucketName = "profiles",
@@ -67,7 +79,13 @@ fun ProfileScreen(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(PawMedicColors.White)
+                    .padding(horizontal = 24.dp, vertical = 22.dp)
+            ) {
                 Box(
                     modifier = Modifier
                         .size(112.dp)
@@ -99,6 +117,44 @@ fun ProfileScreen(
                     color = PawMedicColors.Gray900,
                     textAlign = TextAlign.Center
                 )
+                Spacer(modifier = Modifier.height(6.dp))
+                if (isEditingUsername) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        PawMedicTextField(
+                            value = usernameDraft,
+                            onValueChange = { usernameDraft = it },
+                            label = "Username",
+                            placeholder = "tu_username",
+                            modifier = Modifier.width(220.dp)
+                        )
+                        IconButton(
+                            onClick = {
+                                viewModel.updateUsername(usernameDraft)
+                                isEditingUsername = false
+                            }
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = "Guardar username", tint = PawMedicColors.Teal600)
+                        }
+                    }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "@${profile?.username?.ifBlank { "usuario" } ?: "usuario"}",
+                            color = PawMedicColors.Teal600,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        IconButton(onClick = {
+                            usernameDraft = profile?.username.orEmpty()
+                            isEditingUsername = true
+                        }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar username", tint = PawMedicColors.Teal600)
+                        }
+                    }
+                }
             }
         }
 

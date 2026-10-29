@@ -31,6 +31,7 @@ data class UserProfile(
     @SerialName("tenant_id") val tenantId: String? = null,
     @SerialName("first_name") val firstName: String = "",
     @SerialName("last_name") val lastName: String = "",
+    @SerialName("username") val username: String = "",
     @SerialName("phone") val phone: String? = null,
     @SerialName("photo_url") val photo_url: String? = null,
     @SerialName("created_at") val createdAt: String? = null,

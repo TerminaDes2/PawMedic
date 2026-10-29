@@ -72,6 +72,41 @@ class ProfileViewModel(
         }
     }
 
+    fun updateUsername(username: String) {
+        val normalized = username.trim()
+        if (!normalized.matches(Regex("^[A-Za-z0-9._-]{3,30}$"))) {
+            _uiState.update {
+                it.copy(errorMessage = "El username debe tener entre 3 y 30 caracteres")
+            }
+            return
+        }
+
+        scope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            runCatching {
+                supabase.postgrest["profiles"].update(
+                    buildJsonObject { put("username", normalized) }
+                ) {
+                    filter { eq("id", userId) }
+                }
+            }.onSuccess {
+                _uiState.update { current ->
+                    current.copy(
+                        isLoading = false,
+                        profile = current.profile?.copy(username = normalized)
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "No se pudo guardar el username"
+                    )
+                }
+            }
+        }
+    }
+
     fun onError(message: String) {
         _uiState.update { it.copy(errorMessage = message) }
     }
