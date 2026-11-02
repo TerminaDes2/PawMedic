@@ -55,7 +55,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":shared:core:network")) // Agregado para acceder a red/Supabase
     implementation(project(":shared:features:auth"))
     implementation(project(":shared:features:pets"))
     implementation(project(":shared:core:design-system"))
@@ -70,5 +69,4 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation(libs.koin.core)
-    implementation(libs.supabase.postgrest)
 }
