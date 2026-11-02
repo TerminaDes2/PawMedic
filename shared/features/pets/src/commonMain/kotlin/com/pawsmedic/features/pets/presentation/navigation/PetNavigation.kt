@@ -57,8 +57,6 @@ import com.pawsmedic.features.businesses.presentation.VeterinaryDetailViewModel
 import com.pawsmedic.features.businesses.presentation.VeterinaryListViewModel
 import com.pawsmedic.features.businesses.presentation.detail.VeterinaryDetailScreen
 import com.pawsmedic.features.businesses.presentation.list.VeterinaryListScreen
-import com.pawsmedic.features.medical_records.data.datasource.MedicalRecordDataSource
-import com.pawsmedic.features.medical_records.data.dto.MedicalRecordDto
 import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryScreen
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryViewModel
@@ -77,11 +75,10 @@ import com.pawsmedic.features.pets.presentation.form.PetFormScreen
 import com.pawsmedic.features.pets.presentation.list.PetListScreen
 import com.pawsmedic.features.pets.presentation.profile.ProfileScreen
 import com.pawsmedic.features.pets.presentation.profile.ProfileViewModel
+import com.pawsmedic.features.pets.presentation.settings.SettingsScreen
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.coroutines.launch
 
 sealed interface PetTabScreen {
@@ -112,11 +109,13 @@ fun PetNavHost(
 
     var petTabScreen by remember { mutableStateOf<PetTabScreen>(PetTabScreen.List) }
     var showProfile by remember { mutableStateOf(false) }
+    var showProfilePage by remember { mutableStateOf(false) }
     var citasTabScreen by remember { mutableStateOf<CitasTabScreen>(CitasTabScreen.Appointments) }
     var signOutError by remember { mutableStateOf<String?>(null) }
     var isSigningOut by remember { mutableStateOf(false) }
     var showNotifications by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var accountDeleteError by remember { mutableStateOf<String?>(null) }
 
     // Repositories & DataSources
     val medicalRecordRepository = remember(supabaseClient, ownerId) {
@@ -139,6 +138,7 @@ fun PetNavHost(
     val deletePetUseCase = remember { DeletePetUseCase(repository) }
 
     val petListViewModel = remember { PetListViewModel(getPetsUseCase, ownerId) }
+    val petsState by petListViewModel.uiState.collectAsState()
     val profileViewModel = remember(supabaseClient, ownerId) {
         ProfileViewModel(supabaseClient, ownerId)
     }
@@ -146,9 +146,10 @@ fun PetNavHost(
     val medicalHistoryViewModel = remember { MedicalHistoryViewModel(medicalRecordRepository) }
     val veterinaryListViewModel = remember { VeterinaryListViewModel(businessRepository) }
     val appointmentsListViewModel = remember { AppointmentsListViewModel(appointmentRepository) }
+    val appointmentsState by appointmentsListViewModel.uiState.collectAsState()
 
     if (showNotifications) {
-        val pendingAppointments = appointmentsListViewModel.uiState.value.appointments
+        val pendingAppointments = appointmentsState.appointments
             .filter { it.status.contains("Pendiente", ignoreCase = true) }
         AlertDialog(
             onDismissRequest = { showNotifications = false },
@@ -184,13 +185,13 @@ fun PetNavHost(
         )
     }
 
-    if (showSettings) {
+    if (accountDeleteError != null) {
         AlertDialog(
-            onDismissRequest = { showSettings = false },
-            title = { Text("Configuración") },
-            text = { Text("La configuración estará disponible próximamente.") },
+            onDismissRequest = { accountDeleteError = null },
+            title = { Text("No se pudo eliminar la cuenta") },
+            text = { Text(accountDeleteError.orEmpty()) },
             confirmButton = {
-                TextButton(onClick = { showSettings = false }) { Text("Cerrar") }
+                TextButton(onClick = { accountDeleteError = null }) { Text("Cerrar") }
             }
         )
     }
@@ -226,57 +227,59 @@ fun PetNavHost(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
-            // --- BOTTOM NAVIGATION BAR ---
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(PawMedicColors.White)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                BottomNavItem(
-                    icon = Icons.Default.Home,
-                    label = "Inicio",
-                    isSelected = pagerState.currentPage == 0,
-                    onClick = {
-                        showProfile = false
-                        coroutineScope.launch { pagerState.animateScrollToPage(0) }
-                    }
-                )
-                BottomNavItem(
-                    icon = Icons.Default.Pets,
-                    label = "Mascotas",
-                    isSelected = pagerState.currentPage == 1,
-                    onClick = {
-                        showProfile = false
-                        petListViewModel.loadPets()
-                        petTabScreen = PetTabScreen.List
-                        coroutineScope.launch { pagerState.animateScrollToPage(1) }
-                    }
-                )
-                BottomNavItem(
-                    icon = Icons.Default.CalendarMonth,
-                    label = "Citas",
-                    isSelected = pagerState.currentPage == 2,
-                    onClick = {
-                        showProfile = false
-                        appointmentsListViewModel.loadAppointments()
-                        citasTabScreen = CitasTabScreen.Appointments
-                        coroutineScope.launch { pagerState.animateScrollToPage(2) }
-                    }
-                )
-                BottomNavItem(
-                    icon = Icons.Default.FolderShared,
-                    label = "Historial",
-                    isSelected = pagerState.currentPage == 3,
-                    onClick = {
-                        showProfile = false
-                        medicalHistoryViewModel.loadHistory()
-                        coroutineScope.launch { pagerState.animateScrollToPage(3) }
-                    }
-                )
+            if (!showSettings && !showProfilePage) {
+                // --- BOTTOM NAVIGATION BAR ---
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(PawMedicColors.White)
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BottomNavItem(
+                        icon = Icons.Default.Home,
+                        label = "Inicio",
+                        isSelected = pagerState.currentPage == 0,
+                        onClick = {
+                            showProfile = false
+                            coroutineScope.launch { pagerState.animateScrollToPage(0) }
+                        }
+                    )
+                    BottomNavItem(
+                        icon = Icons.Default.Pets,
+                        label = "Mascotas",
+                        isSelected = pagerState.currentPage == 1,
+                        onClick = {
+                            showProfile = false
+                            petListViewModel.loadPets()
+                            petTabScreen = PetTabScreen.List
+                            coroutineScope.launch { pagerState.animateScrollToPage(1) }
+                        }
+                    )
+                    BottomNavItem(
+                        icon = Icons.Default.CalendarMonth,
+                        label = "Citas",
+                        isSelected = pagerState.currentPage == 2,
+                        onClick = {
+                            showProfile = false
+                            appointmentsListViewModel.loadAppointments()
+                            citasTabScreen = CitasTabScreen.Appointments
+                            coroutineScope.launch { pagerState.animateScrollToPage(2) }
+                        }
+                    )
+                    BottomNavItem(
+                        icon = Icons.Default.FolderShared,
+                        label = "Historial",
+                        isSelected = pagerState.currentPage == 3,
+                        onClick = {
+                            showProfile = false
+                            medicalHistoryViewModel.loadHistory()
+                            coroutineScope.launch { pagerState.animateScrollToPage(3) }
+                        }
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -310,7 +313,10 @@ fun PetNavHost(
                                 petTabScreen = PetTabScreen.Detail(petId)
                                 coroutineScope.launch { pagerState.animateScrollToPage(1) }
                             },
-                            onNavigateToProfile = { showProfile = true },
+                            onNavigateToProfile = {
+                                profileViewModel.load()
+                                showProfile = true
+                            },
                             onNavigateToAppointments = {
                                 appointmentsListViewModel.loadAppointments()
                                 citasTabScreen = CitasTabScreen.Appointments
@@ -520,16 +526,18 @@ fun PetNavHost(
 
             if (showProfile) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(1f)
+                    modifier = Modifier.fillMaxSize().zIndex(2f)
                 ) {
                     ProfileScreen(
                         viewModel = profileViewModel,
                         supabaseClient = supabaseClient,
-                        pets = petListViewModel.uiState.value.pets,
-                        appointmentsCount = appointmentsListViewModel.uiState.value.appointments.size,
+                        pets = petsState.pets,
+                        appointmentsCount = appointmentsState.appointments.size,
                         onBackClick = { showProfile = false },
+                        onProfileClick = {
+                            showProfile = false
+                            showProfilePage = true
+                        },
                         onNotificationsClick = {
                             appointmentsListViewModel.loadAppointments()
                             showNotifications = true
@@ -556,10 +564,55 @@ fun PetNavHost(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.45f))
+                            .background(Color.Black.copy(alpha = 0.35f))
                             .clickable { showProfile = false }
                     )
                 }
+            }
+            if (showProfilePage) {
+                ProfileScreen(
+                    viewModel = profileViewModel,
+                    supabaseClient = supabaseClient,
+                    pets = petsState.pets,
+                    appointmentsCount = appointmentsState.appointments.size,
+                    onBackClick = { showProfilePage = false },
+                    onProfileClick = {},
+                    onNotificationsClick = {
+                        appointmentsListViewModel.loadAppointments()
+                        showNotifications = true
+                        showProfilePage = false
+                    },
+                    onSettingsClick = {
+                        showSettings = true
+                        showProfilePage = false
+                    },
+                    onSignOut = {
+                        showProfilePage = false
+                        coroutineScope.launch { onSignOut() }
+                    },
+                    showSidebar = false,
+                    modifier = Modifier.fillMaxSize().zIndex(2f)
+                )
+            }
+            if (showSettings) {
+                SettingsScreen(
+                    onBackClick = {
+                        showSettings = false
+                        showProfile = true
+                    },
+                    onDeleteAccount = {
+                        coroutineScope.launch {
+                            runCatching {
+                                supabaseClient.postgrest.rpc("delete_my_account")
+                                onSignOut()
+                            }.onFailure {
+                                accountDeleteError = it.message
+                                    ?: "No se pudo eliminar la cuenta. Inténtalo nuevamente."
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize().zIndex(2f)
+                )
             }
         }
     }
@@ -592,90 +645,3 @@ private fun BottomNavItem(
         )
     }
 }
-
-private class SupabaseMedicalRecordDataSource(
-    private val supabase: SupabaseClient,
-    private val ownerId: String
-) : MedicalRecordDataSource {
-    override suspend fun getAllRecords(): List<MedicalRecordDto> {
-        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para consultar el historial." }
-        val pets = supabase.postgrest["pets"]
-            .select {
-                filter { eq("owner_id", ownerId) }
-            }
-            .decodeList<OwnedPetRecord>()
-        if (pets.isEmpty()) return emptyList()
-
-        return pets.flatMap { pet ->
-            getRecordsForPet(pet)
-        }.sortedByDescending(MedicalRecordDto::date)
-    }
-
-    override suspend fun getRecordsByPet(petId: String): List<MedicalRecordDto> {
-        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para consultar el historial." }
-        val pet = supabase.postgrest["pets"]
-            .select {
-                filter {
-                    eq("id", petId)
-                    eq("owner_id", ownerId)
-                }
-            }
-            .decodeList<OwnedPetRecord>()
-            .singleOrNull() ?: return emptyList()
-        return getRecordsForPet(pet)
-    }
-
-    private suspend fun getRecordsForPet(pet: OwnedPetRecord): List<MedicalRecordDto> {
-        val records = supabase.postgrest["medical_records"]
-            .select {
-                filter { eq("pet_id", pet.id) }
-            }
-            .decodeList<MedicalRecordRecord>()
-
-        return records.map { record ->
-            val clinicName = supabase.postgrest["tenants"]
-                .select {
-                    filter { eq("id", record.tenantId) }
-                }
-                .decodeList<TenantRecord>()
-                .singleOrNull()
-                ?.name
-                ?: "Clínica no disponible (${record.tenantId})"
-
-            MedicalRecordDto(
-                id = record.id,
-                petId = pet.id,
-                petName = pet.name,
-                clinicName = clinicName,
-                doctorName = "Autor: ${record.authoredBy}",
-                date = record.createdAt.substringBefore('T'),
-                title = record.title,
-                diagnosis = record.content,
-                treatment = "No especificado en el registro.",
-                vetNotes = null
-            )
-        }
-    }
-}
-
-@Serializable
-private data class OwnedPetRecord(
-    val id: String,
-    val name: String
-)
-
-@Serializable
-private data class MedicalRecordRecord(
-    val id: String,
-    @SerialName("pet_id") val petId: String,
-    @SerialName("tenant_id") val tenantId: String,
-    @SerialName("authored_by") val authoredBy: String,
-    val title: String,
-    val content: String,
-    @SerialName("created_at") val createdAt: String
-)
-
-@Serializable
-private data class TenantRecord(
-    val name: String
-)
