@@ -40,8 +40,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.pets.presentation.AgeInputMode
+import com.pawsmedic.features.pets.presentation.BreedOption
 import com.pawsmedic.features.pets.presentation.PetFormUiState
 import com.pawsmedic.features.pets.presentation.PetFormViewModel
+import com.pawsmedic.features.pets.presentation.SpeciesOption
 import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.common.convertMillisToIsoDateString
 import com.pawsmedic.shared.core.common.formatIsoToDisplayDate
@@ -110,13 +112,16 @@ fun PetFormScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // --- FIELD 2: ESPECIE (Dropdown: Canino, Felino, Avíparo) ---
         FormDropdownField(
             label = "Especie",
             selectedValue = uiState.species,
             placeholder = "Selecciona la especie",
-            options = uiState.availableSpecies,
-            onOptionSelected = viewModel::onSpeciesChanged
+            options = uiState.speciesOptions.map(SpeciesOption::name),
+            enabled = uiState.speciesOptions.isNotEmpty(),
+            onOptionSelected = { name ->
+                uiState.speciesOptions.firstOrNull { it.name == name }
+                    ?.let(viewModel::onSpeciesChanged)
+            }
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -125,9 +130,17 @@ fun PetFormScreen(
         FormDropdownField(
             label = "Raza",
             selectedValue = uiState.breed,
-            placeholder = "Selecciona la raza (opcional)",
-            options = uiState.availableBreeds,
-            onOptionSelected = viewModel::onBreedChanged
+            placeholder = if (uiState.speciesId == null && uiState.species.isBlank()) {
+                "Selecciona primero la especie"
+            } else {
+                "Selecciona la raza"
+            },
+            options = uiState.availableBreeds.map(BreedOption::name),
+            enabled = (uiState.speciesId != null || uiState.species.isNotBlank()) && uiState.availableBreeds.isNotEmpty(),
+            onOptionSelected = { name ->
+                uiState.availableBreeds.firstOrNull { it.name == name }
+                    ?.let(viewModel::onBreedChanged)
+            }
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -502,9 +515,15 @@ private fun FormDropdownField(
     placeholder: String,
     options: List<String>,
     onOptionSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
+    LaunchedEffect(enabled, options) {
+        if (!enabled) {
+            expanded = false
+        }
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -519,27 +538,35 @@ private fun FormDropdownField(
                 value = selectedValue.ifBlank { placeholder },
                 onValueChange = {},
                 readOnly = true,
+                enabled = enabled,
                 trailingIcon = {
-                    Text(text = "▼", fontSize = 12.sp, color = PawMedicColors.Gray500)
+                    Text(
+                        text = "▼",
+                        fontSize = 12.sp,
+                        color = if (enabled) PawMedicColors.Gray600 else PawMedicColors.Gray400
+                    )
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = true },
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PawMedicColors.Teal600,
                     unfocusedBorderColor = PawMedicColors.Gray300,
                     focusedContainerColor = PawMedicColors.White,
                     unfocusedContainerColor = PawMedicColors.White,
-                    focusedTextColor = PawMedicColors.Gray900,
-                    unfocusedTextColor = PawMedicColors.Gray900
+                    disabledBorderColor = PawMedicColors.Gray200,
+                    disabledContainerColor = Color(0xFFF9FAFB),
+                    disabledTextColor = PawMedicColors.Gray400,
+                    focusedTextColor = if (selectedValue.isBlank()) PawMedicColors.Gray400 else PawMedicColors.Gray900,
+                    unfocusedTextColor = if (selectedValue.isBlank()) PawMedicColors.Gray400 else PawMedicColors.Gray900
                 )
             )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clickable { expanded = true }
-            )
+            if (enabled) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { expanded = !expanded }
+                )
+            }
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },

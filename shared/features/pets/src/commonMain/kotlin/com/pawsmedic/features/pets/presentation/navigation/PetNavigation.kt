@@ -299,7 +299,7 @@ fun PetNavHost(
                             petViewModel = petListViewModel,
                             appointmentsViewModel = appointmentsListViewModel,
                             userName = userName,
-                            profilePhotoUrl = profileState.profile?.photo_url,
+                            profilePhotoUrl = profileState.profile?.avatar_url,
                             onNavigateToPetsList = {
                                 petListViewModel.loadPets()
                                 petTabScreen = PetTabScreen.List
@@ -369,7 +369,8 @@ fun PetNavHost(
                                             addPetUseCase = addPetUseCase,
                                             updatePetUseCase = updatePetUseCase,
                                             getPetByIdUseCase = getPetByIdUseCase,
-                                            ownerId = ownerId
+                                            ownerId = ownerId,
+                                            supabase = supabaseClient
                                         )
                                     }
                                     PetFormScreen(
@@ -390,7 +391,8 @@ fun PetNavHost(
                                             updatePetUseCase = updatePetUseCase,
                                             getPetByIdUseCase = getPetByIdUseCase,
                                             initialPetId = screen.petId,
-                                            ownerId = ownerId
+                                            ownerId = ownerId,
+                                            supabase = supabaseClient
                                         )
                                     }
                                     PetFormScreen(

@@ -24,5 +24,5 @@ fun petsModule() = module {
     factory { DeletePetUseCase(get()) }
     factory { (ownerId: String) -> PetListViewModel(get(), ownerId) }
     factory { (petId: String) -> PetDetailViewModel(get(), get(), petId) }
-    factory { (petId: String?, ownerId: String) -> PetFormViewModel(get(), get(), get(), petId, ownerId) }
+    factory { (petId: String?, ownerId: String) -> PetFormViewModel(get(), get(), get(), petId, ownerId, get()) }
 }

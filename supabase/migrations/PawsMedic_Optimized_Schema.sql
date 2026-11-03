@@ -12,7 +12,7 @@ CREATE TABLE public.profiles (
   display_name text NOT NULL DEFAULT ''::text,
   email text NOT NULL DEFAULT ''::text,
   tenant_id uuid,
-  avatar_url text, -- EN: Standardized from photo_url
+  avatar_url text, -- EN: Standardized avatar column
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),

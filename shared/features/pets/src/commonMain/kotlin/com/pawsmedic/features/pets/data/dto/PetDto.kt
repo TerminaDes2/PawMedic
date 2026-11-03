@@ -17,7 +17,9 @@ data class PetDto(
     val photo_url: String? = null,
     val medicalId: String? = null,
     val weight: String? = null,
-    val isInsured: Boolean = false
+    val isInsured: Boolean = false,
+    val breedId: Int? = null,
+    val speciesId: Int? = null
 ) {
     fun toDomain() = Pet(
         id = id,
@@ -32,7 +34,9 @@ data class PetDto(
         photo_url = photo_url,
         medicalId = medicalId,
         weight = weight,
-        isInsured = isInsured
+        isInsured = isInsured,
+        breedId = breedId,
+        speciesId = speciesId
     )
 
     companion object {
@@ -49,7 +53,9 @@ data class PetDto(
             photo_url = pet.photo_url,
             medicalId = pet.medicalId,
             weight = pet.weight,
-            isInsured = pet.isInsured
+            isInsured = pet.isInsured,
+            breedId = pet.breedId,
+            speciesId = pet.speciesId
         )
     }
 }

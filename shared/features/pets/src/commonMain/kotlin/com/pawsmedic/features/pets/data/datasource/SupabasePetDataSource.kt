@@ -57,8 +57,8 @@ class SupabasePetDataSource(
     private fun PetDto.toWriteRecord() = PetWriteRecord(
         ownerId = ownerId,
         name = name,
-        species = species,
-        breed = breed,
+        breedId = breedId,
+        speciesId = speciesId,
         dateOfBirth = dateOfBirth,
         gender = gender,
         photo_url = photo_url,
@@ -71,13 +71,15 @@ class SupabasePetDataSource(
         id = id,
         ownerId = ownerId,
         name = name,
-        species = species,
+        species = species.orEmpty(),
         breed = breed,
         dateOfBirth = dateOfBirth,
         gender = gender,
         photo_url = photo_url,
         allergies = allergies,
-        weight = weightGrams?.let { grams -> "${grams / 1000.0} kg" }
+        weight = weightGrams?.let { grams -> "${grams / 1000.0} kg" },
+        breedId = breedId,
+        speciesId = speciesId
     )
 }
 
@@ -86,7 +88,9 @@ private data class PetRecord(
     val id: String,
     @SerialName("owner_id") val ownerId: String,
     val name: String,
-    val species: String,
+    @SerialName("breed_id") val breedId: Int? = null,
+    @SerialName("species_id") val speciesId: Int? = null,
+    val species: String? = null,
     val breed: String? = null,
     @SerialName("date_of_birth") val dateOfBirth: String? = null,
     @SerialName("sex") val gender: String? = null,
@@ -104,8 +108,8 @@ private data class PetRecord(
 private data class PetWriteRecord(
     @SerialName("owner_id") val ownerId: String,
     val name: String,
-    val species: String,
-    val breed: String? = null,
+    @SerialName("breed_id") val breedId: Int? = null,
+    @SerialName("species_id") val speciesId: Int? = null,
     @SerialName("date_of_birth") val dateOfBirth: String? = null,
     @SerialName("sex") val gender: String? = null,
     @SerialName("photo_url") val photo_url: String? = null,

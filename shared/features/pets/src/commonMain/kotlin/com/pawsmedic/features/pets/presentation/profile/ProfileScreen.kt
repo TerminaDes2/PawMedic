@@ -143,7 +143,7 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     PetAvatarImage(
-                        photo_url = profile?.photo_url,
+                        photo_url = profile?.avatar_url,
                         species = null,
                         size = 90.dp
                     )

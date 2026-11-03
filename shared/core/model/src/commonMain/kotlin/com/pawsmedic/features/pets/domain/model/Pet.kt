@@ -19,6 +19,7 @@ data class Pet(
     val weight: String? = null,
     @SerialName("is_insured") val isInsured: Boolean = false,
     @SerialName("breed_id") val breedId: Int? = null,
+    @SerialName("species_id") val speciesId: Int? = null,
     @SerialName("weight_grams") val weightGrams: Int? = null,
     val notes: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
