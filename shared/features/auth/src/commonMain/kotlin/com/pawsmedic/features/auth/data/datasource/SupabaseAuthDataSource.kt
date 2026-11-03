@@ -22,7 +22,7 @@ interface SupabaseAuthDataSource {
     suspend fun signUp(params: RegisterParams): SignUpResultDto = signUp(
         email = params.email,
         password = params.password,
-        role = PawMedicRole.USER,
+        role = params.role,
         fullName = "${params.firstName} ${params.lastName}",
         phone = params.phone
     )

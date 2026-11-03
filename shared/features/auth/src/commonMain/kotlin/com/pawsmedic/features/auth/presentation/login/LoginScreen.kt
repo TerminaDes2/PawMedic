@@ -73,7 +73,7 @@ fun LoginScreen(
         Column(modifier = Modifier.fillMaxWidth()) {
             PawMedicTopBar(
                 title = "Iniciar sesión",
-                subtitle = "Bienvenido de nuevo a PawMedic",
+                subtitle = "Bienvenido de nuevo a PawsMedic",
                 onBackClick = onBackClick
             )
 

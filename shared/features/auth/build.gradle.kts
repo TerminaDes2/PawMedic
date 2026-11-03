@@ -24,6 +24,9 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
         }
+        androidMain.dependencies {
+            implementation("androidx.compose.animation:animation-graphics:1.7.3")
+        }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.core)

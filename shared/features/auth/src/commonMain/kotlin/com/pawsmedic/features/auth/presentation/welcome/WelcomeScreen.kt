@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -19,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pawsmedic.shared.core.designsystem.components.PawMedicLogoIcon
+import com.pawsmedic.features.auth.presentation.components.AuthLogo
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
@@ -34,6 +35,7 @@ fun WelcomeScreen(
         modifier = modifier
             .fillMaxSize()
             .background(PawMedicColors.BackgroundScreen)
+            .systemBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -45,17 +47,15 @@ fun WelcomeScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            PawMedicLogoIcon(
-                size = 140.dp,
-                containerColor = PawMedicColors.Teal600,
-                pawColor = PawMedicColors.White
+            AuthLogo(
+                modifier = Modifier.size(140.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             // Brand Header
             Text(
-                text = "PawMedic",
+                text = "PawsMedic",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicColors.Teal600
