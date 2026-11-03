@@ -139,14 +139,6 @@ fun PawMedicLogoIcon(
         }
     }
 }
-                    listOf(toe1Path, toe2Path, toe3Path, toe4Path, mainPadPath).forEach { path ->
-                        drawPath(path, brush = tealGradient, alpha = pawProgress, style = Stroke(width = 5.61f))
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun PawMedicPrimaryButton(
