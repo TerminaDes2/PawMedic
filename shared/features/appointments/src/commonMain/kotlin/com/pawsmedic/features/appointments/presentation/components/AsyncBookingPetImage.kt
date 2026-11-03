@@ -6,7 +6,7 @@ import androidx.compose.ui.unit.Dp
 
 @Composable
 expect fun AsyncBookingPetImage(
-    photoUrl: String,
+    photo_url: String,
     fallbackEmoji: String,
     size: Dp,
     modifier: Modifier = Modifier

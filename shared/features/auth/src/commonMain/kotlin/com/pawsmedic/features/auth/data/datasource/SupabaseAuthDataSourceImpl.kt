@@ -2,6 +2,7 @@ package com.pawsmedic.features.auth.data.datasource
 
 import com.pawsmedic.features.auth.data.dto.AuthSessionDto
 import com.pawsmedic.features.auth.domain.model.PawMedicRole
+import com.pawsmedic.features.auth.domain.model.RegisterParams
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
@@ -41,13 +42,36 @@ class SupabaseAuthDataSourceImpl(
         role: PawMedicRole,
         fullName: String?,
         phone: String?
+    ): SignUpResultDto = signUpInternal(email, password, role, fullName, null, phone, null)
+
+    override suspend fun signUp(params: RegisterParams): SignUpResultDto =
+        signUpInternal(
+            params.email,
+            params.password,
+            params.role,
+            params.firstName,
+            params.lastName,
+            params.phone,
+            params.username
+        )
+
+    private suspend fun signUpInternal(
+        email: String,
+        password: String,
+        role: PawMedicRole,
+        firstName: String?,
+        lastName: String?,
+        phone: String?,
+        username: String?,
     ): SignUpResultDto {
         supabaseClient.auth.signUpWith(Email) {
             this.email = email
             this.password = password
             data = buildJsonObject {
                 put("role", role.name)
-                fullName?.let { put("full_name", it) }
+                firstName?.let { put("first_name", it) }
+                lastName?.let { put("last_name", it) }
+                username?.let { put("username", it) }
                 phone?.let { put("phone", it) }
             }
         }

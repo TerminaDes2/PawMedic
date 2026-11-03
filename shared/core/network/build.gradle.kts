@@ -12,6 +12,7 @@ kotlin {
             api(libs.ktor.client.core)
             api(libs.supabase.auth)
             api(libs.supabase.postgrest)
+            api(libs.supabase.storage)
         }
         commonTest.dependencies { implementation(kotlin("test")) }
     }

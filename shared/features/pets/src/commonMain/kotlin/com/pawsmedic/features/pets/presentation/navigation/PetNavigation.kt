@@ -77,7 +77,6 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 sealed interface PetTabScreen {
@@ -389,26 +388,17 @@ fun PetNavHost(
                                             clinicName = screen.clinicName,
                                             ownerId = ownerId,
                                             loadPets = { petOwnerId ->
-                                                try {
-                                                    require(petOwnerId == ownerId) {
-                                                        "La cuenta de mascotas no coincide con la sesión activa."
+                                                repository.listPets(petOwnerId).map { pets ->
+                                                    pets.map { pet ->
+                                                        com.pawsmedic.features.appointments.presentation.booking.BookingPet(
+                                                            id = pet.id,
+                                                            name = pet.name,
+                                                            species = pet.species,
+                                                            breed = pet.breed,
+                                                            age = pet.age,
+                                                            photoUrl = pet.photoUrl
+                                                        )
                                                     }
-                                                    Result.success(
-                                                        supabaseClient.postgrest.rpc(
-                                                            function = "get_owned_booking_pets"
-                                                        ).decodeList<BookingPetRecord>().map { pet ->
-                                                            com.pawsmedic.features.appointments.presentation.booking.BookingPet(
-                                                                id = pet.id,
-                                                                name = pet.name,
-                                                                species = pet.species,
-                                                                breed = pet.breed
-                                                            )
-                                                        }
-                                                    )
-                                                } catch (error: CancellationException) {
-                                                    throw error
-                                                } catch (error: Exception) {
-                                                    Result.failure(error)
                                                 }
                                             }
                                         )
@@ -567,14 +557,6 @@ private class SupabaseMedicalRecordDataSource(
         }
     }
 }
-
-@Serializable
-private data class BookingPetRecord(
-    val id: String,
-    val name: String,
-    val species: String,
-    val breed: String? = null
-)
 
 @Serializable
 private data class OwnedPetRecord(

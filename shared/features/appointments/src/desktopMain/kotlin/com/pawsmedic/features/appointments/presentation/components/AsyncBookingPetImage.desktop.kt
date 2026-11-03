@@ -15,7 +15,7 @@ import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
 @Composable
 actual fun AsyncBookingPetImage(
-    photoUrl: String,
+    photo_url: String,
     fallbackEmoji: String,
     size: Dp,
     modifier: Modifier

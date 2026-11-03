@@ -56,244 +56,190 @@ fun RegisterScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess && uiState.userId != null) {
-            onRegisterSuccess(uiState.userId!!)
-        }
+    LaunchedEffect(uiState.isSuccess, uiState.userId) {
+        if (uiState.isSuccess && uiState.userId != null) onRegisterSuccess(uiState.userId!!)
     }
+
+    val stepOneValid = uiState.firstName.trim().length >= 2 && uiState.lastName.trim().length >= 2
+    val stepTwoValid = uiState.username.matches(Regex("^[A-Za-z0-9._-]{3,30}$")) &&
+        uiState.email.matches(Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) &&
+        uiState.phone.length == 10 && uiState.phone.all(Char::isDigit)
+    val securityValid = uiState.password.length >= 6 && uiState.termsAccepted
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(PawMedicColors.BackgroundScreen)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.SpaceBetween
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            PawMedicTopBar(
-                title = "Crear cuenta",
-                subtitle = "Regístrate para comenzar con PawMedic",
-                onBackClick = onBackClick
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (onGoogleSignInClick != null) {
-                GoogleSocialButton(
-                    text = "Registrarse con Google",
-                    onClick = onGoogleSignInClick,
-                    isLoading = uiState.isLoading
+        PawMedicTopBar(
+            title = "Crear cuenta",
+            subtitle = "Regístrate para comenzar con PawMedic",
+            onBackClick = if (uiState.step == 1) onBackClick else viewModel::backToIdentity
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Paso ${uiState.step} de 3",
+            color = PawMedicColors.Teal600,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(3) { index ->
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f),
+                    color = if (index < uiState.step) PawMedicColors.Teal600 else PawMedicColors.Gray300,
+                    thickness = 3.dp
                 )
+            }
+        }
+        Spacer(modifier = Modifier.height(28.dp))
 
+        when (uiState.step) {
+            1 -> {
+                if (onGoogleSignInClick != null) {
+                    GoogleSocialButton(
+                        onClick = onGoogleSignInClick,
+                        isLoading = uiState.isLoading,
+                        text = "Registrarse con Google"
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = PawMedicColors.Gray300)
+                        Text("  o regístrate con correo  ", fontSize = 12.sp, color = PawMedicColors.Gray500)
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = PawMedicColors.Gray300)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                PawMedicTextField(
+                    value = uiState.firstName,
+                    onValueChange = viewModel::onFirstNameChanged,
+                    label = "Nombres",
+                    placeholder = "Ej. Juan Carlos",
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                PawMedicTextField(
+                    value = uiState.lastName,
+                    onValueChange = viewModel::onLastNameChanged,
+                    label = "Apellidos",
+                    placeholder = "Ej. Pérez López",
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                )
+                StepError(uiState.errorMessage)
+                Spacer(modifier = Modifier.height(24.dp))
+                PawMedicPrimaryButton(
+                    text = "Continuar",
+                    onClick = viewModel::continueToAccount,
+                    enabled = stepOneValid
+                )
+            }
+            2 -> {
+                PawMedicTextField(
+                    value = uiState.username,
+                    onValueChange = viewModel::onUsernameChanged,
+                    label = "Nombre de usuario",
+                    placeholder = "juansito",
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                PawMedicTextField(
+                    value = uiState.email,
+                    onValueChange = viewModel::onEmailChanged,
+                    label = "Correo electrónico",
+                    placeholder = "juanperez@correo.com",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    leadingIcon = { Icon(Icons.Default.Email, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                PawMedicTextField(
+                    value = uiState.phone,
+                    onValueChange = viewModel::onPhoneChanged,
+                    label = "Teléfono",
+                    placeholder = "111-222-3333",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
+                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                )
+                StepError(uiState.errorMessage)
+                Spacer(modifier = Modifier.height(24.dp))
+                PawMedicPrimaryButton(
+                    text = "Continuar",
+                    onClick = viewModel::continueToSecurity,
+                    enabled = stepTwoValid
+                )
+            }
+            else -> {
+                PawMedicTextField(
+                    value = uiState.password,
+                    onValueChange = viewModel::onPasswordChanged,
+                    label = "Contraseña",
+                    placeholder = "Mínimo 6 caracteres",
+                    visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = if (uiState.isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (uiState.isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                            tint = PawMedicColors.Gray500,
+                            modifier = Modifier.size(20.dp).clickable { viewModel.togglePasswordVisibility() }
+                        )
+                    }
+                )
                 Spacer(modifier = Modifier.height(16.dp))
-
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().clickable { viewModel.toggleTermsAccepted() }
                 ) {
-                    HorizontalDivider(
-                        modifier = Modifier.weight(1f),
-                        color = PawMedicColors.Gray300
+                    Checkbox(
+                        checked = uiState.termsAccepted,
+                        onCheckedChange = { viewModel.toggleTermsAccepted() },
+                        colors = CheckboxDefaults.colors(checkedColor = PawMedicColors.Teal600, uncheckedColor = PawMedicColors.Gray400)
                     )
                     Text(
-                        text = "  o regístrate con correo  ",
-                        fontSize = 12.sp,
-                        color = PawMedicColors.Gray500
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.weight(1f),
-                        color = PawMedicColors.Gray300
+                        text = "Acepto los Términos y Condiciones y la Política de Privacidad",
+                        fontSize = 13.sp,
+                        color = PawMedicColors.Gray700,
+                        modifier = Modifier.padding(start = 4.dp)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            PawMedicTextField(
-                value = uiState.fullName,
-                onValueChange = viewModel::onFullNameChanged,
-                label = "Nombre completo",
-                placeholder = "Ej. Juan Pérez",
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = PawMedicColors.Teal600,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            PawMedicTextField(
-                value = uiState.email,
-                onValueChange = viewModel::onEmailChanged,
-                label = "Correo electrónico",
-                placeholder = "ejemplo@correo.com",
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next
-                ),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = null,
-                        tint = PawMedicColors.Teal600,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            PawMedicTextField(
-                value = uiState.phone,
-                onValueChange = viewModel::onPhoneChanged,
-                label = "Teléfono",
-                placeholder = "+52 55 1234 5678",
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Phone,
-                    imeAction = ImeAction.Next
-                ),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = null,
-                        tint = PawMedicColors.Teal600,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            PawMedicTextField(
-                value = uiState.password,
-                onValueChange = viewModel::onPasswordChanged,
-                label = "Contraseña",
-                placeholder = "Mínimo 6 caracteres",
-                visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next
-                ),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = PawMedicColors.Teal600,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    Icon(
-                        imageVector = if (uiState.isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (uiState.isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
-                        tint = PawMedicColors.Gray500,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable { viewModel.togglePasswordVisibility() }
-                    )
-                }
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            PawMedicTextField(
-                value = uiState.confirmPassword,
-                onValueChange = viewModel::onConfirmPasswordChanged,
-                label = "Confirmar contraseña",
-                placeholder = "Repite tu contraseña",
-                visualTransformation = if (uiState.isConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
-                ),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = PawMedicColors.Teal600,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    Icon(
-                        imageVector = if (uiState.isConfirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (uiState.isConfirmPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
-                        tint = PawMedicColors.Gray500,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable { viewModel.toggleConfirmPasswordVisibility() }
-                    )
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.toggleTermsAccepted() }
-            ) {
-                Checkbox(
-                    checked = uiState.termsAccepted,
-                    onCheckedChange = { viewModel.toggleTermsAccepted() },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = PawMedicColors.Teal600,
-                        uncheckedColor = PawMedicColors.Gray400
-                    )
-                )
-                Text(
-                    text = "Acepto los Términos y Condiciones y la Política de Privacidad",
-                    fontSize = 13.sp,
-                    color = PawMedicColors.Gray700,
-                    modifier = Modifier.padding(start = 4.dp)
+                StepError(uiState.errorMessage)
+                Spacer(modifier = Modifier.height(24.dp))
+                PawMedicPrimaryButton(
+                    text = "Crear cuenta",
+                    onClick = viewModel::register,
+                    enabled = securityValid,
+                    isLoading = uiState.isLoading
                 )
             }
-
-            if (uiState.errorMessage != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = uiState.errorMessage!!,
-                    fontSize = 13.sp,
-                    color = PawMedicColors.Error,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            PawMedicPrimaryButton(
-                text = "Registrarse",
-                onClick = viewModel::register,
-                isLoading = uiState.isLoading
-            )
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 24.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Text("¿Ya tienes una cuenta? ", fontSize = 14.sp, color = PawMedicColors.Gray600)
             Text(
-                text = "¿Ya tienes una cuenta? ",
-                fontSize = 14.sp,
-                color = PawMedicColors.Gray600
-            )
-            Text(
-                text = "Iniciar sesión",
+                "Iniciar sesión",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicColors.Teal600,
                 modifier = Modifier.clickable { onNavigateToLogin() }
             )
         }
+    }
+}
+
+@Composable
+private fun StepError(message: String?) {
+    if (message != null) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(message, fontSize = 13.sp, color = PawMedicColors.Error)
     }
 }

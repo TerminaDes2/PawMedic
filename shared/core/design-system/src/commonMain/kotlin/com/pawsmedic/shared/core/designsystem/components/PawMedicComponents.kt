@@ -269,6 +269,7 @@ fun PawMedicTextField(
     label: String,
     placeholder: String,
     modifier: Modifier = Modifier,
+    inputModifier: Modifier = Modifier,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     isError: Boolean = false,
@@ -303,7 +304,7 @@ fun PawMedicTextField(
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             singleLine = singleLine,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = inputModifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PawMedicColors.Teal600,

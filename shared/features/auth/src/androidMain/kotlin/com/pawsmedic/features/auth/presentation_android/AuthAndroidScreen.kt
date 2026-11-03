@@ -12,6 +12,8 @@ import com.pawsmedic.features.auth.presentation.login.LoginScreen
 import com.pawsmedic.features.auth.presentation.login.LoginViewModel
 import com.pawsmedic.features.auth.presentation.register.RegisterScreen
 import com.pawsmedic.features.auth.presentation.register.RegisterViewModel
+import com.pawsmedic.features.auth.presentation.register.RegistrationSuccessScreen
+import io.github.jan.supabase.SupabaseClient
 
 @Composable
 fun AuthAndroidScreen(
@@ -19,18 +21,25 @@ fun AuthAndroidScreen(
     loginViewModel: LoginViewModel,
     registerViewModel: RegisterViewModel,
     onAuthSuccess: (userId: String, role: PawMedicRole) -> Unit,
+    supabaseClient: SupabaseClient? = null,
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {}
 ) {
     var isRegistering by rememberSaveable { mutableStateOf(false) }
+    var registeredUserId by rememberSaveable { mutableStateOf<String?>(null) }
 
-    if (isRegistering) {
+    if (registeredUserId != null) {
+        RegistrationSuccessScreen(
+            onContinue = { onAuthSuccess(registeredUserId!!, PawMedicRole.USER) },
+            modifier = modifier
+        )
+    } else if (isRegistering) {
         RegisterScreen(
             viewModel = registerViewModel,
             onBackClick = { isRegistering = false },
             onNavigateToLogin = { isRegistering = false },
             onRegisterSuccess = { userId ->
-                onAuthSuccess(userId, PawMedicRole.USER)
+                registeredUserId = userId
             },
             modifier = modifier
         )

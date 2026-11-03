@@ -124,6 +124,10 @@ class LoginViewModel(
         }
     }
 
+    fun resetAfterSignOut() {
+        _uiState.value = LoginUiState()
+    }
+
     fun onGoogleSignInError(message: String) {
         _uiState.update { it.copy(isLoading = false, errorMessage = message) }
     }

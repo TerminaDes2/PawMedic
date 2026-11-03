@@ -12,6 +12,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared:core:design-system"))
+            implementation(project(":shared:core:common"))
             implementation(project(":shared:features:pets"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
@@ -22,6 +23,9 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
+        }
+        androidMain.dependencies {
+            implementation("androidx.compose.animation:animation-graphics:1.7.3")
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

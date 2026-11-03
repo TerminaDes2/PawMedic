@@ -18,21 +18,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.FolderShared
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -58,9 +56,11 @@ fun PetDashboardScreen(
     petViewModel: PetListViewModel,
     appointmentsViewModel: AppointmentsListViewModel,
     userName: String,
+    profilePhotoUrl: String? = null,
     onNavigateToPetsList: () -> Unit,
     onNavigateToAddPet: () -> Unit,
     onNavigateToPetDetail: (String) -> Unit,
+    onNavigateToProfile: () -> Unit,
     onNavigateToAppointments: () -> Unit,
     onNavigateToMedicalHistory: () -> Unit,
     modifier: Modifier = Modifier
@@ -72,9 +72,11 @@ fun PetDashboardScreen(
         petState = petState,
         appointmentsState = appointmentsState,
         userName = userName,
+        profilePhotoUrl = profilePhotoUrl,
         onNavigateToPetsList = onNavigateToPetsList,
         onNavigateToAddPet = onNavigateToAddPet,
         onNavigateToPetDetail = onNavigateToPetDetail,
+        onNavigateToProfile = onNavigateToProfile,
         onNavigateToAppointments = onNavigateToAppointments,
         onNavigateToMedicalHistory = onNavigateToMedicalHistory,
         modifier = modifier
@@ -86,83 +88,20 @@ fun PetDashboardContent(
     petState: PetListUiState,
     appointmentsState: AppointmentsListUiState,
     userName: String,
+    profilePhotoUrl: String? = null,
     onNavigateToPetsList: () -> Unit = {},
     onNavigateToAddPet: () -> Unit = {},
     onNavigateToPetDetail: (String) -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
     onNavigateToAppointments: () -> Unit = {},
     onNavigateToMedicalHistory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
 
-    val selectedPet = petState.selectedPet ?: petState.pets.firstOrNull()
+    val selectedPet = petState.selectedPet
+        ?.let { selected -> petState.pets.firstOrNull { it.id == selected.id } }
+        ?: petState.pets.firstOrNull()
     val appointments = appointmentsState.appointments
-    val pendingAppointments = appointments.filter { it.status.contains("Pendiente", ignoreCase = true) }
-    val pendingCount = pendingAppointments.size
-
-    var showNotificationsModal by remember { mutableStateOf(false) }
-
-    if (showNotificationsModal) {
-        AlertDialog(
-            onDismissRequest = { showNotificationsModal = false },
-            title = {
-                Text(
-                    text = "Notificaciones de Citas ($pendingCount)",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-            },
-            text = {
-                Column {
-                    if (pendingAppointments.isEmpty()) {
-                        Text(
-                            text = "No tienes citas pendientes por aprobación.",
-                            fontSize = 14.sp,
-                            color = PawMedicColors.Gray600
-                        )
-                    } else {
-                        pendingAppointments.forEach { app ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFFEF3C7))
-                                    .padding(12.dp)
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "⏳ ${app.serviceName}",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF92400E)
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = "${app.businessName} • ${app.petName}",
-                                        fontSize = 12.sp,
-                                        color = PawMedicColors.Gray700
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = "Fecha: ${app.date} • ${app.time}",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PawMedicColors.Teal600
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showNotificationsModal = false }) {
-                    Text("Cerrar", fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
-                }
-            }
-        )
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -183,18 +122,27 @@ fun PetDashboardContent(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(PawMedicColors.Teal100),
+                        .background(PawMedicColors.Teal100)
+                        .clickable(onClick = onNavigateToProfile),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = PawMedicColors.Teal600,
-                        modifier = Modifier.size(26.dp)
-                    )
+                    if (profilePhotoUrl.isNullOrBlank()) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = PawMedicColors.Teal600,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    } else {
+                        PetAvatarImage(
+                            photo_url = profilePhotoUrl,
+                            species = null,
+                            size = 48.dp
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
+                Column(modifier = Modifier.clickable(onClick = onNavigateToProfile)) {
                     Text(
                         text = "Hola, $userName 👋",
                         fontSize = 20.sp,
@@ -209,40 +157,6 @@ fun PetDashboardContent(
                 }
             }
 
-            // NOTIFICATION BELL WITH PENDING BADGE
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(PawMedicColors.White)
-                    .border(1.dp, PawMedicColors.Gray200, CircleShape)
-                    .clickable { showNotificationsModal = true },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notificaciones",
-                    tint = PawMedicColors.Gray700,
-                    modifier = Modifier.size(22.dp)
-                )
-                if (pendingCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(18.dp)
-                            .clip(CircleShape)
-                            .background(PawMedicColors.Error),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = pendingCount.toString(),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.White
-                        )
-                    }
-                }
-            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -263,11 +177,13 @@ fun PetDashboardContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        PetAvatarImage(
-                            photoUrl = selectedPet.photoUrl,
-                            species = selectedPet.species,
-                            size = 64.dp
-                        )
+                        key(selectedPet.id, selectedPet.photo_url) {
+                            PetAvatarImage(
+                                photo_url = selectedPet.photo_url,
+                                species = selectedPet.species,
+                                size = 64.dp
+                            )
+                        }
                         Spacer(modifier = Modifier.width(14.dp))
                         Column {
                             Text(
@@ -283,19 +199,6 @@ fun PetDashboardContent(
                                 color = PawMedicColors.Gray600
                             )
                         }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PawMedicColors.Teal600)
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Activa",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.White
-                        )
                     }
                 }
             }

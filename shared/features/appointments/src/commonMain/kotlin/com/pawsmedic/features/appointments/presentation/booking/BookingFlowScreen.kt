@@ -314,7 +314,7 @@ private fun SelectPetStep(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BookingPetAvatar(
-                            photoUrl = pet.photoUrl,
+                            photo_url = pet.photo_url,
                             species = pet.species,
                             size = 56.dp
                         )
@@ -384,7 +384,7 @@ private fun SelectPetStep(
 
 @Composable
 private fun BookingPetAvatar(
-    photoUrl: String?,
+    photo_url: String?,
     species: String?,
     size: Dp = 56.dp
 ) {
@@ -396,9 +396,9 @@ private fun BookingPetAvatar(
         else -> "🐾"
     }
 
-    if (!photoUrl.isNullOrBlank()) {
+    if (!photo_url.isNullOrBlank()) {
         AsyncBookingPetImage(
-            photoUrl = photoUrl,
+            photo_url = photo_url,
             fallbackEmoji = emoji,
             size = size
         )
