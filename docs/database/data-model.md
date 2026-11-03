@@ -49,12 +49,27 @@ metadata; the file itself is isolated by storage-object path policies.
   local date and excludes overlapping blocks and requested/confirmed
   appointments. The booking RPC revalidates the selected slot inside a
   transaction, checks pet ownership and service duration, and stores new
-  bookings as `REQUESTED` (pending clinic confirmation).
+  bookings as `REQUESTED` (pending clinic confirmation). `owner_id` identifies
+  the pet owner, while `booked_by` records the authenticated account that
+  created the booking.
 * `get_owned_booking_pets`, `get_owned_appointments`, and
   `get_tenant_appointments` return only the authenticated user's pets and
   appointments or the authenticated clinic's appointments. Display dates and
   times are formatted in the clinic's `time_zone`; stored appointment
   timestamps remain `timestamptz`.
+* `book_appointment` and `get_working_shifts` retain their existing argument
+  signatures for older clients. The former delegates to the same validated
+  booking flow; the latter returns active intervals using the current schedule
+  columns. `transition_appointment_status` checks clinic membership and only
+  permits supported state transitions.
+
+The compatibility repair script is
+`supabase/migrations/20261103000000_booking_api_compatibility.sql`. It uses
+`CREATE OR REPLACE FUNCTION` for the appointment APIs and adds `owner_id` or
+`time_zone` only if absent. It does not drop tables, columns, or appointment
+rows. Apply this script to an existing database only after reviewing it in the
+Supabase SQL Editor; do not run the older `20261102000000` file as a separate
+step for this compatibility repair.
 * `audit_logs`: actor, optional tenant, action, entity, metadata, and time.
 
 ## Invariants and access

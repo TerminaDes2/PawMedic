@@ -149,5 +149,6 @@ private fun String.toDisplayStatus(): String = when (uppercase()) {
     "CANCELLED" -> "Cancelada"
     "COMPLETED" -> "Completada"
     "NO_SHOW" -> "No asistió"
+    "REJECTED" -> "Rechazada"
     else -> this
 }
