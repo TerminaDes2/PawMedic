@@ -137,7 +137,7 @@ fun VeterinaryListScreen(
         }
         uiState.errorMessage?.let { message ->
             Text(
-                text = "No se pudo cargar el directorio: $message",
+                text = "No se pudo cargar el directorio. Verifica tu conexión e inténtalo de nuevo.",
                 fontSize = 14.sp,
                 color = PawMedicColors.Error
             )

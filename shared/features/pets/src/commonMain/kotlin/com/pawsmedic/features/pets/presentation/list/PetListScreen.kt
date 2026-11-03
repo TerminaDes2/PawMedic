@@ -142,7 +142,7 @@ fun PetListScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "Add Pet",
+                                    text = "Agregar",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PawMedicColors.Teal600,
@@ -230,7 +230,7 @@ fun PetListScreen(
                             Spacer(modifier = Modifier.height(20.dp))
 
                             PawMedicSecondaryButton(
-                                text = "View Full Profile",
+                                text = "Ver perfil completo",
                                 onClick = { onNavigateToPetDetail(selectedPet.id) }
                             )
                         }

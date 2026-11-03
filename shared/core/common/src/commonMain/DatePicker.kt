@@ -17,7 +17,7 @@ fun DatePickerModalInput(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancelar")
             }
         }
     ) {

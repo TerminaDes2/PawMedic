@@ -1,6 +1,7 @@
 package com.pawsmedic.features.appointments.presentation.booking
 
 import com.pawsmedic.features.appointments.domain.model.Appointment
+import com.pawsmedic.features.appointments.presentation.friendlyErrorMessage
 import com.pawsmedic.features.appointments.domain.model.AvailableAppointmentSlot
 import com.pawsmedic.features.appointments.domain.model.VeterinaryService
 import com.pawsmedic.features.appointments.domain.repository.AppointmentRepository
@@ -89,7 +90,7 @@ class BookingViewModel(
                 }
                 .onFailure { error ->
                     _uiState.update {
-                        it.copy(isLoadingServices = false, errorMessage = error.message)
+                        it.copy(isLoadingServices = false, errorMessage = friendlyErrorMessage(error))
                     }
                 }
 
@@ -99,7 +100,7 @@ class BookingViewModel(
                 }
                 .onFailure { error ->
                     _uiState.update {
-                        it.copy(isLoadingPets = false, errorMessage = error.message)
+                        it.copy(isLoadingPets = false, errorMessage = friendlyErrorMessage(error))
                     }
                 }
         }
@@ -185,7 +186,7 @@ class BookingViewModel(
                         it.copy(
                             availableTimeSlots = emptyList(),
                             isLoadingSlots = false,
-                            errorMessage = error.message
+                            errorMessage = friendlyErrorMessage(error)
                         )
                     } else {
                         it
@@ -287,7 +288,7 @@ class BookingViewModel(
                     onSuccess()
                 }
                 .onFailure { err ->
-                    _uiState.update { curr -> curr.copy(isLoading = false, errorMessage = err.message ?: "Error al solicitar cita") }
+                    _uiState.update { curr -> curr.copy(isLoading = false, errorMessage = friendlyErrorMessage(err)) }
                 }
         }
 
