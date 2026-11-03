@@ -267,7 +267,7 @@ class BookingViewModel(
             date = s.selectedDate,
             time = s.selectedTimeSlot,
             notes = null,
-            status = "Pendiente de aprobación",
+            status = "Pendiente de confirmación",
             startsAt = s.selectedSlot?.startsAt,
             endsAt = s.selectedSlot?.endsAt,
             idempotencyKey = s.idempotencyKey ?: randomUuid()

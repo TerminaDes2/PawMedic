@@ -44,9 +44,17 @@ metadata; the file itself is isolated by storage-object path policies.
 * `availability_blocks`: tenant closures or blocked intervals and creator.
 * `appointments`: tenant, pet, service, booker, interval, enum status, and
   unique idempotency key. Customers obtain open slots through
-  `get_available_slots` and create bookings through `create_critical_booking`;
-  the RPC validates ownership, clinic/service status, schedule, blocks,
-  duration, and conflicts.
+  `get_available_slots` and create bookings through `create_critical_booking`.
+  The slot RPC uses every active `business_schedules` interval for the clinic's
+  local date and excludes overlapping blocks and requested/confirmed
+  appointments. The booking RPC revalidates the selected slot inside a
+  transaction, checks pet ownership and service duration, and stores new
+  bookings as `REQUESTED` (pending clinic confirmation).
+* `get_owned_booking_pets`, `get_owned_appointments`, and
+  `get_tenant_appointments` return only the authenticated user's pets and
+  appointments or the authenticated clinic's appointments. Display dates and
+  times are formatted in the clinic's `time_zone`; stored appointment
+  timestamps remain `timestamptz`.
 * `audit_logs`: actor, optional tenant, action, entity, metadata, and time.
 
 ## Invariants and access
