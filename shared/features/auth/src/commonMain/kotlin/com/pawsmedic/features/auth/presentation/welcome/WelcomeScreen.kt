@@ -48,7 +48,7 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             AuthLogo(
-                modifier = Modifier.size(140.dp)
+                modifier = Modifier.size(280.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
