@@ -1,0 +1,13 @@
+package com.pawsmedic.features.pets.presentation.components
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+
+@Composable
+expect fun AsyncPetImage(
+    photo_url: String,
+    fallbackEmoji: String,
+    size: Dp,
+    modifier: Modifier = Modifier
+)

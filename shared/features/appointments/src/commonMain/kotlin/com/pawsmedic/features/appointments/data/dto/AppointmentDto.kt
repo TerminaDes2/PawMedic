@@ -15,7 +15,10 @@ data class AppointmentDto(
     val date: String,
     val time: String,
     val notes: String? = null,
-    val status: String = "Pendiente de aprobación"
+    val status: String = "Pendiente de aprobación",
+    val startsAt: String? = null,
+    val endsAt: String? = null,
+    val idempotencyKey: String? = null
 ) {
     fun toDomain() = Appointment(
         id = id,
@@ -28,7 +31,10 @@ data class AppointmentDto(
         date = date,
         time = time,
         notes = notes,
-        status = status
+        status = status,
+        startsAt = startsAt,
+        endsAt = endsAt,
+        idempotencyKey = idempotencyKey
     )
 
     companion object {
@@ -43,7 +49,10 @@ data class AppointmentDto(
             date = app.date,
             time = app.time,
             notes = app.notes,
-            status = app.status
+            status = app.status,
+            startsAt = app.startsAt,
+            endsAt = app.endsAt,
+            idempotencyKey = app.idempotencyKey
         )
     }
 }

@@ -12,28 +12,30 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared:core:design-system"))
+            implementation(project(":shared:core:common"))
             implementation(project(":shared:core:model"))
-            implementation(project(":shared:features:appointments"))
             implementation(project(":shared:features:businesses"))
+            implementation(project(":shared:features:appointments"))
             implementation(project(":shared:features:medical-records"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.supabase.postgrest)
             implementation(libs.koin.core)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
+            implementation(compose.animation)
+            implementation(compose.components.uiToolingPreview)
+        }
+        androidMain.dependencies {
+            implementation(libs.coil.compose)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.coroutines.test)
         }
-        commonMain.dependencies {
-            implementation(project(":shared:core:model"))
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.supabase.postgrest)
-        }
-        commonTest.dependencies { implementation(kotlin("test")) }
     }
 }
 
@@ -41,5 +43,9 @@ android {
     namespace = "com.pawsmedic.shared.features.pets"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig { minSdk = libs.versions.android.minSdk.get().toInt() }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
     buildFeatures { compose = true }
 }

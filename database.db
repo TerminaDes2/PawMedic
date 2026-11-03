@@ -1,0 +1,168 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  role USER-DEFINED NOT NULL DEFAULT 'USER'::profile_role,
+  nombre text NOT NULL,
+  apellidos text NOT NULL,
+  num_tel text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  display_name text NOT NULL DEFAULT ''::text,
+  email text NOT NULL DEFAULT ''::text,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.tenants (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid NOT NULL,
+  nombre character varying NOT NULL,
+  domicilio character varying NOT NULL,
+  municipio character varying NOT NULL,
+  numero_tel character varying NOT NULL,
+  estado_operativo character varying NOT NULL DEFAULT 'ACTIVO'::character varying,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT tenants_pkey PRIMARY KEY (id),
+  CONSTRAINT tenants_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.business_applications (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  applicant_id uuid NOT NULL,
+  nombre_negocio text NOT NULL,
+  domicilio text NOT NULL,
+  municipio text NOT NULL,
+  estado USER-DEFINED NOT NULL DEFAULT 'PENDIENTE'::application_status,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT business_applications_pkey PRIMARY KEY (id),
+  CONSTRAINT business_applications_applicant_id_fkey FOREIGN KEY (applicant_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.species (
+  id integer NOT NULL DEFAULT nextval('species_id_seq'::regclass),
+  nombre character varying NOT NULL,
+  CONSTRAINT species_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.breeds (
+  id integer NOT NULL DEFAULT nextval('breeds_id_seq'::regclass),
+  nombre character varying NOT NULL,
+  species_id integer NOT NULL,
+  CONSTRAINT breeds_pkey PRIMARY KEY (id),
+  CONSTRAINT breeds_species_id_fkey FOREIGN KEY (species_id) REFERENCES public.species(id)
+);
+CREATE TABLE public.product_types (
+  id integer NOT NULL DEFAULT nextval('product_types_id_seq'::regclass),
+  nombre character varying NOT NULL,
+  CONSTRAINT product_types_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.products (
+  id integer NOT NULL DEFAULT nextval('products_id_seq'::regclass),
+  nombre character varying NOT NULL,
+  type_id integer,
+  descripcion character varying NOT NULL,
+  cantidad integer NOT NULL DEFAULT 0,
+  estado character varying NOT NULL,
+  CONSTRAINT products_pkey PRIMARY KEY (id),
+  CONSTRAINT products_type_id_fkey FOREIGN KEY (type_id) REFERENCES public.product_types(id)
+);
+CREATE TABLE public.pets (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid NOT NULL,
+  nombre character varying NOT NULL,
+  breed_id integer,
+  edad integer NOT NULL,
+  alergias text DEFAULT 'Ninguna'::text,
+  sexo character varying NOT NULL,
+  peso numeric,
+  foto_url text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  especie ARRAY,
+  is_insured boolean,
+  medical_id text,
+  raza ARRAY,
+  CONSTRAINT pets_pkey PRIMARY KEY (id),
+  CONSTRAINT pets_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id),
+  CONSTRAINT pets_breed_id_fkey FOREIGN KEY (breed_id) REFERENCES public.breeds(id)
+);
+CREATE TABLE public.services (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  tenant_id uuid NOT NULL,
+  nombre character varying NOT NULL,
+  descripcion text NOT NULL,
+  precio_centavos integer NOT NULL DEFAULT 0,
+  duracion_minutos integer NOT NULL DEFAULT 30,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT services_pkey PRIMARY KEY (id),
+  CONSTRAINT services_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id)
+);
+CREATE TABLE public.service_species (
+  service_id uuid NOT NULL,
+  species_id integer NOT NULL,
+  CONSTRAINT service_species_pkey PRIMARY KEY (service_id, species_id),
+  CONSTRAINT service_species_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(id),
+  CONSTRAINT service_species_species_id_fkey FOREIGN KEY (species_id) REFERENCES public.species(id)
+);
+CREATE TABLE public.business_schedules (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  tenant_id uuid NOT NULL,
+  dia_semana integer NOT NULL CHECK (dia_semana >= 1 AND dia_semana <= 7),
+  hora_apertura time without time zone NOT NULL,
+  hora_cierre time without time zone NOT NULL,
+  CONSTRAINT business_schedules_pkey PRIMARY KEY (id),
+  CONSTRAINT business_schedules_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id)
+);
+CREATE TABLE public.inventory (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  tenant_id uuid NOT NULL,
+  product_id integer NOT NULL,
+  stock_min integer NOT NULL DEFAULT 0,
+  fecha_actualizacion date NOT NULL DEFAULT CURRENT_DATE,
+  CONSTRAINT inventory_pkey PRIMARY KEY (id),
+  CONSTRAINT inventory_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id),
+  CONSTRAINT inventory_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
+CREATE TABLE public.appointments (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  pet_id uuid NOT NULL,
+  owner_id uuid NOT NULL,
+  tenant_id uuid NOT NULL,
+  service_id uuid NOT NULL,
+  fecha date NOT NULL,
+  hora time without time zone NOT NULL,
+  estado character varying NOT NULL DEFAULT 'PROGRAMADA'::character varying,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT appointments_pkey PRIMARY KEY (id),
+  CONSTRAINT appointments_pet_id_fkey FOREIGN KEY (pet_id) REFERENCES public.pets(id),
+  CONSTRAINT appointments_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id),
+  CONSTRAINT appointments_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id),
+  CONSTRAINT appointments_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(id)
+);
+CREATE TABLE public.availability_blocks (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  tenant_id uuid NOT NULL,
+  motivo text NOT NULL DEFAULT ''::text,
+  fecha_inicio timestamp with time zone NOT NULL,
+  fecha_fin timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT availability_blocks_pkey PRIMARY KEY (id),
+  CONSTRAINT availability_blocks_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id)
+);
+CREATE TABLE public.medical_records (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  pet_id uuid NOT NULL,
+  peso numeric NOT NULL,
+  fecha date NOT NULL,
+  hora time without time zone NOT NULL,
+  motivo_consulta character varying NOT NULL,
+  sintomas character varying NOT NULL,
+  diagnostico character varying NOT NULL,
+  tratamiento character varying NOT NULL,
+  medicamento character varying NOT NULL,
+  dosis character varying NOT NULL,
+  observaciones character varying NOT NULL,
+  proxima_revision date,
+  vet_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT medical_records_pkey PRIMARY KEY (id),
+  CONSTRAINT medical_records_pet_id_fkey FOREIGN KEY (pet_id) REFERENCES public.pets(id),
+  CONSTRAINT medical_records_vet_id_fkey FOREIGN KEY (vet_id) REFERENCES public.profiles(id)
+);

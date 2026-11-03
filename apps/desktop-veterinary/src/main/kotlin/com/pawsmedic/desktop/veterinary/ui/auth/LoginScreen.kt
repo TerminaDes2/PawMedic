@@ -22,19 +22,44 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.veterinary.SessionManager
+import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.shared.core.model.ProfileRole
+import com.pawsmedic.shared.core.model.UserProfile
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email as SupabaseEmail
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.coroutines.launch
+
+@Serializable
+private data class BusinessLoginStatus(
+    @SerialName("status") val status: String = "",
+    @SerialName("decision_reason") val decisionReason: String? = null
+)
+
+@Serializable
+private data class TenantLoginStatus(
+    @SerialName("status") val status: String = ""
+)
 
 @Composable
 fun LoginScreen(
-    onNavigateToVetMain: () -> Unit,
-    onNavigateToAdminMain: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToVetMain: (String) -> Unit = {},
+    onNavigateToAdminLogin: () -> Unit = {},
+    onNavigateToRegister: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(true) }
 
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
     val cardDarkIllustration = Color(0xFF1C2A3A)
     val borderDark = Color(0xFF2A3C4E)
 
@@ -296,6 +321,23 @@ fun LoginScreen(
                             )
                         }
 
+                        if (errorMessage != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFFEE2E2))
+                                    .padding(10.dp)
+                            ) {
+                                Text(
+                                    text = errorMessage ?: "",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF991B1B),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
                         Column(
                             verticalArrangement = Arrangement.spacedBy(14.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -364,31 +406,107 @@ fun LoginScreen(
                                 Text("Recordarme", fontSize = 12.sp, color = TextSecondary)
                             }
 
-                            TextButton(onClick = {}) {
-                                Text("Olvidé mi contraseña", fontSize = 12.sp, color = ClinicalEmerald, fontWeight = FontWeight.SemiBold)
-                            }
                         }
 
                         // Botón Principal Esmeralda
                         Button(
-                            onClick = onNavigateToVetMain,
+                            onClick = {
+                                coroutineScope.launch {
+                                    isLoading = true
+                                    errorMessage = null
+                                    try {
+                                        val cleanEmail = email.trim()
+                                        val cleanPassword = password
+
+                                        if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
+                                            throw IllegalArgumentException("Por favor ingrese correo electrónico y contraseña")
+                                        }
+                                        if (!Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$").matches(cleanEmail)) {
+                                            throw IllegalArgumentException("Ingresa un correo electrónico válido.")
+                                        }
+
+                                        supabase.auth.signInWith(SupabaseEmail) {
+                                            this.email = cleanEmail
+                                            this.password = cleanPassword
+                                        }
+                                        val session = supabase.auth.currentSessionOrNull()
+                                            ?: error("Supabase no devolvió una sesión autenticada.")
+                                        val userId = session.user?.id
+                                            ?: error("La sesión no contiene un identificador de usuario.")
+                                        val profile = supabase.postgrest["profiles"]
+                                            .select {
+                                                filter { eq("id", userId) }
+                                            }
+                                            .decodeSingle<UserProfile>()
+
+                                        when (profile.role) {
+                                            ProfileRole.SUPERADMIN -> onNavigateToAdminLogin()
+                                            ProfileRole.VETERINARY_BUSINESS -> {
+                                                if (profile.tenantId == null) {
+                                                    onNavigateToAdminLogin()
+                                                } else {
+                                                    val tenantId = profile.tenantId
+                                                        ?: error("La cuenta veterinaria todavía no tiene una clínica aprobada.")
+                                                    val tenant = supabase.postgrest["tenants"]
+                                                        .select {
+                                                            filter { eq("id", tenantId) }
+                                                        }
+                                                        .decodeSingle<TenantLoginStatus>()
+                                                    if (tenant.status != "ACTIVE") {
+                                                        error("La clínica no está activa. Contacta al administrador.")
+                                                    }
+                                                    onNavigateToVetMain(cleanEmail)
+                                                }
+                                            }
+                                            ProfileRole.USER -> {
+                                                error("Esta aplicación de escritorio es exclusiva para negocios veterinarios. Las cuentas de usuario de clientes deben ingresar desde la app móvil.")
+                                            }
+                                        }
+
+                                        SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
+                                        } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        println("=== PAWSMEDIC LOGIN ERROR ===")
+                                        println(e.stackTraceToString())
+                                        val rawMsg = e.message.orEmpty()
+                                        errorMessage = when {
+                                            rawMsg.contains("missing email or phone", ignoreCase = true) ||
+                                            rawMsg.contains("invalid_credentials", ignoreCase = true) ||
+                                            rawMsg.contains("invalid login", ignoreCase = true) ->
+                                                "Correo o contraseña incorrectos, o la cuenta no ha sido verificada."
+                                            else -> rawMsg.ifBlank { "Error de acceso. Verifique sus credenciales." }
+                                        }
+                                        } finally {
+                                        isLoading = false
+                                        }
+                                }
+                            },
+                            enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(46.dp),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                Text(
-                                    text = "Ingresar al Sistema",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
                                 )
+                            } else {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    Text(
+                                        text = "Ingresar al Sistema",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
 
@@ -418,19 +536,24 @@ fun LoginScreen(
             }
         }
 
-        // Botón Secreto Admin en la esquina inferior derecha
-        TextButton(
-            onClick = onNavigateToAdminMain,
+        // Botón sutil en la esquina inferior derecha para Superadmin
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.BottomEnd
         ) {
-            Text(
-                text = "v1.0",
-                color = Color.Black.copy(alpha = 0.12f),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
+            IconButton(
+                onClick = onNavigateToAdminLogin,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AdminPanelSettings,
+                    contentDescription = "Acceso Superadmin",
+                    tint = TextMuted.copy(alpha = 0.35f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
@@ -440,7 +563,7 @@ fun LoginScreen(
 fun LoginScreenPreview() {
     LoginScreen(
         onNavigateToVetMain = {},
-        onNavigateToAdminMain = {},
+        onNavigateToAdminLogin = {},
         onNavigateToRegister = {}
     )
 }
@@ -448,7 +571,7 @@ fun LoginScreenPreview() {
 fun main() = singleWindowApplication(title = "Preview - Login Screen") {
     LoginScreen(
         onNavigateToVetMain = {},
-        onNavigateToAdminMain = {},
+        onNavigateToAdminLogin = {},
         onNavigateToRegister = {}
     )
 }

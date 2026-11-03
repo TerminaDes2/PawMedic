@@ -10,10 +10,13 @@ The schema is applied by timestamp-ordered migrations in
 * `profiles` extends an auth user with email, display name, exact role, and
   optional `tenant_id`.
 * `tenants` represents an approved veterinary business and has `PENDING`,
-  `ACTIVE`, `SUSPENDED`, or `REJECTED` status.
-* `businesses` stores an application and approval state. `tenant_id` is null
-  until approval; `approved_by` and `approved_at` identify the superadmin
-  action.
+  `ACTIVE`, `SUSPENDED`, or `REJECTED` status and an IANA `time_zone`.
+* `businesses` stores applicant and clinic details plus approval state.
+  `tenant_id` is null until approval; `approved_by` and `approved_at` identify
+  the superadmin action. The authenticated owner can see their application;
+  only the superadmin can read all application details. Customer directory
+  reads use the restricted `business_directory` view, which omits tax IDs and
+  license data.
 
 ## Pet and clinical relationships
 
@@ -40,8 +43,10 @@ metadata; the file itself is isolated by storage-object path policies.
 * `business_schedules`: one opening interval per tenant weekday.
 * `availability_blocks`: tenant closures or blocked intervals and creator.
 * `appointments`: tenant, pet, service, booker, interval, enum status, and
-  unique idempotency key. Overlap checks are performed in the critical
-  booking RPC.
+  unique idempotency key. Customers obtain open slots through
+  `get_available_slots` and create bookings through `create_critical_booking`;
+  the RPC validates ownership, clinic/service status, schedule, blocks,
+  duration, and conflicts.
 * `audit_logs`: actor, optional tenant, action, entity, metadata, and time.
 
 ## Invariants and access
@@ -57,3 +62,8 @@ The expected path is **UI -> ViewModel -> Use Case -> Repository -> Supabase
 API/Edge Function -> Auth/JWT -> PostgreSQL/RLS -> authorized response**.
 The data model must not be treated as a substitute for policies: every new
 relationship needs a corresponding policy and test.
+
+Veterinary applications are submitted through `submit_business_application`
+after email confirmation. Superadmin approval, rejection, and business status
+changes use role-checked RPCs; approval creates the tenant and assigns its ID
+and `VETERINARY_BUSINESS` role to the applicant in the same transaction.

@@ -1,0 +1,83 @@
+package com.pawsmedic.shared.core.common
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import io.github.jan.supabase.SupabaseClient
+import kotlinx.coroutines.launch
+
+@Composable
+actual fun rememberPhotoPicker(
+    supabaseClient: SupabaseClient,
+    bucketName: String,
+    folderName: String,
+    onPhotoPicked: (String) -> Unit,
+    onUploadError: (String) -> Unit
+): () -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            scope.launch {
+                uploadImageToSupabase(
+                    context = context,
+                    supabaseClient = supabaseClient,
+                    imageUri = selectedUri,
+                    bucketName = bucketName,
+                    folderName = folderName
+                ).onSuccess(onPhotoPicked)
+                    .onFailure { error ->
+                        onUploadError(error.message ?: "No se pudo subir la imagen")
+                    }
+            }
+
+        }
+    }
+    return {
+        launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+}
+
+@Composable
+actual fun rememberDeferredPhotoPicker(
+    supabaseClient: SupabaseClient,
+    bucketName: String,
+    folderName: String,
+    onPhotoPicked: (String) -> Unit
+): DeferredPhotoPicker {
+    val context = LocalContext.current
+    val selectedUri = remember { mutableStateOf<android.net.Uri?>(null) }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        selectedUri.value = uri
+        uri?.let { onPhotoPicked(it.toString()) }
+    }
+
+    return DeferredPhotoPicker(
+        pick = {
+            launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        },
+        upload = {
+            val uri = selectedUri.value
+            if (uri == null) {
+                Result.failure<String>(IllegalStateException("Selecciona una imagen antes de continuar"))
+            } else {
+                uploadImageToSupabase(
+                    context = context,
+                    supabaseClient = supabaseClient,
+                    imageUri = uri,
+                    bucketName = bucketName,
+                    folderName = folderName
+                )
+            }
+        }
+    )
+}

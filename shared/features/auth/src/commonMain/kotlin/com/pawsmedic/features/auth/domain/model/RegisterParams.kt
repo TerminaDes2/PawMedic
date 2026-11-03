@@ -4,8 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RegisterParams(
-    val fullName: String,
+    val firstName: String,
+    val lastName: String,
+    val username: String,
     val email: String,
     val phone: String,
-    val password: String
+    val password: String,
+    val role: PawMedicRole = PawMedicRole.USER
 )
