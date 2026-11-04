@@ -226,6 +226,7 @@ end $$;
 
 create table if not exists public.appointments (
     id uuid primary key default gen_random_uuid(),
+    owner_id uuid references public.profiles(id),
     tenant_id uuid references public.tenants(id),
     pet_id uuid references public.pets(id),
     service_id uuid references public.services(id),
@@ -239,6 +240,7 @@ create table if not exists public.appointments (
 );
 
 alter table public.appointments
+    add column if not exists owner_id uuid references public.profiles(id),
     add column if not exists tenant_id uuid,
     add column if not exists pet_id uuid,
     add column if not exists service_id uuid,

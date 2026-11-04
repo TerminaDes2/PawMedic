@@ -15,7 +15,7 @@ data class AppointmentDto(
     val date: String,
     val time: String,
     val notes: String? = null,
-    val status: String = "Pendiente de aprobación",
+    val status: String = "Pendiente de confirmación",
     val startsAt: String? = null,
     val endsAt: String? = null,
     val idempotencyKey: String? = null

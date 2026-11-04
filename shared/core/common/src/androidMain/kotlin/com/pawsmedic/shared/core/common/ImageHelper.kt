@@ -17,6 +17,8 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 
+private const val MAX_IMAGE_SIDE = 1600
+
 // 1. Selector de imágenes reutilizable para cualquier pantalla de Compose
 @Composable
 fun rememberImagePicker(
@@ -38,8 +40,16 @@ suspend fun uploadImageToSupabase(
 ): Result<String> {
     return withContext(Dispatchers.IO) {
         try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(imageUri)?.use {
+                BitmapFactory.decodeStream(it, null, bounds)
+            }
+            var sampleSize = 1
+            while (bounds.outWidth / sampleSize > MAX_IMAGE_SIDE || bounds.outHeight / sampleSize > MAX_IMAGE_SIDE) {
+                sampleSize *= 2
+            }
             val bitmap = context.contentResolver.openInputStream(imageUri)?.use {
-                BitmapFactory.decodeStream(it)
+                BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sampleSize })
             }
             if (bitmap == null) {
                 return@withContext Result.failure(
@@ -64,6 +74,8 @@ suspend fun uploadImageToSupabase(
             }
 
             Result.success(bucket.publicUrl(fileName))
+        } catch (e: OutOfMemoryError) {
+            Result.failure(IllegalStateException("La imagen es demasiado grande. Elige una más pequeña.", e))
         } catch (e: Exception) {
             Result.failure(
                 IllegalStateException(

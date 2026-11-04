@@ -1,6 +1,7 @@
 package com.pawsmedic.features.appointments.presentation.list
 
 import androidx.compose.foundation.background
+import com.pawsmedic.features.appointments.presentation.friendlyErrorMessage
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -72,7 +73,7 @@ class AppointmentsListViewModel(
                     _uiState.update { curr -> curr.copy(appointments = list, isLoading = false) }
                 }
                 .onFailure { err ->
-                    _uiState.update { curr -> curr.copy(isLoading = false, errorMessage = err.message) }
+                    _uiState.update { curr -> curr.copy(isLoading = false, errorMessage = friendlyErrorMessage(err)) }
                 }
         }
     }
@@ -112,7 +113,7 @@ fun AppointmentsListScreen(
             }
             uiState.errorMessage != null -> {
                 Text(
-                    text = "No se pudieron cargar tus citas: ${uiState.errorMessage}",
+                    text = "${uiState.errorMessage}",
                     fontSize = 14.sp,
                     color = PawMedicColors.Error
                 )

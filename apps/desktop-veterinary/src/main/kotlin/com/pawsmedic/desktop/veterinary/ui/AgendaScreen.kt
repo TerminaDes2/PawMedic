@@ -27,22 +27,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @Serializable
 private data class AgendaAppointment(
     val id: String,
     @SerialName("pet_id") val petId: String,
+    @SerialName("pet_name") val petName: String,
     @SerialName("service_id") val serviceId: String,
+    @SerialName("service_name") val serviceName: String,
     @SerialName("starts_at") val startsAt: String,
     @SerialName("ends_at") val endsAt: String,
+    @SerialName("display_time") val displayTime: String,
     val status: String
 )
-
-@Serializable
-private data class AgendaService(val id: String, val name: String)
 
 @Composable
 fun AgendaScreen(
@@ -51,7 +48,6 @@ fun AgendaScreen(
     onLogout: () -> Unit = {}
 ) {
     var appointments by remember { mutableStateOf<List<AgendaAppointment>>(emptyList()) }
-    var serviceNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var busyAppointmentId by remember { mutableStateOf<String?>(null) }
@@ -70,12 +66,12 @@ fun AgendaScreen(
                 error("La agenda solo está disponible para cuentas veterinarias.")
             }
             val tenantId = profile.tenantId ?: error("El perfil no tiene una clínica asignada.")
-            appointments = supabase.postgrest["appointments"].select {
-                filter { eq("tenant_id", tenantId) }
-            }.decodeList<AgendaAppointment>().sortedBy { it.startsAt }
-            serviceNames = supabase.postgrest["services"].select {
-                filter { eq("tenant_id", tenantId) }
-            }.decodeList<AgendaService>().associate { it.id to it.name }
+            appointments = supabase.postgrest.rpc(
+                function = "get_tenant_appointments",
+                parameters = buildJsonObject {
+                    put("p_tenant_id", tenantId)
+                }
+            ).decodeList<AgendaAppointment>()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -123,7 +119,7 @@ fun AgendaScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text("Citas de la clínica", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text("Datos de appointments en Supabase. Las mascotas se identifican por su ID debido a las políticas de acceso actuales.", fontSize = 12.sp, color = TextSecondary)
+                    Text("Citas, mascotas y servicios de esta clínica.", fontSize = 12.sp, color = TextSecondary)
                 }
                 OutlinedButton(onClick = { coroutineScope.launch { loadAppointments() } }, enabled = !isLoading) {
                     Text(if (isLoading) "Cargando…" else "Actualizar")
@@ -151,10 +147,10 @@ fun AgendaScreen(
                         Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(formatAppointmentTime(appointment.startsAt, appointment.endsAt), Modifier.weight(0.23f), fontSize = 12.sp, color = TextPrimary)
-                        Text(appointment.petId, Modifier.weight(0.28f), fontSize = 11.sp, color = TextSecondary)
-                        Text(serviceNames[appointment.serviceId] ?: appointment.serviceId, Modifier.weight(0.22f), fontSize = 12.sp, color = TextPrimary)
-                        Text(appointment.status, Modifier.weight(0.12f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text(appointment.displayTime, Modifier.weight(0.23f), fontSize = 12.sp, color = TextPrimary)
+                        Text("${appointment.petName} (${appointment.petId})", Modifier.weight(0.28f), fontSize = 11.sp, color = TextSecondary)
+                        Text(appointment.serviceName, Modifier.weight(0.22f), fontSize = 12.sp, color = TextPrimary)
+                        Text(appointment.status.toAgendaStatus(), Modifier.weight(0.12f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                         Row(Modifier.weight(0.15f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             when (appointment.status) {
                                 "REQUESTED" -> {
@@ -171,9 +167,12 @@ fun AgendaScreen(
     }
 }
 
-private fun formatAppointmentTime(startsAt: String, endsAt: String): String = try {
-    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZoneId.systemDefault())
-    "${formatter.format(Instant.parse(startsAt))} – ${DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(Instant.parse(endsAt))}"
-} catch (_: Exception) {
-    "$startsAt – $endsAt"
+private fun String.toAgendaStatus(): String = when (uppercase()) {
+    "REQUESTED" -> "Pendiente"
+    "CONFIRMED" -> "Confirmada"
+    "CANCELLED" -> "Cancelada"
+    "COMPLETED" -> "Completada"
+    "NO_SHOW" -> "No asistió"
+    "REJECTED" -> "Rechazada"
+    else -> this
 }
