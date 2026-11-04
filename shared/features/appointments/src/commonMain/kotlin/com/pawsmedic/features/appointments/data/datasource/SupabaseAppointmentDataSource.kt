@@ -93,7 +93,7 @@ class SupabaseAppointmentDataSource(
                 put("p_ends_at", endsAt)
                 put("p_idempotency_key", idempotencyKey)
             }
-        ).decodeSingle<BookingResultRecord>()
+        ).decodeAs<BookingResultRecord>()
         return appointment.copy(
             id = result.id,
             status = result.status.toDisplayStatus(),

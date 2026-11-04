@@ -284,8 +284,8 @@ declare
     v_user_id uuid := auth.uid();
 begin
     if v_user_id is null or not exists (
-        select 1 from public.profiles
-        where id = v_user_id and role = 'USER'
+        select 1 from public.profiles pr
+        where pr.id = v_user_id and pr.role = 'USER'
     ) then
         raise exception 'authenticated customer access required';
     end if;
@@ -345,8 +345,8 @@ declare
     v_user_id uuid := auth.uid();
 begin
     if v_user_id is null or not exists (
-        select 1 from public.profiles
-        where id = v_user_id and role = 'USER'
+        select 1 from public.profiles pr
+        where pr.id = v_user_id and pr.role = 'USER'
     ) then
         raise exception 'authenticated customer access required';
     end if;
