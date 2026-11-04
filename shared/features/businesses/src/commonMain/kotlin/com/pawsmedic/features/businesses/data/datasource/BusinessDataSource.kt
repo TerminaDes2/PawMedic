@@ -36,9 +36,9 @@ class SupabaseBusinessDataSource(
                 filter { eq("tenant_id", tenantId) }
             }
             .decodeList<BusinessScheduleRecord>()
-            .sortedBy(BusinessScheduleRecord::weekday)
+            .sortedBy(BusinessScheduleRecord::dayOfWeek)
             .map { schedule ->
-                "${schedule.weekday.toWeekdayName()}: ${schedule.opensAt.take(5)}–${schedule.closesAt.take(5)}"
+                "${schedule.dayOfWeek.toWeekdayName()}: ${schedule.openTime.take(5)}–${schedule.closeTime.take(5)}"
             }
 }
 
@@ -62,9 +62,9 @@ private data class BusinessDirectoryRecord(
 
 @Serializable
 private data class BusinessScheduleRecord(
-    val weekday: Int,
-    @SerialName("opens_at") val opensAt: String,
-    @SerialName("closes_at") val closesAt: String
+    @SerialName("day_of_week") val dayOfWeek: Int,
+    @SerialName("open_time") val openTime: String,
+    @SerialName("close_time") val closeTime: String
 )
 
 private fun Int.toWeekdayName() = when (this) {
