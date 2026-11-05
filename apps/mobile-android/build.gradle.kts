@@ -57,6 +57,8 @@ android {
 dependencies {
     implementation(project(":shared:features:auth"))
     implementation(project(":shared:features:pets"))
+    implementation(project(":shared:features:appointments"))
+    implementation(project(":shared:features:products"))
     implementation(project(":shared:core:design-system"))
     implementation(project(":shared:core:network"))
     implementation(project(":shared:core:model"))
