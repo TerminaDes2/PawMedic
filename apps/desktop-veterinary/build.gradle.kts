@@ -19,6 +19,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 dependencies {
     implementation(project(":shared:features:auth"))
+    implementation(project(":shared:features:medical-records"))
     implementation(project(":apps:desktop-admin"))
     implementation(libs.kotlinx.serialization.json)
     implementation(compose.desktop.currentOs)

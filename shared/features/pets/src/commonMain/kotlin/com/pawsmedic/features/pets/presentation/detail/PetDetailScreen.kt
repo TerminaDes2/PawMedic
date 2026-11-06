@@ -48,6 +48,7 @@ fun PetDetailScreen(
     onBackClick: () -> Unit,
     onNavigateToEdit: (String) -> Unit,
     onDeleteSuccess: () -> Unit,
+    onNavigateToMedicalRecord: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -178,29 +179,50 @@ fun PetDetailScreen(
                     color = PawMedicColors.Gray900
                 )
                 Text(
-                    text = "Ver completo",
+                    text = "Ver expediente completo →",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = PawMedicColors.Teal600,
-                    modifier = Modifier.clickable { }
+                    modifier = Modifier.clickable { onNavigateToMedicalRecord(pet.id) }
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             MedicalHistoryItem(
-                title = "Vacunación Triple Felina",
-                dateAndDoctor = "15 Oct 2023 • Dr. Carlos Ruiz"
+                title = "Vacunación Triple Felina & Control",
+                dateAndDoctor = "15 Oct 2023 • Dra. Ana Milena"
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
             MedicalHistoryItem(
-                title = "Control de Parásitos",
-                dateAndDoctor = "02 Sep 2023 • Dra. Ana Milena"
+                title = "Control de Parásitos Internos",
+                dateAndDoctor = "02 Sep 2023 • Dr. Carlos Ruiz"
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // --- PROMINENT MEDICAL RECORD BUTTON ---
+            Button(
+                onClick = { onNavigateToMedicalRecord(pet.id) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PawMedicColors.Teal600,
+                    contentColor = Color.White
+                )
+            ) {
+                Text(
+                    text = "📋 Abrir Expediente Médico Digital",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // --- ACTIONS ---
             PawMedicPrimaryButton(

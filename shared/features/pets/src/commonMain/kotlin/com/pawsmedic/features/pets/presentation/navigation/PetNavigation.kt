@@ -39,6 +39,8 @@ import com.pawsmedic.features.medical_records.data.datasource.InMemoryMedicalRec
 import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryScreen
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryViewModel
+import com.pawsmedic.features.medical_records.presentation.MedicalRecordDetailScreen
+import com.pawsmedic.features.medical_records.presentation.MedicalRecordViewModel
 import com.pawsmedic.features.pets.domain.repository.PetRepository
 import com.pawsmedic.features.pets.domain.usecase.AddPetUseCase
 import com.pawsmedic.features.pets.domain.usecase.DeletePetUseCase
@@ -58,6 +60,7 @@ sealed interface PetScreenState {
     data object Dashboard : PetScreenState
     data object PetList : PetScreenState
     data class PetDetail(val petId: String) : PetScreenState
+    data class MedicalRecordDetail(val petId: String, val isVet: Boolean = false) : PetScreenState
     data object AddPet : PetScreenState
     data class EditPet(val petId: String) : PetScreenState
     data object VeterinaryList : PetScreenState
@@ -133,7 +136,25 @@ fun PetNavHost(
                                 onDeleteSuccess = {
                                     petListViewModel.loadPets()
                                     currentScreen = PetScreenState.PetList
+                                },
+                                onNavigateToMedicalRecord = { petId ->
+                                    currentScreen = PetScreenState.MedicalRecordDetail(petId = petId, isVet = false)
                                 }
+                            )
+                        }
+
+                        is PetScreenState.MedicalRecordDetail -> {
+                            val recordViewModel = remember(screen.petId, screen.isVet) {
+                                MedicalRecordViewModel(
+                                    repository = medicalRecordRepository,
+                                    petId = screen.petId,
+                                    userRole = if (screen.isVet) "VETERINARY_BUSINESS" else "USER",
+                                    userName = if (screen.isVet) "Dra. Ana Milena" else "María López"
+                                )
+                            }
+                            MedicalRecordDetailScreen(
+                                viewModel = recordViewModel,
+                                onBackClick = { currentScreen = PetScreenState.PetDetail(screen.petId) }
                             )
                         }
 

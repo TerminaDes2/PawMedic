@@ -3,6 +3,7 @@ package com.pawsmedic.features.appointments.data.datasource
 import com.pawsmedic.features.appointments.data.dto.AppointmentDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 
 /**
@@ -13,17 +14,25 @@ class SupabaseAppointmentDataSource(
     private val supabase: SupabaseClient
 ) : AppointmentDataSource {
 
+    override suspend fun getAppointments(): List<AppointmentDto> {
+        val currentUser = supabase.auth.currentUserOrNull() ?: return emptyList()
+        return supabase.postgrest["appointments"]
+            .select {
+                filter {
+                    eq("owner_id", currentUser.id)
+                }
+            }
+            .decodeList<AppointmentDto>()
+    }
+
     override suspend fun requestAppointment(appointment: AppointmentDto): AppointmentDto {
         // Obtener el ID del usuario autenticado actual desde Supabase Auth
         val currentUser = supabase.auth.currentUserOrNull()
             ?: throw IllegalStateException("Usuario no autenticado. Inicie sesión para agendar una cita.")
 
         val ownerId = currentUser.id
-
-        // Separar fecha y hora de requestedAt (ej. "2026-10-01 10:00:00")
-        val parts = appointment.requestedAt.trim().split(" ")
-        val fecha = parts.getOrNull(0) ?: "2026-10-01"
-        val hora = parts.getOrNull(1) ?: "10:00:00"
+        val fecha = appointment.date
+        val hora = appointment.time
 
         // Llamar a la función RPC atómica en PostgreSQL
         val generatedId = supabase.postgrest.rpc(

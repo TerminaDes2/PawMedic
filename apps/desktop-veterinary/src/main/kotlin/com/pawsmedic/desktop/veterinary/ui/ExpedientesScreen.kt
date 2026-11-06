@@ -25,6 +25,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.pawsmedic.features.medical_records.data.datasource.InMemoryMedicalRecordDataSource
+import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
+import com.pawsmedic.features.medical_records.presentation.MedicalRecordViewModel
+import com.pawsmedic.features.medical_records.presentation.dialog.EditBackgroundDialog
+import com.pawsmedic.features.medical_records.presentation.dialog.NewConsultationDialog
+
 data class Patient(
     val id: String,
     val name: String,
@@ -45,18 +51,55 @@ fun ExpedientesScreen(
 ) {
     var selectedCategory by remember { mutableStateOf("Todos") }
     var selectedTab by remember { mutableStateOf(0) }
+    var showNewConsultationDialog by remember { mutableStateOf(false) }
+    var showEditBackgroundDialog by remember { mutableStateOf(false) }
+
+    val repository = remember { DefaultMedicalRecordRepository(InMemoryMedicalRecordDataSource()) }
 
     val patients = remember {
         listOf(
-            Patient("1", "Coco", "Maltés", "Canino", "2 años", "4.2 kg", "Elena Rostova", "55-9831-2983", "Hoy", "Penicilina"),
-            Patient("2", "Thor", "Pastor Alemán", "Canino", "4 años", "32.5 kg", "Roberto Fernández", "55-9876-5432", "28/09/2026", "Derivados de Sulfa"),
-            Patient("3", "Luna", "Siamés", "Felino", "2 años 8 meses", "4.1 kg", "Ana Silva", "55-1234-9876", "20/09/2026", null),
-            Patient("4", "Max", "Golden Retriever", "Canino", "5 años", "30.0 kg", "Carlos Mendoza", "55-5555-1234", "15/09/2026", null),
-            Patient("5", "Miso", "Mestizo", "Felino", "1 año 3 meses", "3.8 kg", "Elena Torres", "55-8888-2222", "28/08/2026", null)
+            Patient("pet-1", "Tobías", "Persa Mestizo", "Felino", "2 años", "4.2 kg", "María López", "55-9831-2983", "Hoy", "Polen y Polvo"),
+            Patient("pet-2", "Thor", "Pastor Alemán", "Canino", "4 años", "32.5 kg", "Roberto Fernández", "55-9876-5432", "28/09/2026", "Derivados de Sulfa"),
+            Patient("pet-3", "Luna", "Siamés", "Felino", "2 años 8 meses", "4.1 kg", "Ana Silva", "55-1234-9876", "20/09/2026", null),
+            Patient("pet-4", "Max", "Golden Retriever", "Canino", "5 años", "30.0 kg", "Carlos Mendoza", "55-5555-1234", "15/09/2026", null)
         )
     }
 
     var selectedPatient by remember { mutableStateOf(patients[0]) }
+
+    val recordViewModel = remember(selectedPatient.id) {
+        MedicalRecordViewModel(
+            repository = repository,
+            petId = selectedPatient.id,
+            userRole = "VETERINARY_BUSINESS",
+            userName = "Dr. Carlos Ruiz"
+        )
+    }
+    val uiState by recordViewModel.uiState.collectAsState()
+    val record = uiState.record
+
+    if (showNewConsultationDialog) {
+        NewConsultationDialog(
+            petId = selectedPatient.id,
+            vetName = "Dr. Carlos Ruiz",
+            onDismiss = { showNewConsultationDialog = false },
+            onConfirm = { consultation, prescriptions, studies ->
+                recordViewModel.submitNewConsultation(consultation, prescriptions, studies)
+                showNewConsultationDialog = false
+            }
+        )
+    }
+
+    if (showEditBackgroundDialog && record != null) {
+        EditBackgroundDialog(
+            initialBackground = record.background,
+            onDismiss = { showEditBackgroundDialog = false },
+            onConfirm = { updatedBg ->
+                recordViewModel.updateBackground(updatedBg)
+                showEditBackgroundDialog = false
+            }
+        )
+    }
 
     VetAppLayout(
         currentScreen = "Expedientes",
@@ -258,7 +301,7 @@ fun ExpedientesScreen(
                                 .height(38.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(EmeraldGreen)
-                                .clickable { }
+                                .clickable { showNewConsultationDialog = true }
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center
                         ) {
