@@ -24,7 +24,11 @@ class SupabaseAuthDataSourceImpl(
 
     override suspend fun currentSession(): AuthSessionDto? {
         val session = supabaseClient.auth.currentSessionOrNull()
-        return session?.toAuthoritativeDto()
+        return if (session != null) {
+            toAuthoritativeDto(session)
+        } else {
+            null
+        }
     }
 
     override suspend fun signIn(
@@ -39,7 +43,7 @@ class SupabaseAuthDataSourceImpl(
         val session = supabaseClient.auth.currentSessionOrNull()
             ?: throw IllegalStateException("Correo o contraseña incorrectos")
 
-        return session.toAuthoritativeDto()
+        return toAuthoritativeDto(session)
     }
 
     override suspend fun signUp(
@@ -117,7 +121,7 @@ class SupabaseAuthDataSourceImpl(
                 "El código de verificación es incorrecto o ha expirado"
             )
 
-        return session.toAuthoritativeDto()
+        return toAuthoritativeDto(session)
     }
 
     override suspend fun resendEmailOtp(email: String) {
@@ -145,15 +149,17 @@ class SupabaseAuthDataSourceImpl(
                 "No se pudo iniciar sesión con Google"
             )
 
-        return session.toAuthoritativeDto()
+        return toAuthoritativeDto(session)
     }
 
     override suspend fun signOut() {
         supabaseClient.auth.signOut()
     }
 
-    private suspend fun UserSession.toAuthoritativeDto(): AuthSessionDto {
-        val userId = user?.id
+    private suspend fun toAuthoritativeDto(
+        session: UserSession
+    ): AuthSessionDto {
+        val userId = session.user?.id
 
         if (userId.isNullOrBlank()) {
             throw IllegalStateException(
@@ -170,9 +176,9 @@ class SupabaseAuthDataSourceImpl(
             .decodeSingle<ProfileRoleRecord>()
 
         return AuthSessionDto(
-            accessToken = accessToken,
+            accessToken = session.accessToken,
             userId = userId,
-            email = user?.email,
+            email = session.user?.email,
             role = PawMedicRole.valueOf(profile.role),
             tenantId = profile.tenantId
         )
