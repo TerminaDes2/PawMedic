@@ -1,3 +1,4 @@
+
 package com.pawsmedic.features.auth.data.datasource
 
 import com.pawsmedic.features.auth.data.dto.AuthSessionDto
@@ -26,13 +27,18 @@ class SupabaseAuthDataSourceImpl(
         return session?.toAuthoritativeDto()
     }
 
-    override suspend fun signIn(email: String, password: String): AuthSessionDto {
+    override suspend fun signIn(
+        email: String,
+        password: String
+    ): AuthSessionDto {
         supabaseClient.auth.signInWith(Email) {
             this.email = email
             this.password = password
         }
+
         val session = supabaseClient.auth.currentSessionOrNull()
             ?: throw IllegalStateException("Correo o contraseña incorrectos")
+
         return session.toAuthoritativeDto()
     }
 
@@ -42,9 +48,12 @@ class SupabaseAuthDataSourceImpl(
         role: PawMedicRole,
         fullName: String?,
         phone: String?
-    ): SignUpResultDto = signUpInternal(email, password, role, fullName, null, phone, null)
+    ): SignUpResultDto =
+        signUpInternal(email, password, role, fullName, null, phone, null)
 
-    override suspend fun signUp(params: RegisterParams): SignUpResultDto =
+    override suspend fun signUp(
+        params: RegisterParams
+    ): SignUpResultDto =
         signUpInternal(
             params.email,
             params.password,
@@ -62,11 +71,12 @@ class SupabaseAuthDataSourceImpl(
         firstName: String?,
         lastName: String?,
         phone: String?,
-        username: String?,
+        username: String?
     ): SignUpResultDto {
         supabaseClient.auth.signUpWith(Email) {
             this.email = email
             this.password = password
+
             data = buildJsonObject {
                 put("role", role.name)
                 firstName?.let { put("first_name", it) }
@@ -75,24 +85,38 @@ class SupabaseAuthDataSourceImpl(
                 phone?.let { put("phone", it) }
             }
         }
+
         val session = supabaseClient.auth.currentSessionOrNull()
+
         if (session != null) {
             supabaseClient.auth.signOut()
+
             throw IllegalStateException(
                 "Supabase tiene desactivada la confirmación de correo. Actívala para requerir el código de registro."
             )
         }
-        return SignUpResultDto(isVerified = false, session = null)
+
+        return SignUpResultDto(
+            isVerified = false,
+            session = null
+        )
     }
 
-    override suspend fun verifyEmailOtp(email: String, code: String): AuthSessionDto {
+    override suspend fun verifyEmailOtp(
+        email: String,
+        code: String
+    ): AuthSessionDto {
         supabaseClient.auth.verifyEmailOtp(
             type = OtpType.Email.SIGNUP,
             email = email,
             token = code.trim()
         )
+
         val session = supabaseClient.auth.currentSessionOrNull()
-            ?: throw IllegalStateException("El código de verificación es incorrecto o ha expirado")
+            ?: throw IllegalStateException(
+                "El código de verificación es incorrecto o ha expirado"
+            )
+
         return session.toAuthoritativeDto()
     }
 
@@ -103,16 +127,24 @@ class SupabaseAuthDataSourceImpl(
         )
     }
 
-    override suspend fun signInWithGoogleIdToken(idToken: String, rawNonce: String?): AuthSessionDto {
+    override suspend fun signInWithGoogleIdToken(
+        idToken: String,
+        rawNonce: String?
+    ): AuthSessionDto {
         supabaseClient.auth.signInWith(IDToken) {
             this.idToken = idToken
             this.provider = Google
+
             if (rawNonce != null) {
                 this.nonce = rawNonce
             }
         }
+
         val session = supabaseClient.auth.currentSessionOrNull()
-            ?: throw IllegalStateException("No se pudo iniciar sesión con Google")
+            ?: throw IllegalStateException(
+                "No se pudo iniciar sesión con Google"
+            )
+
         return session.toAuthoritativeDto()
     }
 
@@ -121,11 +153,19 @@ class SupabaseAuthDataSourceImpl(
     }
 
     private suspend fun UserSession.toAuthoritativeDto(): AuthSessionDto {
-        val userId = user?.id?.takeIf(String::isNotBlank)
-            ?: throw IllegalStateException("La sesión no contiene un usuario autenticado")
+        val userId = user?.id
+
+        if (userId.isNullOrBlank()) {
+            throw IllegalStateException(
+                "La sesión no contiene un usuario autenticado"
+            )
+        }
+
         val profile = supabaseClient.postgrest["profiles"]
             .select(columns = Columns.list("role", "tenant_id")) {
-                filter { eq("id", userId) }
+                filter {
+                    eq("id", userId)
+                }
             }
             .decodeSingle<ProfileRoleRecord>()
 
@@ -142,5 +182,6 @@ class SupabaseAuthDataSourceImpl(
 @Serializable
 private data class ProfileRoleRecord(
     val role: String,
-    @SerialName("tenant_id") val tenantId: String? = null
+    @SerialName("tenant_id")
+    val tenantId: String? = null
 )
