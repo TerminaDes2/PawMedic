@@ -51,6 +51,7 @@ fun PetDetailScreen(
     viewModel: PetDetailViewModel,
     onBackClick: () -> Unit,
     onNavigateToEdit: (String) -> Unit,
+    onNavigateToMedicalRecord: (String) -> Unit = {},
     onDeleteSuccess: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -194,6 +195,24 @@ fun PetDetailScreen(
             )
 
             Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = { onNavigateToMedicalRecord(pet.id) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PawMedicColors.Teal600)
+            ) {
+                Text(
+                    text = "Abrir expediente médico",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

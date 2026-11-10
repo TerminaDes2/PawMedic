@@ -60,6 +60,8 @@ import com.pawsmedic.features.businesses.presentation.list.VeterinaryListScreen
 import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryScreen
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryViewModel
+import com.pawsmedic.features.medical_records.presentation.MedicalRecordDetailScreen
+import com.pawsmedic.features.medical_records.presentation.MedicalRecordViewModel
 import com.pawsmedic.features.pets.domain.repository.PetRepository
 import com.pawsmedic.features.pets.domain.usecase.AddPetUseCase
 import com.pawsmedic.features.pets.domain.usecase.DeletePetUseCase
@@ -84,6 +86,7 @@ import kotlinx.coroutines.launch
 sealed interface PetTabScreen {
     data object List : PetTabScreen
     data class Detail(val petId: String) : PetTabScreen
+    data class MedicalRecordDetail(val petId: String) : PetTabScreen
     data object Add : PetTabScreen
     data class Edit(val petId: String) : PetTabScreen
 }
@@ -356,9 +359,29 @@ fun PetNavHost(
                                         onNavigateToEdit = { petId ->
                                             petTabScreen = PetTabScreen.Edit(petId)
                                         },
+                                        onNavigateToMedicalRecord = { petId ->
+                                            petTabScreen = PetTabScreen.MedicalRecordDetail(petId)
+                                        },
                                         onDeleteSuccess = {
                                             petListViewModel.loadPets()
                                             petTabScreen = PetTabScreen.List
+                                        }
+                                    )
+                                }
+
+                                is PetTabScreen.MedicalRecordDetail -> {
+                                    val recordViewModel = remember(screen.petId) {
+                                        MedicalRecordViewModel(
+                                            repository = medicalRecordRepository,
+                                            petId = screen.petId,
+                                            userRole = "USER",
+                                            userName = userName
+                                        )
+                                    }
+                                    MedicalRecordDetailScreen(
+                                        viewModel = recordViewModel,
+                                        onBackClick = {
+                                            petTabScreen = PetTabScreen.Detail(screen.petId)
                                         }
                                     )
                                 }

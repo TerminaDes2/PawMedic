@@ -1,85 +1,48 @@
 package com.pawsmedic.features.pets.presentation.navigation
 
 import com.pawsmedic.features.medical_records.data.datasource.MedicalRecordDataSource
+import com.pawsmedic.features.medical_records.data.datasource.SupabaseMedicalRecordDataSource as MedicalRecordsDataSource
 import com.pawsmedic.features.medical_records.data.dto.MedicalRecordDto
+import com.pawsmedic.features.medical_records.domain.model.AuditLogEntry
+import com.pawsmedic.features.medical_records.domain.model.ClinicalConsultation
+import com.pawsmedic.features.medical_records.domain.model.ClinicalStudyRecord
+import com.pawsmedic.features.medical_records.domain.model.DewormingRecord
+import com.pawsmedic.features.medical_records.domain.model.PetBackground
+import com.pawsmedic.features.medical_records.domain.model.PrescriptionRecord
+import com.pawsmedic.features.medical_records.domain.model.VaccinationRecord
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.postgrest
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 
 internal class SupabaseMedicalRecordDataSource(
-    private val supabase: SupabaseClient,
-    private val ownerId: String
+    supabase: SupabaseClient,
+    @Suppress("UNUSED_PARAMETER") ownerId: String
 ) : MedicalRecordDataSource {
-    override suspend fun getAllRecords(): List<MedicalRecordDto> {
-        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para consultar el historial." }
-        val pets = supabase.postgrest["pets"]
-            .select { filter { eq("owner_id", ownerId) } }
-            .decodeList<OwnedPetRecord>()
-        val records = buildList {
-            pets.forEach { pet ->
-                addAll(getRecordsForPet(pet))
-            }
-        }
-        return records.sortedByDescending(MedicalRecordDto::date)
-    }
+    private val delegate = MedicalRecordsDataSource(supabase)
 
-    override suspend fun getRecordsByPet(petId: String): List<MedicalRecordDto> {
-        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para consultar el historial." }
-        val pet = supabase.postgrest["pets"]
-            .select {
-                filter {
-                    eq("id", petId)
-                    eq("owner_id", ownerId)
-                }
-            }
-            .decodeList<OwnedPetRecord>()
-            .singleOrNull() ?: return emptyList()
-        return getRecordsForPet(pet)
-    }
+    override suspend fun getAllRecords(): List<MedicalRecordDto> = delegate.getAllRecords()
 
-    private suspend fun getRecordsForPet(pet: OwnedPetRecord): List<MedicalRecordDto> {
-        val records = supabase.postgrest["medical_records"]
-            .select { filter { eq("pet_id", pet.id) } }
-            .decodeList<MedicalRecordRecord>()
+    override suspend fun getRecordsByPet(petId: String): List<MedicalRecordDto> =
+        delegate.getRecordsByPet(petId)
 
-        return records.map { record ->
-            val clinicName = supabase.postgrest["tenants"]
-                .select { filter { eq("id", record.tenantId) } }
-                .decodeList<TenantRecord>()
-                .singleOrNull()
-                ?.name
-                ?: "Clínica no disponible (${record.tenantId})"
+    override suspend fun getPetMedicalRecord(petId: String) = delegate.getPetMedicalRecord(petId)
 
-            MedicalRecordDto(
-                id = record.id,
-                petId = pet.id,
-                petName = pet.name,
-                clinicName = clinicName,
-                doctorName = "Autor: ${record.authoredBy}",
-                date = record.createdAt.substringBefore('T'),
-                title = record.title,
-                diagnosis = record.content,
-                treatment = "No especificado en el registro.",
-                vetNotes = null
-            )
-        }
-    }
+    override suspend fun saveConsultation(
+        consultation: ClinicalConsultation,
+        prescriptions: List<PrescriptionRecord>,
+        studies: List<ClinicalStudyRecord>
+    ) = delegate.saveConsultation(consultation, prescriptions, studies)
+
+    override suspend fun updateBackground(background: PetBackground) = delegate.updateBackground(background)
+
+    override suspend fun addVaccination(vaccination: VaccinationRecord) = delegate.addVaccination(vaccination)
+
+    override suspend fun addDeworming(deworming: DewormingRecord) = delegate.addDeworming(deworming)
+
+    override suspend fun addPrescription(prescription: PrescriptionRecord) =
+        delegate.addPrescription(prescription)
+
+    override suspend fun addClinicalStudy(study: ClinicalStudyRecord) =
+        delegate.addClinicalStudy(study)
+
+    override suspend fun getAuditLogs(petId: String): List<AuditLogEntry> =
+        delegate.getAuditLogs(petId)
 }
-
-@Serializable
-private data class OwnedPetRecord(val id: String, val name: String)
-
-@Serializable
-private data class MedicalRecordRecord(
-    val id: String,
-    @SerialName("pet_id") val petId: String,
-    @SerialName("tenant_id") val tenantId: String,
-    @SerialName("authored_by") val authoredBy: String,
-    val title: String,
-    val content: String,
-    @SerialName("created_at") val createdAt: String
-)
-
-@Serializable
-private data class TenantRecord(val name: String)

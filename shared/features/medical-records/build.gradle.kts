@@ -12,8 +12,10 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared:core:design-system"))
+            implementation(project(":shared:core:model"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.supabase.postgrest)
             implementation(libs.koin.core)
             implementation(compose.runtime)
             implementation(compose.foundation)
