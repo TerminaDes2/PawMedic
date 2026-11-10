@@ -9,6 +9,15 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 enum class ApplicationStatus {
+    @SerialName("PENDING")
+    PENDING,
+
+    @SerialName("APPROVED")
+    APPROVED,
+
+    @SerialName("REJECTED")
+    REJECTED,
+
     @SerialName("PENDIENTE")
     PENDIENTE,
 
@@ -34,10 +43,10 @@ enum class ApplicationStatus {
 @Serializable
 data class BusinessApplication(
     @SerialName("id") val id: String,
-    @SerialName("applicant_id") val applicantId: String,
-    @SerialName("nombre_negocio") val nombreNegocio: String,
-    @SerialName("domicilio") val domicilio: String,
-    @SerialName("municipio") val municipio: String,
-    @SerialName("estado") val estado: ApplicationStatus = ApplicationStatus.PENDIENTE,
+    @SerialName("applicant_id") val applicantId: String = "",
+    @SerialName("business_name") val nombreNegocio: String = "",
+    @SerialName("address") val domicilio: String = "",
+    @SerialName("city") val municipio: String = "",
+    @SerialName("status") val estado: ApplicationStatus = ApplicationStatus.PENDING,
     @SerialName("created_at") val createdAt: String? = null
 )

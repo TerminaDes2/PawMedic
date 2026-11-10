@@ -44,6 +44,7 @@ private data class BusinessApplicationState(
 
 @Serializable
 private data class TenantState(
+    @SerialName("id") val id: String = "",
     @SerialName("status") val status: String = ""
 )
 
@@ -104,14 +105,21 @@ fun main() = application {
             currentScreen = when (profile.role) {
                 ProfileRole.SUPERADMIN -> "Admin"
                 ProfileRole.VETERINARY_BUSINESS -> {
-                    val tenantId = profile.tenantId
-                    if (tenantId == null) {
-                        "Admin"
+                    val ownerTenant = supabase.postgrest["tenants"]
+                        .select { filter { eq("owner_id", userId) } }
+                        .decodeList<TenantState>()
+                        .firstOrNull()
+                    val tenantId = ownerTenant?.id
+                    if (tenantId.isNullOrBlank()) {
+                        statusMessage = "La cuenta veterinaria todavía no tiene una clínica aprobada."
+                        "AccessStatus"
+                    } else if (profile.tenantId != null && profile.tenantId != tenantId) {
+                        statusMessage = "La cuenta veterinaria tiene una vinculación de clínica inconsistente."
+                        "AccessStatus"
                     } else {
-                        val tenant = supabase.postgrest["tenants"]
-                            .select { filter { eq("id", tenantId) } }
-                            .decodeSingle<TenantState>()
-                        if (tenant.status == "ACTIVE") "Agenda" else {
+                        if (ownerTenant.status == "ACTIVE") {
+                            "Agenda"
+                        } else {
                             statusMessage = "La clínica no está activa. Contacta al Superadmin."
                             "AccessStatus"
                         }

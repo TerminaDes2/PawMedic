@@ -18,8 +18,8 @@ import kotlinx.serialization.Serializable
 data class AvailabilityBlockModel(
     @SerialName("id") val id: String? = null,
     @SerialName("tenant_id") val tenantId: String,
-    @SerialName("motivo") val motivo: String = "",
-    @SerialName("fecha_inicio") val fechaInicio: String,
-    @SerialName("fecha_fin") val fechaFin: String,
+    @SerialName("reason") val motivo: String = "",
+    @SerialName("starts_at") val fechaInicio: String,
+    @SerialName("ends_at") val fechaFin: String,
     @SerialName("created_at") val createdAt: String? = null
 )

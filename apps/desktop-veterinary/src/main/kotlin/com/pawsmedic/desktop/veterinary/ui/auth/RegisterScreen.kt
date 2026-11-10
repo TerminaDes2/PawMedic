@@ -512,6 +512,7 @@ fun RegisterScreen(
                                                         this.password = password
                                                         data = buildJsonObject {
                                                             put("full_name", vetManagerName.trim())
+                                                            put("role", "VETERINARY_BUSINESS")
                                                         }
                                                     }
                                                 } catch (e: Exception) {
@@ -521,6 +522,10 @@ fun RegisterScreen(
                                                         rawMsg.contains("missing email or phone", ignoreCase = true)) {
                                                         useExistingAccount = true
                                                         errorMessage = "Este correo ya está registrado en el sistema. Inicia sesión con tus credenciales para enviar la solicitud."
+                                                        return@launch
+                                                    } else if (rawMsg.contains("rate limit", ignoreCase = true) ||
+                                                        rawMsg.contains("429", ignoreCase = true)) {
+                                                        errorMessage = "Supabase ha alcanzado el límite de correos. Espera unos minutos o usa la opción 'Ya tengo cuenta'."
                                                         return@launch
                                                     } else {
                                                         throw e

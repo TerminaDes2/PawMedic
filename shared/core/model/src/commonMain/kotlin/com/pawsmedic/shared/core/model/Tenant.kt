@@ -19,11 +19,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Tenant(
     @SerialName("id") val id: String,
-    @SerialName("owner_id") val ownerId: String,
-    @SerialName("nombre") val nombre: String,
-    @SerialName("domicilio") val domicilio: String,
-    @SerialName("municipio") val municipio: String,
-    @SerialName("numero_tel") val numeroTel: String,
-    @SerialName("estado_operativo") val estadoOperativo: String = "ACTIVO",
+    @SerialName("owner_id") val ownerId: String? = null,
+    @SerialName("name") val nombre: String = "",
+    @SerialName("address") val domicilio: String = "",
+    @SerialName("city") val municipio: String = "",
+    @SerialName("phone") val numeroTel: String = "",
+    @SerialName("operational_status") val estadoOperativo: String = "ACTIVE",
     @SerialName("created_at") val createdAt: String? = null
 )

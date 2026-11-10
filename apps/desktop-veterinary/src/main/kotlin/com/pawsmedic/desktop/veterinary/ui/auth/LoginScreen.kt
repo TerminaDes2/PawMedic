@@ -42,6 +42,7 @@ private data class BusinessLoginStatus(
 
 @Serializable
 private data class TenantLoginStatus(
+    @SerialName("id") val id: String? = null,
     @SerialName("status") val status: String = ""
 )
 
@@ -442,21 +443,21 @@ fun LoginScreen(
                                         when (profile.role) {
                                             ProfileRole.SUPERADMIN -> onNavigateToAdminLogin()
                                             ProfileRole.VETERINARY_BUSINESS -> {
-                                                if (profile.tenantId == null) {
-                                                    onNavigateToAdminLogin()
-                                                } else {
-                                                    val tenantId = profile.tenantId
-                                                        ?: error("La cuenta veterinaria todavía no tiene una clínica aprobada.")
-                                                    val tenant = supabase.postgrest["tenants"]
-                                                        .select {
-                                                            filter { eq("id", tenantId) }
-                                                        }
-                                                        .decodeSingle<TenantLoginStatus>()
-                                                    if (tenant.status != "ACTIVE") {
-                                                        error("La clínica no está activa. Contacta al administrador.")
-                                                    }
-                                                    onNavigateToVetMain(cleanEmail)
+                                                val ownerTenant = supabase.postgrest["tenants"]
+                                                    .select { filter { eq("owner_id", userId) } }
+                                                    .decodeList<TenantLoginStatus>()
+                                                    .firstOrNull()
+                                                val tenantId = ownerTenant?.id
+                                                if (tenantId.isNullOrBlank()) {
+                                                    error("La cuenta veterinaria todavía no tiene una clínica aprobada.")
                                                 }
+                                                if (profile.tenantId != null && profile.tenantId != tenantId) {
+                                                    error("La cuenta veterinaria tiene una vinculación de clínica inconsistente.")
+                                                }
+                                                if (ownerTenant?.status != "ACTIVE") {
+                                                    error("La clínica no está activa. Contacta al administrador.")
+                                                }
+                                                onNavigateToVetMain(cleanEmail)
                                             }
                                             ProfileRole.USER -> {
                                                 error("Esta aplicación de escritorio es exclusiva para negocios veterinarios. Las cuentas de usuario de clientes deben ingresar desde la app móvil.")
