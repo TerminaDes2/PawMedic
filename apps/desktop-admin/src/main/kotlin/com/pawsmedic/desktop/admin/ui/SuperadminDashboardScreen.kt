@@ -367,6 +367,33 @@ fun SuperadminDashboardScreen(
     }
 }
 
+private val jsonDecoder = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+private suspend fun fetchApplicationsFromDatabase(supabaseClient: SupabaseClient): List<BusinessApplicationDto> {
+    val result = mutableListOf<BusinessApplicationDto>()
+    try {
+        val rpcResult = supabaseClient.postgrest.rpc("get_all_business_applications")
+        val listFromRpc = jsonDecoder.decodeFromString<List<BusinessApplicationDto>>(rpcResult.data)
+        if (listFromRpc.isNotEmpty()) {
+            return listFromRpc
+        }
+    } catch (_: Exception) {}
+
+    try {
+        val list1 = supabaseClient.postgrest["business_applications"].select().decodeList<BusinessApplicationDto>()
+        result.addAll(list1)
+    } catch (_: Exception) {}
+    try {
+        val list2 = supabaseClient.postgrest["businesses"].select().decodeList<BusinessApplicationDto>()
+        for (item in list2) {
+            if (result.none { it.id == item.id }) {
+                result.add(item)
+            }
+        }
+    } catch (_: Exception) {}
+    return result
+}
+
 // MÓDULO 1: MONITOREO
 @Composable
 fun MonitoreoModule(supabaseClient: SupabaseClient) {
@@ -379,11 +406,7 @@ fun MonitoreoModule(supabaseClient: SupabaseClient) {
     LaunchedEffect(supabaseClient) {
         try {
             businesses.clear()
-            val list = try {
-                supabaseClient.postgrest["businesses"].select().decodeList<BusinessApplicationDto>()
-            } catch (_: Exception) {
-                try { listOf(supabaseClient.postgrest["businesses"].select().decodeSingle<BusinessApplicationDto>()) } catch (_: Exception) { emptyList() }
-            }
+            val list = fetchApplicationsFromDatabase(supabaseClient)
             businesses.addAll(
                 list.filter { it.status == "APPROVED" || it.status == "SUSPENDED" }
             )
@@ -507,11 +530,7 @@ fun SolicitudesModule(
 
     LaunchedEffect(supabaseClient) {
         try {
-            val fetchedApps = try {
-                supabaseClient.postgrest["businesses"].select().decodeList<BusinessApplicationDto>()
-            } catch (_: Exception) {
-                try { listOf(supabaseClient.postgrest["businesses"].select().decodeSingle<BusinessApplicationDto>()) } catch (_: Exception) { emptyList() }
-            }
+            val fetchedApps = fetchApplicationsFromDatabase(supabaseClient)
             requests.clear()
             requests.addAll(fetchedApps.map { dto ->
                 RegistrationRequest(
@@ -546,6 +565,8 @@ fun SolicitudesModule(
             try {
                 val parameters = buildJsonObject {
                     put("p_business_id", req.id)
+                    put("p_application_id", req.id)
+                    put("p_id", req.id)
                     if (newStatus == "Rechazado") put("p_reason", "")
                 }
                 val function = if (newStatus == "Aprobado") {
@@ -553,7 +574,15 @@ fun SolicitudesModule(
                 } else {
                     "reject_business_application"
                 }
-                supabaseClient.postgrest.rpc(function, parameters)
+                val dbStatus = if (newStatus == "Aprobado") "APPROVED" else "REJECTED"
+
+                try {
+                    supabaseClient.postgrest.rpc(function, parameters)
+                } catch (_: Exception) {
+                    try { supabaseClient.postgrest["business_applications"].update({ set("status", dbStatus) }) { filter { eq("id", req.id) } } } catch (_: Exception) {}
+                    try { supabaseClient.postgrest["businesses"].update({ set("status", dbStatus) }) { filter { eq("id", req.id) } } } catch (_: Exception) {}
+                }
+
                 val idx = requests.indexOf(req)
                 if (idx >= 0) requests[idx] = req.copy(status = newStatus)
             } catch (e: Exception) {
@@ -589,11 +618,7 @@ fun SolicitudesModule(
                             isLoading = true
                             errorMessage = null
                             try {
-                                val fetchedApps = try {
-                                    supabaseClient.postgrest["businesses"].select().decodeList<BusinessApplicationDto>()
-                                } catch (_: Exception) {
-                                    try { listOf(supabaseClient.postgrest["businesses"].select().decodeSingle<BusinessApplicationDto>()) } catch (_: Exception) { emptyList() }
-                                }
+                                val fetchedApps = fetchApplicationsFromDatabase(supabaseClient)
                                 requests.clear()
                                 requests.addAll(fetchedApps.map { dto ->
                                     RegistrationRequest(

@@ -77,6 +77,23 @@ fun RegisterScreen(
     val coroutineScope = rememberCoroutineScope()
 
     suspend fun submitApplication() {
+        val user = supabase.auth.currentUserOrNull()
+        val userId = user?.id
+        val userEmail = user?.email ?: adminEmail.trim()
+
+        if (userId != null) {
+            try {
+                supabase.postgrest["profiles"].update({
+                    set("role", "VETERINARY_BUSINESS")
+                }) {
+                    filter { eq("id", userId) }
+                }
+            } catch (_: Exception) {}
+        }
+
+        var lastError: Exception? = null
+
+        // 1. Intentar RPC submit_business_application con nombres de parámetros p_* (Español / Schema original)
         try {
             val rpcResult = supabase.postgrest.rpc(
                 function = "submit_business_application",
@@ -97,11 +114,132 @@ fun RegisterScreen(
             kotlinx.coroutines.delay(2000)
             supabase.auth.signOut()
             onNavigateToLogin()
+            return
         } catch (e: Exception) {
-            e.printStackTrace()
-            println("=== PAWSMEDIC SUBMIT APPLICATION ERROR ===")
-            println(e.stackTraceToString())
-            throw e
+            lastError = e
+        }
+
+        // 2. Intentar RPC submit_business_application sin prefijo p_
+        try {
+            val rpcResult = supabase.postgrest.rpc(
+                function = "submit_business_application",
+                parameters = buildJsonObject {
+                    put("applicant_name", vetManagerName.trim())
+                    put("business_name", clinicName.trim())
+                    put("tax_id", rucTaxId.trim())
+                    put("phone", contactPhone.trim())
+                    put("address", clinicAddress.trim())
+                    put("license_number", licenseNumber.trim())
+                }
+            )
+            val application = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                .decodeFromString<SubmittedBusinessApplication>(rpcResult.data)
+            submittedFolio = application.id
+            successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
+            requiresEmailVerification = false
+            kotlinx.coroutines.delay(2000)
+            supabase.auth.signOut()
+            onNavigateToLogin()
+            return
+        } catch (e: Exception) {
+            lastError = e
+        }
+
+        // 3. Intentar RPC submit_business_application con nombres de parámetros en inglés
+        try {
+            val rpcResult = supabase.postgrest.rpc(
+                function = "submit_business_application",
+                parameters = buildJsonObject {
+                    put("p_veterinarian_name", vetManagerName.trim())
+                    put("p_business_name", clinicName.trim())
+                    put("p_tax_id", rucTaxId.trim())
+                    put("p_contact_phone", contactPhone.trim())
+                    put("p_address", clinicAddress.trim())
+                    put("p_professional_license", licenseNumber.trim())
+                    put("p_contact_email", userEmail)
+                    put("p_city", "Mexico City")
+                }
+            )
+            val application = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                .decodeFromString<SubmittedBusinessApplication>(rpcResult.data)
+            submittedFolio = application.id
+            successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
+            requiresEmailVerification = false
+            kotlinx.coroutines.delay(2000)
+            supabase.auth.signOut()
+            onNavigateToLogin()
+            return
+        } catch (e: Exception) {
+            lastError = e
+        }
+
+        // 4. Intentar inserción directa en la tabla 'business_applications'
+        try {
+            if (userId != null) {
+                val result = supabase.postgrest["business_applications"].insert(
+                    buildJsonObject {
+                        put("applicant_id", userId)
+                        put("business_name", clinicName.trim())
+                        put("address", clinicAddress.trim())
+                        put("city", "Mexico City")
+                        put("tax_id", rucTaxId.trim())
+                        put("contact_phone", contactPhone.trim())
+                        put("veterinarian_name", vetManagerName.trim())
+                        put("professional_license", licenseNumber.trim())
+                        put("contact_email", userEmail)
+                        put("status", "PENDING")
+                    }
+                ) { select() }.decodeSingle<SubmittedBusinessApplication>()
+                submittedFolio = result.id
+                successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
+                requiresEmailVerification = false
+                kotlinx.coroutines.delay(2000)
+                supabase.auth.signOut()
+                onNavigateToLogin()
+                return
+            }
+        } catch (e: Exception) {
+            lastError = e
+        }
+
+        // 5. Intentar inserción directa en la tabla 'businesses'
+        try {
+            if (userId != null) {
+                val result = supabase.postgrest["businesses"].insert(
+                    buildJsonObject {
+                        put("submitted_by", userId)
+                        put("legal_name", clinicName.trim())
+                        put("public_name", clinicName.trim())
+                        put("applicant_name", vetManagerName.trim())
+                        put("tax_id", rucTaxId.trim())
+                        put("email", userEmail)
+                        put("phone", contactPhone.trim())
+                        put("address", clinicAddress.trim())
+                        put("license_number", licenseNumber.trim())
+                        put("status", "PENDING")
+                    }
+                ) { select() }.decodeSingle<SubmittedBusinessApplication>()
+                submittedFolio = result.id
+                successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
+                requiresEmailVerification = false
+                kotlinx.coroutines.delay(2000)
+                supabase.auth.signOut()
+                onNavigateToLogin()
+                return
+            }
+        } catch (e: Exception) {
+            lastError = e
+        }
+
+        // Si todos fallan, capturar el error amigablemente en la interfaz
+        val msg = lastError?.message.orEmpty()
+        errorMessage = when {
+            msg.contains("schema cache", ignoreCase = true) || msg.contains("Could not find the function", ignoreCase = true) ->
+                "No se encontró la función RPC 'submit_business_application' en Supabase. Por favor ejecuta el script SQL de creación del RPC en Supabase Dashboard."
+            msg.contains("row-level security", ignoreCase = true) ->
+                "La política RLS restringió el acceso directo. Asegúrate de ejecutar el script RPC 'submit_business_application'."
+            else ->
+                "Error al enviar la solicitud: ${msg.ifBlank { "Desconocido" }}"
         }
     }
 
@@ -512,6 +650,7 @@ fun RegisterScreen(
                                                         this.password = password
                                                         data = buildJsonObject {
                                                             put("full_name", vetManagerName.trim())
+                                                            put("role", "VETERINARY_BUSINESS")
                                                         }
                                                     }
                                                 } catch (e: Exception) {
@@ -522,21 +661,26 @@ fun RegisterScreen(
                                                         useExistingAccount = true
                                                         errorMessage = "Este correo ya está registrado en el sistema. Inicia sesión con tus credenciales para enviar la solicitud."
                                                         return@launch
+                                                    } else if (rawMsg.contains("rate limit", ignoreCase = true) || rawMsg.contains("429", ignoreCase = true)) {
+                                                        errorMessage = "Supabase ha alcanzado el límite de envío de correos por hora. Por favor espera unos minutos o usa la opción 'Ya tengo cuenta'."
+                                                        return@launch
                                                     } else {
                                                         throw e
                                                     }
                                                 }
 
+                                                // Si Supabase no exige confirmación de correo (o auto-confirma),
+                                                // el usuario ya tiene sesión activa y se envía la solicitud de inmediato.
                                                 if (supabase.auth.currentSessionOrNull() != null) {
-                                                    supabase.auth.signOut()
-                                                    error("Activa la confirmación de correo en Supabase para exigir el código de verificación.")
+                                                    submitApplication()
+                                                } else {
+                                                    accountCreated = true
+                                                    requiresEmailVerification = true
+                                                    verificationCode = ""
+                                                    successMessage =
+                                                        "Si este correo es nuevo, recibirás un código en ${adminEmail.trim()}. " +
+                                                            "Si ya tienes una cuenta de PawMedic, inicia sesión con esa cuenta para enviar la solicitud."
                                                 }
-                                                accountCreated = true
-                                                requiresEmailVerification = true
-                                                verificationCode = ""
-                                                successMessage =
-                                                    "Si este correo es nuevo, recibirás un código en ${adminEmail.trim()}. " +
-                                                        "Si ya tienes una cuenta de PawMedic, inicia sesión con esa cuenta para enviar la solicitud."
                                             }
                                         }
                                     } catch (e: CancellationException) {

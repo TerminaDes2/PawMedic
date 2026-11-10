@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.veterinary.model.BusinessApplicationDto
 import com.pawsmedic.desktop.veterinary.SessionManager
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
@@ -42,6 +43,7 @@ private data class BusinessLoginStatus(
 
 @Serializable
 private data class TenantLoginStatus(
+    @SerialName("id") val id: String? = null,
     @SerialName("status") val status: String = ""
 )
 
@@ -442,24 +444,57 @@ fun LoginScreen(
                                         when (profile.role) {
                                             ProfileRole.SUPERADMIN -> onNavigateToAdminLogin()
                                             ProfileRole.VETERINARY_BUSINESS -> {
-                                                if (profile.tenantId == null) {
-                                                    onNavigateToAdminLogin()
-                                                } else {
-                                                    val tenantId = profile.tenantId
-                                                        ?: error("La cuenta veterinaria todavía no tiene una clínica aprobada.")
-                                                    val tenant = supabase.postgrest["tenants"]
-                                                        .select {
-                                                            filter { eq("id", tenantId) }
-                                                        }
-                                                        .decodeSingle<TenantLoginStatus>()
-                                                    if (tenant.status != "ACTIVE") {
-                                                        error("La clínica no está activa. Contacta al administrador.")
-                                                    }
-                                                    onNavigateToVetMain(cleanEmail)
+                                                val appStatus = try {
+                                                    val list1 = supabase.postgrest["business_applications"]
+                                                        .select { filter { eq("applicant_id", userId) } }
+                                                        .decodeList<BusinessApplicationDto>()
+                                                    list1.firstOrNull()?.status ?: supabase.postgrest["businesses"]
+                                                        .select { filter { eq("submitted_by", userId) } }
+                                                        .decodeList<BusinessApplicationDto>().firstOrNull()?.status
+                                                } catch (_: Exception) { null }
+
+                                                if (appStatus == "PENDING") {
+                                                    error("Tu solicitud de registro veterinario está pendiente de aprobación por el Superadministrador.")
+                                                } else if (appStatus == "REJECTED") {
+                                                    error("Tu solicitud de registro fue rechazada por el Superadministrador.")
                                                 }
+
+                                                val tenantId = profile.tenantId ?: try {
+                                                    supabase.postgrest["tenants"]
+                                                        .select { filter { eq("owner_id", userId) } }
+                                                        .decodeList<TenantLoginStatus>().firstOrNull()?.id
+                                                } catch (_: Exception) { null }
+
+                                                if (tenantId != null) {
+                                                    try { supabase.postgrest["profiles"].update({ set("tenant_id", tenantId) }) { filter { eq("id", userId) } } } catch (_: Exception) {}
+                                                }
+
+                                                onNavigateToVetMain(cleanEmail)
                                             }
                                             ProfileRole.USER -> {
-                                                error("Esta aplicación de escritorio es exclusiva para negocios veterinarios. Las cuentas de usuario de clientes deben ingresar desde la app móvil.")
+                                                // Verificar si esta cuenta USER tiene una solicitud de veterinaria APROBADA
+                                                val approvedApp = try {
+                                                    val list1 = supabase.postgrest["business_applications"]
+                                                        .select { filter { eq("applicant_id", userId); eq("status", "APPROVED") } }
+                                                        .decodeList<BusinessApplicationDto>()
+                                                    list1.firstOrNull()
+                                                } catch (_: Exception) {
+                                                    try {
+                                                        val list2 = supabase.postgrest["businesses"]
+                                                            .select { filter { eq("submitted_by", userId); eq("status", "APPROVED") } }
+                                                            .decodeList<BusinessApplicationDto>()
+                                                        list2.firstOrNull()
+                                                    } catch (_: Exception) { null }
+                                                }
+
+                                                if (approvedApp != null) {
+                                                    try {
+                                                        supabase.postgrest["profiles"].update({ set("role", "VETERINARY_BUSINESS") }) { filter { eq("id", userId) } }
+                                                    } catch (_: Exception) {}
+                                                    onNavigateToVetMain(cleanEmail)
+                                                } else {
+                                                    error("Esta aplicación de escritorio es exclusiva para negocios veterinarios. Las cuentas de usuario de clientes deben ingresar desde la app móvil.")
+                                                }
                                             }
                                         }
 

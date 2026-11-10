@@ -32,6 +32,8 @@ import com.pawsmedic.shared.core.model.ProfileRole
 import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.coroutines.launch
@@ -44,7 +46,8 @@ private data class BusinessApplicationState(
 
 @Serializable
 private data class TenantState(
-    @SerialName("status") val status: String = ""
+    @SerialName("id") val id: String = "",
+    @SerialName("status") val status: String = "ACTIVE"
 )
 
 @Composable
@@ -104,17 +107,37 @@ fun main() = application {
             currentScreen = when (profile.role) {
                 ProfileRole.SUPERADMIN -> "Admin"
                 ProfileRole.VETERINARY_BUSINESS -> {
-                    val tenantId = profile.tenantId
-                    if (tenantId == null) {
-                        "Admin"
+                    val app = try {
+                        val list1 = supabase.postgrest["business_applications"]
+                            .select { filter { eq("applicant_id", userId) } }
+                            .decodeList<BusinessApplicationState>()
+                        list1.firstOrNull() ?: supabase.postgrest["businesses"]
+                            .select { filter { eq("submitted_by", userId) } }
+                            .decodeList<BusinessApplicationState>().firstOrNull()
+                    } catch (_: Exception) { null }
+
+                    val appStatus = app?.status
+
+                    if (appStatus == "PENDING") {
+                        statusMessage = "Tu solicitud de registro veterinario está pendiente de aprobación por el Superadministrador."
+                        "AccessStatus"
+                    } else if (appStatus == "REJECTED") {
+                        statusMessage = app?.decisionReason ?: "Tu solicitud de registro fue rechazada por el Superadministrador."
+                        "AccessStatus"
                     } else {
-                        val tenant = supabase.postgrest["tenants"]
-                            .select { filter { eq("id", tenantId) } }
-                            .decodeSingle<TenantState>()
-                        if (tenant.status == "ACTIVE") "Agenda" else {
-                            statusMessage = "La clínica no está activa. Contacta al Superadmin."
-                            "AccessStatus"
+                        var tenantId = profile.tenantId
+                        if (tenantId == null) {
+                            tenantId = try {
+                                supabase.postgrest["tenants"]
+                                    .select { filter { eq("owner_id", userId) } }
+                                    .decodeList<TenantState>().firstOrNull()?.id
+                            } catch (_: Exception) { null }
+
+                            if (tenantId != null) {
+                                try { supabase.postgrest["profiles"].update({ set("tenant_id", tenantId) }) { filter { eq("id", userId) } } } catch (_: Exception) {}
+                            }
                         }
+                        "Agenda"
                     }
                 }
                 ProfileRole.USER -> {

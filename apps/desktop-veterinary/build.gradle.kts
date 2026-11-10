@@ -32,3 +32,7 @@ dependencies {
 }
 
 application { mainClass.set("com.pawsmedic.desktop.veterinary.MainKt") }
+
+tasks.withType<JavaExec>().configureEach {
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+}

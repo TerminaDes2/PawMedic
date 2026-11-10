@@ -36,9 +36,9 @@ data class UserSession(
 data class UserProfile(
     @SerialName("id") val id: String,
     @SerialName("role") val role: ProfileRole = ProfileRole.USER,
-    @SerialName("nombre") val nombre: String = "",
-    @SerialName("apellidos") val apellidos: String = "",
-    @SerialName("num_tel") val numTel: String? = null
+    @SerialName("first_name") val nombre: String = "",
+    @SerialName("last_name") val apellidos: String = "",
+    @SerialName("phone") val numTel: String? = null
 )
 
 /**
