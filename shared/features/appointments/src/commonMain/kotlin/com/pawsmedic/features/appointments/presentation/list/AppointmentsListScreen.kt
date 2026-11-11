@@ -169,7 +169,6 @@ private fun AppointmentDetailCard(app: Appointment) {
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -202,7 +201,14 @@ private fun AppointmentDetailCard(app: Appointment) {
                         )
                     }
                 }
+            }
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
