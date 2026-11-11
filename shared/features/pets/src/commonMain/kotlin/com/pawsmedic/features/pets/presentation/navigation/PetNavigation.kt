@@ -301,8 +301,14 @@ fun PetNavHost(
                         PetDashboardScreen(
                             petViewModel = petListViewModel,
                             appointmentsViewModel = appointmentsListViewModel,
-                            userName = userName,
-                            profilePhotoUrl = profileState.profile?.avatar_url,
+                            userName = profileState.profile?.let { profile ->
+                                profile.firstName.trim().ifBlank { profile.displayName.trim() }
+                                    .split(Regex("\\s+"))
+                                    .firstOrNull()
+                                    .orEmpty()
+                                    .ifBlank { "usuario" }
+                            } ?: "usuario",
+                            profilePhotoUrl = profileState.profile?.avatarUrl,
                             onNavigateToPetsList = {
                                 petListViewModel.loadPets()
                                 petTabScreen = PetTabScreen.List

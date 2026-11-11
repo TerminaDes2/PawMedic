@@ -143,7 +143,7 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     PetAvatarImage(
-                        photo_url = profile?.avatar_url,
+                        photo_url = profile?.avatarUrl,
                         species = null,
                         size = 90.dp
                     )
@@ -161,7 +161,7 @@ fun ProfileScreen(
                     text = listOf(profile?.firstName.orEmpty(), profile?.lastName.orEmpty())
                         .joinToString(" ")
                         .trim()
-                        .ifBlank { "Usuario" },
+                        .ifBlank { profile?.displayName?.ifBlank { "Usuario" } ?: "Usuario" },
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = PawMedicColors.Gray900,
@@ -254,7 +254,7 @@ fun ProfileScreen(
                     profile?.createdAt?.takeIf { it.isNotBlank() }?.substringBefore("T") ?: "No disponible"
                 )
                 HorizontalDivider(color = PawMedicColors.Gray100, modifier = Modifier.padding(vertical = 6.dp))
-                ProfileInfoRow("Ubicación", "Manzanillo, Colima")
+                ProfileInfoRow("Ubicación", "No disponible")
             }
 
             if (state.errorMessage != null) {

@@ -62,7 +62,7 @@ class ProfileViewModel(
                 }
             }.onSuccess {
                 _uiState.update { current ->
-                    current.copy(profile = current.profile?.copy(avatar_url = url))
+                    current.copy(profile = current.profile?.copy(avatarUrl = url))
                 }
             }.onFailure { error ->
                 _uiState.update {
