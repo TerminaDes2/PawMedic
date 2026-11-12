@@ -14,7 +14,10 @@ data class Appointment(
     val date: String,
     val time: String,
     val notes: String? = null,
-    val status: String = "Pendiente de aprobación"
+    val status: String = "Pendiente de confirmación",
+    val startsAt: String? = null,
+    val endsAt: String? = null,
+    val idempotencyKey: String? = null
 )
 
 @Serializable
@@ -22,5 +25,13 @@ data class VeterinaryService(
     val id: String,
     val title: String,
     val description: String,
-    val durationMinutes: Int
+    val durationMinutes: Int,
+    val priceCents: Int? = null,
+    val category: String = "otros"
+)
+
+data class AvailableAppointmentSlot(
+    val startsAt: String,
+    val endsAt: String,
+    val label: String
 )

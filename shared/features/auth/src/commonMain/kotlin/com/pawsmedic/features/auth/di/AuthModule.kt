@@ -5,8 +5,11 @@ import com.pawsmedic.features.auth.data.datasource.SupabaseAuthDataSourceImpl
 import com.pawsmedic.features.auth.data.repository.SupabaseAuthRepository
 import com.pawsmedic.features.auth.domain.repository.AuthRepository
 import com.pawsmedic.features.auth.domain.usecase.LoginUseCase
+import com.pawsmedic.features.auth.domain.usecase.LoginWithGoogleUseCase
 import com.pawsmedic.features.auth.domain.usecase.RegisterUseCase
+import com.pawsmedic.features.auth.domain.usecase.ResendOtpUseCase
 import com.pawsmedic.features.auth.domain.usecase.RestoreSessionUseCase
+import com.pawsmedic.features.auth.domain.usecase.VerifyOtpUseCase
 import com.pawsmedic.features.auth.presentation.AuthViewModel
 import com.pawsmedic.features.auth.presentation.login.LoginViewModel
 import com.pawsmedic.features.auth.presentation.register.RegisterViewModel
@@ -19,8 +22,11 @@ fun authModule() = module {
     factory { RestoreSessionUseCase(get()) }
     factory { LoginUseCase(get()) }
     factory { RegisterUseCase(get()) }
+    factory { VerifyOtpUseCase(get()) }
+    factory { ResendOtpUseCase(get()) }
+    factory { LoginWithGoogleUseCase(get()) }
     factory { AuthViewModel(get(), get()) }
     factory { SplashViewModel(get()) }
-    factory { LoginViewModel(get()) }
-    factory { RegisterViewModel(get()) }
+    factory { LoginViewModel(get(), getOrNull()) }
+    factory { RegisterViewModel(get(), getOrNull(), getOrNull(), getOrNull()) }
 }

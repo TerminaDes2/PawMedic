@@ -21,10 +21,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.pets.domain.model.Pet
 import com.pawsmedic.features.pets.presentation.PetListViewModel
+import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 
@@ -46,7 +52,9 @@ fun PetListScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val selectedPet = uiState.selectedPet ?: uiState.pets.firstOrNull()
+    val selectedPet = uiState.selectedPet
+        ?.let { selected -> uiState.pets.firstOrNull { it.id == selected.id } }
+        ?: uiState.pets.firstOrNull()
 
     Box(modifier = modifier.fillMaxSize().background(PawMedicColors.BackgroundScreen)) {
         Column(
@@ -63,7 +71,7 @@ fun PetListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "PETS",
+                    text = "MASCOTAS",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = PawMedicColors.White,
@@ -72,6 +80,15 @@ fun PetListScreen(
             }
 
             Column(modifier = Modifier.padding(16.dp)) {
+                if (uiState.pets.isEmpty() && !uiState.isLoading) {
+                    Text(
+                        text = "Aún no tienes mascotas registradas. Agrega una para comenzar.",
+                        fontSize = 15.sp,
+                        color = PawMedicColors.Gray600,
+                        modifier = Modifier.padding(vertical = 24.dp)
+                    )
+                }
+
                 // --- TOP HORIZONTAL AVATARS ROW ---
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -85,20 +102,21 @@ fun PetListScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(64.dp)
+                                    .size(68.dp)
                                     .clip(CircleShape)
-                                    .background(PawMedicColors.Teal50)
                                     .border(
                                         width = if (isSelected) 3.dp else 1.dp,
                                         color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray300,
                                         shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
+                                    )
                             ) {
-                                Text(
-                                    text = if (pet.species.contains("Gato", true)) "🐱" else "🐶",
-                                    fontSize = 32.sp
-                                )
+                                key(pet.id, pet.photo_url) {
+                                    PetAvatarImage(
+                                        photo_url = pet.photo_url,
+                                        species = pet.species,
+                                        size = 68.dp
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -124,7 +142,7 @@ fun PetListScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "Add Pet",
+                                    text = "Agregar",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PawMedicColors.Teal600,
@@ -150,7 +168,7 @@ fun PetListScreen(
                             .padding(16.dp)
                     ) {
                         Column {
-                            // Pet Image Placeholder Banner
+                            // Pet Image Banner
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -159,10 +177,13 @@ fun PetListScreen(
                                     .background(PawMedicColors.Teal50),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = if (selectedPet.species.contains("Gato", true)) "🐱" else "🐕",
-                                    fontSize = 80.sp
-                                )
+                                key(selectedPet.id, selectedPet.photo_url) {
+                                    PetAvatarImage(
+                                        photo_url = selectedPet.photo_url,
+                                        species = selectedPet.species,
+                                        size = 140.dp
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -179,21 +200,6 @@ fun PetListScreen(
                                     color = PawMedicColors.Gray900
                                 )
 
-                                if (selectedPet.isInsured) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xFFF3E8FF))
-                                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = "Pet Insured",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF6B21A8)
-                                        )
-                                    }
-                                }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -201,38 +207,30 @@ fun PetListScreen(
                             // Grid Info Chips
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 InfoGridChip(
-                                    icon = "⚤",
-                                    text = selectedPet.gender ?: "Macho",
+                                    icon = "🎂",
+                                    text = selectedPet.dateOfBirth ?: "Nacimiento no registrado",
                                     modifier = Modifier.weight(1f)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 InfoGridChip(
-                                    icon = "🎂",
-                                    text = selectedPet.age ?: "2 años",
+                                    icon = "⚖️",
+                                    text = selectedPet.weight ?: "Peso no registrado",
                                     modifier = Modifier.weight(1f)
                                 )
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                InfoGridChip(
-                                    icon = "⏳",
-                                    text = selectedPet.breed ?: selectedPet.species,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                InfoGridChip(
-                                    icon = "⚖️",
-                                    text = selectedPet.weight ?: "4.5 kg",
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                            InfoGridChip(
+                                icon = "🐾",
+                                text = selectedPet.breed ?: "Raza no registrada",
+                                modifier = Modifier.fillMaxWidth()
+                            )
 
                             Spacer(modifier = Modifier.height(20.dp))
 
                             PawMedicSecondaryButton(
-                                text = "View Full Profile",
+                                text = "Ver perfil completo",
                                 onClick = { onNavigateToPetDetail(selectedPet.id) }
                             )
                         }
@@ -241,29 +239,6 @@ fun PetListScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // --- MEDICAL RECORDS SECTION CARDS ---
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(PawMedicColors.White)
-                        .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        RecordRowItem(
-                            icon = "📋",
-                            title = "Medical Records",
-                            badgeColor = PawMedicColors.Teal600
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        RecordRowItem(
-                            icon = "💊",
-                            title = "Prescriptions",
-                            badgeColor = Color(0xFF8B5CF6)
-                        )
-                    }
-                }
             }
         }
 
@@ -276,7 +251,11 @@ fun PetListScreen(
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
         ) {
-            Text(text = "+", fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Agregar mascota",
+                tint = PawMedicColors.White
+            )
         }
     }
 }
@@ -304,40 +283,5 @@ private fun InfoGridChip(
                 color = PawMedicColors.Gray800
             )
         }
-    }
-}
-
-@Composable
-private fun RecordRowItem(
-    icon: String,
-    title: String,
-    badgeColor: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(badgeColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = icon, fontSize = 20.sp, color = PawMedicColors.White)
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
-            )
-        }
-        Text(text = "›", fontSize = 24.sp, color = PawMedicColors.Gray400)
     }
 }

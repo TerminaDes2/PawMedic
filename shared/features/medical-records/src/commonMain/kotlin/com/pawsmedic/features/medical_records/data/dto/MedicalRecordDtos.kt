@@ -11,6 +11,7 @@ import com.pawsmedic.features.medical_records.domain.model.VaccinationRecord
 import com.pawsmedic.features.medical_records.domain.model.VitalSigns
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.random.Random
 
 @Serializable
 data class PetBackgroundDto(
@@ -63,6 +64,7 @@ data class PetBackgroundDto(
 @Serializable
 data class ClinicalConsultationDto(
     @SerialName("id") val id: String? = null,
+    @SerialName("idempotency_key") val idempotencyKey: String = "",
     @SerialName("pet_id") val petId: String,
     @SerialName("tenant_id") val tenantId: String? = null,
     @SerialName("veterinarian_id") val veterinarianId: String = "",
@@ -78,7 +80,7 @@ data class ClinicalConsultationDto(
     @SerialName("treatment_plan") val treatmentPlan: String = "",
     @SerialName("observations") val observations: String = "",
     @SerialName("next_appointment_date") val nextAppointmentDate: String? = null,
-    @SerialName("status") val status: String = "COMPLETED",
+    @SerialName("status") val status: String = "DRAFT",
     @SerialName("occurred_at") val occurredAt: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 ) {
@@ -116,6 +118,7 @@ data class ClinicalConsultationDto(
     companion object {
         fun fromDomain(domain: ClinicalConsultation) = ClinicalConsultationDto(
             id = if (domain.id.isBlank()) null else domain.id,
+            idempotencyKey = randomUuid(),
             petId = domain.petId,
             tenantId = domain.tenantId,
             veterinarianId = domain.veterinarianId,
@@ -133,6 +136,15 @@ data class ClinicalConsultationDto(
             nextAppointmentDate = domain.nextAppointmentDate,
             status = domain.status
         )
+
+        private fun randomUuid(): String {
+            val bytes = Random.nextBytes(16)
+            bytes[6] = ((bytes[6].toInt() and 0x0f) or 0x40).toByte()
+            bytes[8] = ((bytes[8].toInt() and 0x3f) or 0x80).toByte()
+            val hex = bytes.joinToString("") { "%02x".format(it) }
+            return "${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-" +
+                "${hex.substring(16, 20)}-${hex.substring(20)}"
+        }
     }
 }
 

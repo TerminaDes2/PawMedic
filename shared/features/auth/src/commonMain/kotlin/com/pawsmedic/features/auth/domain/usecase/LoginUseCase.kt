@@ -8,6 +8,7 @@ class LoginUseCase(private val repository: AuthRepository) {
     suspend operator fun invoke(params: LoginParams): AuthenticatedSession {
         require(params.email.isNotBlank()) { "El correo electrónico es requerido" }
         require(params.password.isNotBlank()) { "La contraseña es requerida" }
-        return repository.signIn(params)
+        val session = repository.signIn(params)
+        return repository.requireCustomerSession(session)
     }
 }

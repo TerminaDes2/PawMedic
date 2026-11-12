@@ -21,6 +21,39 @@ may be passed to a client adapter. The service-role key is for local Edge
 Function configuration only and must never enter Android, desktop, logs, or
 Git.
 
+For email registration in Android and Desktop, enable email confirmation in
+Supabase Auth and set the confirmation email template to display `{{ .Token }}`
+so users receive the six-digit code entered by the app. Configure SMTP in
+Supabase for reliable delivery to real email addresses; the built-in test SMTP
+service is rate-limited and is not intended for production delivery.
+
+For Google on Android, create a Web OAuth client and an Android OAuth client
+for `com.pawsmedic.mobile` with the signing certificate SHA-1 used to install
+the app. Enable Google as an Auth provider in Supabase, put the Web client ID
+and secret in Supabase's provider settings, and put only that same Web client
+ID in `.env` as `GOOGLE_WEB_CLIENT_ID`. The Google client secret must never be
+added to `.env` or the Android app. The phone must have Google Play Services
+and a Google account available.
+
+The mobile app requires `SUPABASE_URL` and `SUPABASE_ANON_KEY` at build time.
+Google sign-in also requires `GOOGLE_WEB_CLIENT_ID`; email/password
+authentication does not. Desktop apps read the same Supabase URL and anon key
+from the root `.env` or environment variables.
+
+After applying migrations, create the initial Superadmin account through
+Supabase Auth, confirm its email, then promote its profile from the trusted
+Supabase SQL editor:
+
+```sql
+update public.profiles
+set role = 'SUPERADMIN'
+where email = 'your-admin-email@example.com';
+```
+
+Do not expose Superadmin registration in either client. Veterinary
+applications are created only after email verification; the Superadmin
+approval RPC creates the tenant and assigns the approved owner's role.
+
 ## Start Supabase
 
 ```text

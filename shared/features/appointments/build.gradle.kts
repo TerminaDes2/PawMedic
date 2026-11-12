@@ -11,22 +11,21 @@ kotlin {
     jvm("desktop")
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":shared:core:model"))
-            implementation(libs.kotlinx.serialization.json)
-            implementation("io.github.jan-tennert.supabase:postgrest-kt:3.0.0")
-            implementation("io.github.jan-tennert.supabase:auth-kt:3.0.0")
-        }
-        commonTest.dependencies { implementation(kotlin("test")) }
-        commonMain.dependencies {
             implementation(project(":shared:core:design-system"))
+            implementation(project(":shared:core:common"))
             implementation(project(":shared:core:model"))
             implementation(project(":shared:features:businesses"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
+            implementation(libs.supabase.postgrest)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
+        }
+        androidMain.dependencies {
+            implementation(libs.coil.compose)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

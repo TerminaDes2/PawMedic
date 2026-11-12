@@ -13,12 +13,22 @@ returns boolean language sql stable security definer set search_path = public as
     ) or public.is_superadmin();
 $$;
 
--- 2. Helper Function: Verificar acceso a la mascota (Propietario o cualquier Veterinario)
+-- 2. Helper Function: Verificar acceso a la mascota (propietario o miembro del tenant)
 create or replace function public.can_access_pet(target_pet uuid)
 returns boolean language sql stable security definer set search_path = public as $$
     select exists (
         select 1 from public.pets where id = target_pet and owner_id = auth.uid()
-    ) or public.is_veterinarian();
+    ) or exists (
+        select 1
+        from public.medical_records mr
+        where mr.pet_id = target_pet
+          and public.is_tenant_member(mr.tenant_id)
+    ) or exists (
+        select 1
+        from public.clinical_consultations cc
+        where cc.pet_id = target_pet
+          and public.is_tenant_member(cc.tenant_id)
+    );
 $$;
 
 -- 3. Tabla: Antecedentes Médicos de Mascotas
@@ -129,55 +139,139 @@ alter table public.clinical_studies enable row level security;
 -- 10. Políticas de Seguridad (RLS Policies)
 
 -- PET BACKGROUNDS
+drop policy if exists pet_backgrounds_select on public.pet_backgrounds;
+drop policy if exists pet_backgrounds_vet_write on public.pet_backgrounds;
 create policy pet_backgrounds_select on public.pet_backgrounds for select
 using (public.can_access_pet(pet_id));
 
 create policy pet_backgrounds_vet_write on public.pet_backgrounds for all
-using (public.is_veterinarian())
-with check (public.is_veterinarian());
+using (public.is_veterinarian() and public.can_access_pet(pet_id))
+with check (public.is_veterinarian() and public.can_access_pet(pet_id));
 
 -- CLINICAL CONSULTATIONS
 drop policy if exists consultations_clinical_access on public.clinical_consultations;
 drop policy if exists consultations_veterinary_write on public.clinical_consultations;
+drop policy if exists consultations_select_access on public.clinical_consultations;
+drop policy if exists consultations_vet_write on public.clinical_consultations;
 
 create policy consultations_select_access on public.clinical_consultations for select
 using (public.can_access_pet(pet_id));
 
 create policy consultations_vet_write on public.clinical_consultations for all
-using (public.is_veterinarian())
-with check (public.is_veterinarian());
+using (
+    public.is_veterinarian()
+    and public.is_tenant_member(tenant_id)
+    and veterinarian_id = auth.uid()
+)
+with check (
+    public.is_veterinarian()
+    and public.is_tenant_member(tenant_id)
+    and veterinarian_id = auth.uid()
+);
 
 -- PRESCRIPTIONS
+drop policy if exists prescriptions_select on public.prescriptions;
+drop policy if exists prescriptions_vet_write on public.prescriptions;
 create policy prescriptions_select on public.prescriptions for select
 using (public.can_access_pet(pet_id));
 
 create policy prescriptions_vet_write on public.prescriptions for all
-using (public.is_veterinarian())
-with check (public.is_veterinarian());
+using (
+    public.is_veterinarian()
+    and exists (
+        select 1 from public.clinical_consultations cc
+        where cc.id = consultation_id
+          and cc.pet_id = prescriptions.pet_id
+          and public.is_tenant_member(cc.tenant_id)
+    )
+)
+with check (
+    public.is_veterinarian()
+    and exists (
+        select 1 from public.clinical_consultations cc
+        where cc.id = consultation_id
+          and cc.pet_id = prescriptions.pet_id
+          and public.is_tenant_member(cc.tenant_id)
+    )
+);
 
 -- VACCINATIONS
+drop policy if exists vaccinations_select on public.vaccinations;
+drop policy if exists vaccinations_vet_write on public.vaccinations;
 create policy vaccinations_select on public.vaccinations for select
 using (public.can_access_pet(pet_id));
 
 create policy vaccinations_vet_write on public.vaccinations for all
-using (public.is_veterinarian())
-with check (public.is_veterinarian());
+using (
+    public.is_veterinarian()
+    and exists (
+        select 1 from public.clinical_consultations cc
+        where cc.id = consultation_id
+          and cc.pet_id = vaccinations.pet_id
+          and public.is_tenant_member(cc.tenant_id)
+    )
+)
+with check (
+    public.is_veterinarian()
+    and exists (
+        select 1 from public.clinical_consultations cc
+        where cc.id = consultation_id
+          and cc.pet_id = vaccinations.pet_id
+          and public.is_tenant_member(cc.tenant_id)
+    )
+);
 
 -- DEWORMINGS
+drop policy if exists dewormings_select on public.dewormings;
+drop policy if exists dewormings_vet_write on public.dewormings;
 create policy dewormings_select on public.dewormings for select
 using (public.can_access_pet(pet_id));
 
 create policy dewormings_vet_write on public.dewormings for all
-using (public.is_veterinarian())
-with check (public.is_veterinarian());
+using (
+    public.is_veterinarian()
+    and exists (
+        select 1 from public.clinical_consultations cc
+        where cc.id = consultation_id
+          and cc.pet_id = dewormings.pet_id
+          and public.is_tenant_member(cc.tenant_id)
+    )
+)
+with check (
+    public.is_veterinarian()
+    and exists (
+        select 1 from public.clinical_consultations cc
+        where cc.id = consultation_id
+          and cc.pet_id = dewormings.pet_id
+          and public.is_tenant_member(cc.tenant_id)
+    )
+);
 
 -- CLINICAL STUDIES
+drop policy if exists clinical_studies_select on public.clinical_studies;
+drop policy if exists clinical_studies_vet_write on public.clinical_studies;
 create policy clinical_studies_select on public.clinical_studies for select
 using (public.can_access_pet(pet_id));
 
 create policy clinical_studies_vet_write on public.clinical_studies for all
-using (public.is_veterinarian())
-with check (public.is_veterinarian());
+using (
+    public.is_veterinarian()
+    and exists (
+        select 1 from public.clinical_consultations cc
+        where cc.id = consultation_id
+          and cc.pet_id = clinical_studies.pet_id
+          and public.is_tenant_member(cc.tenant_id)
+    )
+)
+with check (
+    public.is_veterinarian()
+    and exists (
+        select 1 from public.clinical_consultations cc
+        where cc.id = consultation_id
+          and cc.pet_id = clinical_studies.pet_id
+          and public.is_tenant_member(cc.tenant_id)
+    )
+);
 
 -- 11. Trigger para Bitácora de Auditoría Automática
 create or replace function public.log_medical_audit_event()
@@ -210,10 +304,12 @@ begin
 end;
 $$;
 
+drop trigger if exists audit_consultations_trg on public.clinical_consultations;
 create trigger audit_consultations_trg
 after insert or update or delete on public.clinical_consultations
 for each row execute function public.log_medical_audit_event();
 
+drop trigger if exists audit_backgrounds_trg on public.pet_backgrounds;
 create trigger audit_backgrounds_trg
 after insert or update on public.pet_backgrounds
 for each row execute function public.log_medical_audit_event();

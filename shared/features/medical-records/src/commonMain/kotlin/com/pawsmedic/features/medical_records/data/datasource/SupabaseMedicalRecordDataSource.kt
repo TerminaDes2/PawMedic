@@ -20,7 +20,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 
 class SupabaseMedicalRecordDataSource(
-    private val supabase: SupabaseClient
+    private val supabase: SupabaseClient,
+    private val ownerId: String? = null
 ) : MedicalRecordDataSource {
 
     override suspend fun getRecordsByPet(petId: String): List<MedicalRecordDto> {

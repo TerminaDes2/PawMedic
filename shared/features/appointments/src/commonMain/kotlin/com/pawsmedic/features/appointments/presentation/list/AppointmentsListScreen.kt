@@ -1,6 +1,7 @@
 package com.pawsmedic.features.appointments.presentation.list
 
 import androidx.compose.foundation.background
+import com.pawsmedic.features.appointments.presentation.friendlyErrorMessage
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +18,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -67,7 +73,7 @@ class AppointmentsListViewModel(
                     _uiState.update { curr -> curr.copy(appointments = list, isLoading = false) }
                 }
                 .onFailure { err ->
-                    _uiState.update { curr -> curr.copy(isLoading = false, errorMessage = err.message) }
+                    _uiState.update { curr -> curr.copy(isLoading = false, errorMessage = friendlyErrorMessage(err)) }
                 }
         }
     }
@@ -96,7 +102,25 @@ fun AppointmentsListScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (uiState.appointments.isEmpty()) {
+        when {
+            uiState.isLoading -> {
+                Text(
+                    text = "Cargando tus citas…",
+                    fontSize = 14.sp,
+                    color = PawMedicColors.Gray500,
+                    modifier = Modifier.padding(vertical = 32.dp)
+                )
+            }
+            uiState.errorMessage != null -> {
+                Text(
+                    text = "${uiState.errorMessage}",
+                    fontSize = 14.sp,
+                    color = PawMedicColors.Error
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::loadAppointments)
+            }
+            uiState.appointments.isEmpty() -> {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -109,10 +133,12 @@ fun AppointmentsListScreen(
                     color = PawMedicColors.Gray500
                 )
             }
-        } else {
-            uiState.appointments.forEach { app ->
-                AppointmentDetailCard(app = app)
-                Spacer(modifier = Modifier.height(16.dp))
+            }
+            else -> {
+                uiState.appointments.forEach { app ->
+                    AppointmentDetailCard(app = app)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
 
@@ -130,6 +156,7 @@ fun AppointmentsListScreen(
 @Composable
 private fun AppointmentDetailCard(app: Appointment) {
     val isPending = app.status.contains("Pendiente", ignoreCase = true)
+    val isConfirmed = app.status.equals("Confirmada", ignoreCase = true)
 
     Box(
         modifier = Modifier
@@ -142,7 +169,6 @@ private fun AppointmentDetailCard(app: Appointment) {
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -153,7 +179,12 @@ private fun AppointmentDetailCard(app: Appointment) {
                             .background(PawMedicColors.Teal50),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "📅", fontSize = 20.sp)
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = PawMedicColors.Teal600,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
@@ -170,18 +201,35 @@ private fun AppointmentDetailCard(app: Appointment) {
                         )
                     }
                 }
+            }
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isPending) Color(0xFFFEF3C7) else Color(0xFFE6F4EA))
+                        .background(
+                            when {
+                                isPending -> Color(0xFFFEF3C7)
+                                isConfirmed -> Color(0xFFE6F4EA)
+                                else -> PawMedicColors.Gray100
+                            }
+                        )
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = if (isPending) "Pendiente" else "Confirmada",
+                        text = app.status,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isPending) Color(0xFF92400E) else PawMedicColors.Teal600
+                        color = when {
+                            isPending -> Color(0xFF92400E)
+                            isConfirmed -> PawMedicColors.Teal600
+                            else -> PawMedicColors.Gray700
+                        }
                     )
                 }
             }
@@ -197,7 +245,12 @@ private fun AppointmentDetailCard(app: Appointment) {
             ) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "🐾", fontSize = 14.sp)
+                        Icon(
+                            imageVector = Icons.Default.Pets,
+                            contentDescription = null,
+                            tint = PawMedicColors.Gray600,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Mascota: ${app.petName}",
@@ -208,7 +261,12 @@ private fun AppointmentDetailCard(app: Appointment) {
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "⏰", fontSize = 14.sp)
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = PawMedicColors.Teal600,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Fecha: ${app.date} • ${app.time}",

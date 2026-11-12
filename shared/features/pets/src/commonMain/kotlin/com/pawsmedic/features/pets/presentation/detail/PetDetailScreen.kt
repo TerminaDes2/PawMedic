@@ -21,12 +21,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.pets.presentation.PetDetailViewModel
+import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
@@ -47,8 +51,8 @@ fun PetDetailScreen(
     viewModel: PetDetailViewModel,
     onBackClick: () -> Unit,
     onNavigateToEdit: (String) -> Unit,
-    onDeleteSuccess: () -> Unit,
     onNavigateToMedicalRecord: (String) -> Unit = {},
+    onDeleteSuccess: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -102,14 +106,15 @@ fun PetDetailScreen(
                     modifier = Modifier
                         .size(110.dp)
                         .clip(CircleShape)
-                        .background(PawMedicColors.Teal50)
-                        .border(3.dp, PawMedicColors.Teal600, CircleShape),
-                    contentAlignment = Alignment.Center
+                        .border(3.dp, PawMedicColors.Teal600, CircleShape)
                 ) {
-                    Text(
-                        text = if (pet.species.contains("Gato", true)) "🐱" else "🐶",
-                        fontSize = 52.sp
-                    )
+                    key(pet.id, pet.photo_url) {
+                        PetAvatarImage(
+                            photo_url = pet.photo_url,
+                            species = pet.species,
+                            size = 110.dp
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -124,7 +129,7 @@ fun PetDetailScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "ID Médico: ${pet.medicalId ?: "PM-8942-A"}",
+                    text = pet.breed ?: "Raza no registrada",
                     fontSize = 13.sp,
                     color = PawMedicColors.Gray500
                 )
@@ -152,13 +157,13 @@ fun PetDetailScreen(
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatCard(
                     title = "Edad",
-                    value = pet.age ?: "2 años",
+                    value = pet.dateOfBirth?.let { "Nac. $it" } ?: "No registrada",
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 StatCard(
                     title = "Notas de Cuidado",
-                    value = pet.allergies ?: "Sin alergias registradas",
+                    value = pet.allergies ?: "Sin notas registradas",
                     isHighlight = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -178,57 +183,34 @@ fun PetDetailScreen(
                     fontWeight = FontWeight.Bold,
                     color = PawMedicColors.Gray900
                 )
-                Text(
-                    text = "Ver expediente completo →",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Teal600,
-                    modifier = Modifier.clickable { onNavigateToMedicalRecord(pet.id) }
-                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            MedicalHistoryItem(
-                title = "Vacunación Triple Felina & Control",
-                dateAndDoctor = "15 Oct 2023 • Dra. Ana Milena"
+            Text(
+                text = "Aún no hay registros clínicos vinculados a esta mascota.",
+                fontSize = 14.sp,
+                color = PawMedicColors.Gray500,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            MedicalHistoryItem(
-                title = "Control de Parásitos Internos",
-                dateAndDoctor = "02 Sep 2023 • Dr. Carlos Ruiz"
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // --- PROMINENT MEDICAL RECORD BUTTON ---
             Button(
                 onClick = { onNavigateToMedicalRecord(pet.id) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PawMedicColors.Teal600,
-                    contentColor = Color.White
-                )
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PawMedicColors.Teal600)
             ) {
                 Text(
-                    text = "📋 Abrir Expediente Médico Digital",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
+                    text = "Abrir expediente médico",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- ACTIONS ---
-            PawMedicPrimaryButton(
-                text = "Agendar cita",
-                onClick = { }
-            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -311,47 +293,6 @@ private fun StatCard(
                 fontWeight = FontWeight.Bold,
                 color = PawMedicColors.Gray900
             )
-        }
-    }
-}
-
-@Composable
-private fun MedicalHistoryItem(
-    title: String,
-    dateAndDoctor: String
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(14.dp))
-            .padding(14.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(PawMedicColors.Teal50),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "📄", fontSize = 18.sp)
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
-                )
-                Text(
-                    text = dateAndDoctor,
-                    fontSize = 12.sp,
-                    color = PawMedicColors.Gray500
-                )
-            }
         }
     }
 }

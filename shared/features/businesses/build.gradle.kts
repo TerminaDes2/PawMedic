@@ -12,12 +12,15 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared:core:design-system"))
+            implementation(project(":shared:features:products"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
+            implementation(libs.supabase.postgrest)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

@@ -26,5 +26,5 @@ data class ClinicalConsultation(
     val observations: String = "",
     val studies: List<ClinicalStudyRecord> = emptyList(),
     val nextAppointmentDate: String? = null,
-    val status: String = "COMPLETED"
+    val status: String = "DRAFT"
 )

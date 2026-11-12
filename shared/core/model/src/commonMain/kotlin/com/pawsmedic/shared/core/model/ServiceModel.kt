@@ -19,9 +19,10 @@ import kotlinx.serialization.Serializable
 data class ServiceModel(
     @SerialName("id") val id: String? = null,
     @SerialName("tenant_id") val tenantId: String,
-    @SerialName("nombre") val nombre: String,
-    @SerialName("descripcion") val descripcion: String,
-    @SerialName("precio_centavos") val precioCentavos: Int,
-    @SerialName("duracion_minutos") val duracionMinutos: Int = 30,
+    @SerialName("name") val nombre: String,
+    @SerialName("description") val descripcion: String = "",
+    @SerialName("price_cents") val precioCentavos: Int,
+    @SerialName("duration_minutes") val duracionMinutos: Int = 30,
+    @SerialName("photo_url") val photoUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 )

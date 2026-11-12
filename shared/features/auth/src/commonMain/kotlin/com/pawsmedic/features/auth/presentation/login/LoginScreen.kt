@@ -10,11 +10,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -29,6 +38,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pawsmedic.shared.core.designsystem.components.GoogleSocialButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
@@ -40,6 +50,8 @@ fun LoginScreen(
     onBackClick: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onLoginSuccess: (String) -> Unit,
+    onGoogleSignInClick: (() -> Unit)? = null,
+    onForgotPasswordClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -61,11 +73,42 @@ fun LoginScreen(
         Column(modifier = Modifier.fillMaxWidth()) {
             PawMedicTopBar(
                 title = "Iniciar sesión",
-                subtitle = "Bienvenido de nuevo a PawMedic",
+                subtitle = "Bienvenido de nuevo a PawsMedic",
                 onBackClick = onBackClick
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            if (onGoogleSignInClick != null) {
+                GoogleSocialButton(
+                    text = "Iniciar sesión con Google",
+                    onClick = onGoogleSignInClick,
+                    isLoading = uiState.isLoading
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = PawMedicColors.Gray300
+                    )
+                    Text(
+                        text = "  o continúa con correo  ",
+                        fontSize = 12.sp,
+                        color = PawMedicColors.Gray500
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = PawMedicColors.Gray300
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
 
             PawMedicTextField(
                 value = uiState.email,
@@ -77,11 +120,11 @@ fun LoginScreen(
                     imeAction = ImeAction.Next
                 ),
                 leadingIcon = {
-                    Text(
-                        text = "@",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             )
@@ -100,36 +143,42 @@ fun LoginScreen(
                 ),
                 keyboardActions = KeyboardActions(onDone = { viewModel.login() }),
                 leadingIcon = {
-                    Text(
-                        text = "🔒",
-                        fontSize = 16.sp,
-                        color = PawMedicColors.Teal600
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = PawMedicColors.Teal600,
+                        modifier = Modifier.size(20.dp)
                     )
                 },
                 trailingIcon = {
-                    Text(
-                        text = if (uiState.isPasswordVisible) "👁" else "🙈",
-                        fontSize = 18.sp,
+                    Icon(
+                        imageVector = if (uiState.isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (uiState.isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                        tint = PawMedicColors.Gray500,
                         modifier = Modifier
+                            .size(20.dp)
                             .clickable { viewModel.togglePasswordVisibility() }
-                            .padding(8.dp)
                     )
                 }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = "¿Olvidaste tu contraseña?",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = PawMedicColors.Teal600,
-                textAlign = TextAlign.End,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { /* Handle forgot password */ }
-                    .padding(vertical = 4.dp)
-            )
+            TextButton(
+                onClick = onForgotPasswordClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "¿Olvidaste tu contraseña?",
+                    color = PawMedicColors.Teal600,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             if (uiState.errorMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -171,4 +220,5 @@ fun LoginScreen(
             )
         }
     }
+
 }
