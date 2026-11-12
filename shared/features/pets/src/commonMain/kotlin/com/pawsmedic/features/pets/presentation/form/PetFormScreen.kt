@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -26,8 +27,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +59,8 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import io.github.jan.supabase.SupabaseClient
 
+private const val TOTAL_STEPS = 3
+
 @Composable
 fun PetFormScreen(
     viewModel: PetFormViewModel,
@@ -71,10 +76,33 @@ fun PetFormScreen(
         onPhotoPicked = viewModel::onPhotoUrlChanged,
         onUploadError = viewModel::onPhotoUploadError
     )
+    var step by rememberSaveable { mutableIntStateOf(0) }
+    var stepError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
             onSaveSuccess()
+        }
+    }
+    LaunchedEffect(step) {
+        stepError = null
+    }
+
+    fun goBack() {
+        if (step > 0) step-- else onBackClick()
+    }
+
+    fun onNext() {
+        val error = validateStep(step, uiState)
+        if (error != null) {
+            stepError = error
+            return
+        }
+        stepError = null
+        if (step < TOTAL_STEPS - 1) {
+            step++
+        } else {
+            viewModel.savePet(onSaveSuccess)
         }
     }
 
@@ -82,132 +110,265 @@ fun PetFormScreen(
         modifier = modifier
             .fillMaxSize()
             .background(PawMedicColors.BackgroundScreen)
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
             title = if (uiState.isEditMode) "Editar Mascota" else "Registrar Mascota",
-            onBackClick = onBackClick
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        PhotoPickerCard(
-            photo_url = uiState.photo_url,
-            species = uiState.species,
-            isEditMode = uiState.isEditMode,
-            onClick = { onPickPhoto?.invoke() ?: defaultPhotoPicker() }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- FIELD 1: NOMBRE (Sin números ni caracteres especiales, min 2 letras) ---
-        PawMedicTextField(
-            value = uiState.name,
-            onValueChange = viewModel::onNameChanged,
-            label = "Nombre de la mascota (Mínimo 2 letras, sin números)",
-            placeholder = "Ej. Max",
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        FormDropdownField(
-            label = "Especie",
-            selectedValue = uiState.species,
-            placeholder = "Selecciona la especie",
-            options = uiState.speciesOptions.map(SpeciesOption::name),
-            enabled = uiState.speciesOptions.isNotEmpty(),
-            onOptionSelected = { name ->
-                uiState.speciesOptions.firstOrNull { it.name == name }
-                    ?.let(viewModel::onSpeciesChanged)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // --- FIELD 3: RAZA (Dropdown dinámico según especie) ---
-        FormDropdownField(
-            label = "Raza",
-            selectedValue = uiState.breed,
-            placeholder = if (uiState.speciesId == null && uiState.species.isBlank()) {
-                "Selecciona primero la especie"
-            } else {
-                "Selecciona la raza"
-            },
-            options = uiState.availableBreeds.map(BreedOption::name),
-            enabled = (uiState.speciesId != null || uiState.species.isNotBlank()) && uiState.availableBreeds.isNotEmpty(),
-            onOptionSelected = { name ->
-                uiState.availableBreeds.firstOrNull { it.name == name }
-                    ?.let(viewModel::onBreedChanged)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        GenderSelector(
-            selectedGender = uiState.gender,
-            onGenderSelected = viewModel::onGenderChanged
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // --- FIELD 4: EDAD (Input numérico + Dropdown de unidades OR Modal DatePicker) ---
-        AgeInputSection(uiState = uiState, viewModel = viewModel)
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // --- FIELD 5: PESO EN KILOS ---
-        PawMedicTextField(
-            value = uiState.weightKg,
-            onValueChange = viewModel::onWeightChanged,
-            label = "Peso aproximado (en kilos)",
-            placeholder = "Ej. 4.5",
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Decimal,
-                imeAction = ImeAction.Next
-            )
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // --- FIELD 6: NOTAS RELEVANTES ---
-        PawMedicTextField(
-            value = uiState.allergies,
-            onValueChange = viewModel::onAllergiesChanged,
-            label = "Notas relevantes (Alergias, cuidados)",
-            placeholder = "Alergias, cuidados especiales, temperamento...",
-            singleLine = false,
-            modifier = Modifier.height(100.dp)
-        )
-
-        if (uiState.errorMessage != null) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = uiState.errorMessage!!,
-                fontSize = 13.sp,
-                color = PawMedicColors.Error,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        PawMedicPrimaryButton(
-            text = if (uiState.isEditMode) "Guardar cambios" else "Guardar mascota",
-            onClick = { viewModel.savePet(onSaveSuccess) },
-            isLoading = uiState.isLoading
+            onBackClick = ::goBack
         )
 
         Spacer(modifier = Modifier.height(12.dp))
+        StepProgress(currentStep = step)
+        Spacer(modifier = Modifier.height(20.dp))
 
-        PawMedicSecondaryButton(
-            text = "Cancelar",
-            onClick = onBackClick
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
+            when (step) {
+                0 -> SpeciesBreedStep(uiState, viewModel)
+                1 -> BasicInfoStep(
+                    uiState = uiState,
+                    viewModel = viewModel,
+                    onPickPhoto = { onPickPhoto?.invoke() ?: defaultPhotoPicker() }
+                )
+                else -> AgeWeightStep(uiState, viewModel)
+            }
+
+            val message = stepError ?: if (step == TOTAL_STEPS - 1) uiState.errorMessage else null
+            if (message != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = message,
+                    fontSize = 13.sp,
+                    color = PawMedicColors.Error,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        PawMedicPrimaryButton(
+            text = when {
+                step < TOTAL_STEPS - 1 -> "Continuar"
+                uiState.isEditMode -> "Guardar cambios"
+                else -> "Guardar mascota"
+            },
+            onClick = ::onNext,
+            isLoading = uiState.isLoading && step == TOTAL_STEPS - 1
         )
-
-        Spacer(modifier = Modifier.height(24.dp))
+        PawMedicSecondaryButton(
+            text = if (step == 0) "Cancelar" else "Atrás",
+            onClick = ::goBack
+        )
+        Spacer(modifier = Modifier.height(8.dp))
     }
+}
+
+private fun validateStep(step: Int, uiState: PetFormUiState): String? = when (step) {
+    0 -> when {
+        uiState.species.isBlank() -> "Selecciona la especie de tu mascota"
+        uiState.availableBreeds.isNotEmpty() && uiState.breed.isBlank() -> "Selecciona la raza"
+        else -> null
+    }
+    1 -> {
+        val name = uiState.name.trim()
+        when {
+            name.length < 2 || !name.all { it.isLetter() || it == ' ' } ->
+                "El nombre debe tener mínimo 2 letras y no incluir números ni símbolos"
+            uiState.gender.isBlank() -> "Selecciona el sexo de tu mascota"
+            else -> null
+        }
+    }
+    else -> when {
+        uiState.ageMode == AgeInputMode.APPROXIMATE &&
+            (uiState.ageNumber.toIntOrNull() ?: 0) <= 0 -> "Ingresa una edad aproximada válida"
+        uiState.ageMode == AgeInputMode.EXACT_DATE && uiState.exactBirthDate.isBlank() ->
+            "Selecciona la fecha de nacimiento"
+        (uiState.weightKg.toDoubleOrNull() ?: 0.0) <= 0.0 ->
+            "Ingresa un peso válido en kilos"
+        else -> null
+    }
+}
+
+@Composable
+private fun StepProgress(currentStep: Int) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            repeat(TOTAL_STEPS) { index ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            if (index <= currentStep) PawMedicColors.Teal600
+                            else PawMedicColors.Gray200
+                        )
+                )
+                if (index < TOTAL_STEPS - 1) Spacer(modifier = Modifier.width(6.dp))
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Paso ${currentStep + 1} de $TOTAL_STEPS",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = PawMedicColors.Gray600
+        )
+    }
+}
+
+@Composable
+private fun StepHeader(title: String, subtitle: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(subtitle, fontSize = 14.sp, color = PawMedicColors.Gray600)
+        Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+
+@Composable
+private fun SpeciesBreedStep(uiState: PetFormUiState, viewModel: PetFormViewModel) {
+    StepHeader(
+        title = "¿Qué tipo de mascota tienes?",
+        subtitle = "Elige la especie y la raza para personalizar su perfil."
+    )
+    uiState.speciesOptions.chunked(2).forEachIndexed { rowIndex, rowItems ->
+        if (rowIndex > 0) Spacer(modifier = Modifier.height(12.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            rowItems.forEachIndexed { index, option ->
+                SpeciesCard(
+                    name = option.name,
+                    isSelected = uiState.species == option.name,
+                    onClick = { viewModel.onSpeciesChanged(option) },
+                    modifier = Modifier.weight(1f)
+                )
+                if (index == 0) Spacer(modifier = Modifier.width(12.dp))
+            }
+            if (rowItems.size == 1) {
+                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(24.dp))
+    FormDropdownField(
+        label = "Raza",
+        selectedValue = uiState.breed,
+        placeholder = if (uiState.species.isBlank()) "Selecciona primero la especie" else "Selecciona la raza",
+        options = uiState.availableBreeds.map(BreedOption::name),
+        enabled = uiState.species.isNotBlank() && uiState.availableBreeds.isNotEmpty(),
+        onOptionSelected = { name ->
+            uiState.availableBreeds.firstOrNull { it.name == name }?.let(viewModel::onBreedChanged)
+        }
+    )
+}
+
+@Composable
+private fun SpeciesCard(
+    name: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = modifier
+            .height(140.dp)
+            .clip(shape)
+            .background(if (isSelected) PawMedicColors.Teal50 else PawMedicColors.White)
+            .border(
+                if (isSelected) 2.dp else 1.dp,
+                if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray200,
+                shape
+            )
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = speciesIconFor(name).vector(),
+                contentDescription = name,
+                tint = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray600,
+                modifier = Modifier.size(52.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                name,
+                fontSize = 14.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                color = PawMedicColors.Gray800,
+                textAlign = TextAlign.Center
+            )
+        }
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(24.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(PawMedicColors.Teal600),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("✓", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.White)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BasicInfoStep(
+    uiState: PetFormUiState,
+    viewModel: PetFormViewModel,
+    onPickPhoto: () -> Unit
+) {
+    StepHeader(
+        title = "Cuéntanos sobre tu mascota",
+        subtitle = "Su nombre, sexo y una foto para reconocerla fácilmente."
+    )
+    PhotoPickerCard(uiState.photo_url, uiState.species, uiState.isEditMode, onPickPhoto)
+    Spacer(modifier = Modifier.height(16.dp))
+    PawMedicTextField(
+        value = uiState.name,
+        onValueChange = viewModel::onNameChanged,
+        label = "Nombre de la mascota (Mínimo 2 letras, sin números)",
+        placeholder = "Ej. Max",
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+    )
+    Spacer(modifier = Modifier.height(14.dp))
+    GenderSelector(uiState.gender, viewModel::onGenderChanged)
+}
+
+@Composable
+private fun AgeWeightStep(uiState: PetFormUiState, viewModel: PetFormViewModel) {
+    StepHeader(
+        title = "Edad y peso",
+        subtitle = "Esta información ayuda a darle un mejor seguimiento de salud."
+    )
+    AgeInputSection(uiState, viewModel)
+    Spacer(modifier = Modifier.height(14.dp))
+    PawMedicTextField(
+        value = uiState.weightKg,
+        onValueChange = viewModel::onWeightChanged,
+        label = "Peso aproximado (en kilos)",
+        placeholder = "Ej. 4.5",
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
+    )
+    Spacer(modifier = Modifier.height(14.dp))
+    PawMedicTextField(
+        value = uiState.allergies,
+        onValueChange = viewModel::onAllergiesChanged,
+        label = "Notas relevantes (Alergias, cuidados)",
+        placeholder = "Alergias, cuidados especiales, temperamento...",
+        singleLine = false,
+        modifier = Modifier.height(100.dp)
+    )
 }
 
 @Composable
