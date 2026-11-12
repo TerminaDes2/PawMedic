@@ -76,6 +76,18 @@ data class AuditLog(
     val entityId: String
 )
 
+fun adminErrorMessage(error: Throwable, fallback: String): String {
+    val message = error.message.orEmpty()
+    return if (message.contains("category", ignoreCase = true) &&
+        message.contains("services", ignoreCase = true) &&
+        message.contains("null", ignoreCase = true)
+    ) {
+        "No se pudo aprobar: el servicio inicial necesita una categoría. Revisa la configuración de servicios en Supabase."
+    } else {
+        fallback
+    }
+}
+
 @Composable
 fun SuperadminDashboardScreen(
     userEmail: String = "",
@@ -101,7 +113,7 @@ fun SuperadminDashboardScreen(
                 AuditLog(item.createdAt, item.actorId ?: "sistema", item.action, item.entityType, item.entityId ?: "—")
             })
         } catch (e: Exception) {
-            auditLoadError = e.message ?: "No se pudo cargar la auditoría."
+            auditLoadError = adminErrorMessage(e, "No se pudo cargar la auditoría.")
         }
     }
 
@@ -369,29 +381,52 @@ fun SuperadminDashboardScreen(
 
 private val jsonDecoder = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
-private suspend fun fetchApplicationsFromDatabase(
-    supabaseClient: SupabaseClient
-): List<BusinessApplicationDto> {
-    val applications = mutableListOf<BusinessApplicationDto>()
+private fun Exception.isMissingDatabaseObject(): Boolean {
+    val message = message.orEmpty()
+    return message.contains("PGRST202", ignoreCase = true) ||
+        message.contains("PGRST205", ignoreCase = true) ||
+        message.contains("42P01", ignoreCase = true) ||
+        message.contains("Could not find the function", ignoreCase = true) ||
+        message.contains("Could not find the table", ignoreCase = true)
+}
+
+private suspend fun fetchApplicationsFromDatabase(supabaseClient: SupabaseClient): List<BusinessApplicationDto> {
+    val result = mutableListOf<BusinessApplicationDto>()
+    var succeeded = false
+    var failure: Exception? = null
     try {
         val rpcResult = supabaseClient.postgrest.rpc("get_all_business_applications")
-        val rpcApplications = jsonDecoder.decodeFromString<List<BusinessApplicationDto>>(rpcResult.data)
-        applications.addAll(rpcApplications)
-    } catch (_: Exception) {
-        // The RPC is optional; the normalized tables remain the fallback.
+        return jsonDecoder.decodeFromString<List<BusinessApplicationDto>>(rpcResult.data)
+    } catch (e: kotlinx.coroutines.CancellationException) { throw e
+    } catch (e: Exception) {
+        if (!e.isMissingDatabaseObject()) throw e
+        failure = e
     }
 
     try {
-        applications.addAll(
-            supabaseClient.postgrest["businesses"]
-                .select()
-                .decodeList<BusinessApplicationDto>()
-                .filter { business -> applications.none { it.id == business.id } }
-        )
-    } catch (_: Exception) {
-        // The RPC remains the primary path; direct businesses is the fallback.
+        val list1 = supabaseClient.postgrest["business_applications"].select().decodeList<BusinessApplicationDto>()
+        result.addAll(list1.filter { item -> result.none { it.id == item.id } })
+        succeeded = true
+    } catch (e: kotlinx.coroutines.CancellationException) { throw e
+    } catch (e: Exception) {
+        if (!e.isMissingDatabaseObject()) throw e
+        failure = e
     }
-    return applications
+    try {
+        val list2 = supabaseClient.postgrest["businesses"].select().decodeList<BusinessApplicationDto>()
+        for (item in list2) {
+            if (result.none { it.id == item.id }) {
+                result.add(item)
+            }
+        }
+        succeeded = true
+    } catch (e: kotlinx.coroutines.CancellationException) { throw e
+    } catch (e: Exception) {
+        if (!e.isMissingDatabaseObject()) throw e
+        failure = e
+    }
+    if (!succeeded) throw failure ?: IllegalStateException("No se pudieron consultar las solicitudes.")
+    return result
 }
 
 // MÓDULO 1: MONITOREO
@@ -411,7 +446,7 @@ fun MonitoreoModule(supabaseClient: SupabaseClient) {
                 list.filter { it.status == "APPROVED" || it.status == "SUSPENDED" }
             )
         } catch (e: Exception) {
-            errorMessage = e.message ?: "No se pudieron cargar las veterinarias."
+            errorMessage = adminErrorMessage(e, "No se pudieron cargar las veterinarias.")
         } finally {
             isLoading = false
         }
@@ -494,7 +529,7 @@ fun MonitoreoModule(supabaseClient: SupabaseClient) {
                                     val index = businesses.indexOf(business)
                                     if (index >= 0) businesses[index] = business.copy(status = nextStatus)
                                 } catch (e: Exception) {
-                                    errorMessage = e.message ?: "No se pudo cambiar el estado."
+                                    errorMessage = adminErrorMessage(e, "No se pudo cambiar el estado.")
                                 } finally {
                                     busyBusinessId = null
                                 }
@@ -552,7 +587,7 @@ fun SolicitudesModule(
                 )
             })
         } catch (e: Exception) {
-            errorMessage = e.message ?: "No se pudieron cargar las solicitudes."
+            errorMessage = adminErrorMessage(e, "No se pudieron cargar las solicitudes.")
         } finally {
             isLoading = false
         }
@@ -565,6 +600,8 @@ fun SolicitudesModule(
             try {
                 val parameters = buildJsonObject {
                     put("p_business_id", req.id)
+                    put("p_application_id", req.id)
+                    put("p_id", req.id)
                     if (newStatus == "Rechazado") put("p_reason", "")
                 }
                 val function = if (newStatus == "Aprobado") {
@@ -573,10 +610,11 @@ fun SolicitudesModule(
                     "reject_business_application"
                 }
                 supabaseClient.postgrest.rpc(function, parameters)
+
                 val idx = requests.indexOf(req)
                 if (idx >= 0) requests[idx] = req.copy(status = newStatus)
             } catch (e: Exception) {
-                errorMessage = e.message ?: "No se pudo guardar la decisión."
+                errorMessage = adminErrorMessage(e, "No se pudo guardar la decisión.")
             } finally {
                 isActionLoading = false
             }
@@ -630,7 +668,7 @@ fun SolicitudesModule(
                                     )
                                 })
                             } catch (e: Exception) {
-                                errorMessage = e.message ?: "No se pudieron cargar las solicitudes."
+                                errorMessage = adminErrorMessage(e, "No se pudieron cargar las solicitudes.")
                             } finally {
                                 isLoading = false
                             }

@@ -98,7 +98,7 @@ fun ExpedientesScreen(
                 filter { eq("id", userId) }
             }.decodeSingle<UserProfile>()
             if (profile.role != ProfileRole.VETERINARY_BUSINESS) error("Los expedientes solo están disponibles para cuentas veterinarias.")
-            val clinicId = profile.tenantId ?: error("El perfil no tiene una clínica asignada.")
+            val clinicId = com.pawsmedic.desktop.veterinary.model.resolveTenantId(supabase, userId, profile)
             tenantId = clinicId
             veterinarianId = userId
             consultations = supabase.postgrest["clinical_consultations"].select {

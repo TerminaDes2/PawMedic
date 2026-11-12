@@ -17,6 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -47,6 +52,51 @@ fun SuperadminLoginScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
+
+    fun submitLogin() {
+        if (isLoading) return
+        isLoading = true
+        coroutineScope.launch {
+            errorMessage = null
+            try {
+                val cleanEmail = email.trim()
+                val submittedPassword = password
+                if (cleanEmail.isBlank() || submittedPassword.isBlank()) {
+                    throw IllegalArgumentException("Por favor ingrese correo y contraseña.")
+                }
+                supabase.auth.signInWith(SupabaseEmail) {
+                    this.email = cleanEmail
+                    this.password = submittedPassword
+                }
+                val session = supabase.auth.currentSessionOrNull() ?: error("No se pudo iniciar sesión.")
+                val userId = session.user?.id ?: error("La sesión no contiene un identificador de usuario.")
+                val profile = supabase.postgrest["profiles"]
+                    .select { filter { eq("id", userId) } }
+                    .decodeSingle<UserProfile>()
+                if (profile.role != ProfileRole.SUPERADMIN) {
+                    supabase.auth.signOut()
+                    error("Esta cuenta no tiene permisos de Superadmin.")
+                }
+                SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
+                onNavigateToAdminMain(cleanEmail)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val rawMsg = e.message.orEmpty()
+                errorMessage = when {
+                    rawMsg.contains("missing email or phone", ignoreCase = true) ||
+                    rawMsg.contains("invalid_credentials", ignoreCase = true) ||
+                    rawMsg.contains("invalid login", ignoreCase = true) ->
+                        "Correo o contraseña incorrectos, o cuenta no verificada."
+                    e is IllegalArgumentException || e is IllegalStateException ->
+                        rawMsg.lineSequence().firstOrNull().orEmpty().ifBlank { "Error de acceso." }
+                    else -> "No se pudo iniciar sesión. Revisa tu conexión e inténtalo de nuevo."
+                }
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -191,7 +241,12 @@ fun SuperadminLoginScreen(
 
                         Column(
                             verticalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth().onPreviewKeyEvent {
+                                if (it.type == KeyEventType.KeyDown && (it.key == Key.Enter || it.key == Key.NumPadEnter)) {
+                                    submitLogin()
+                                    true
+                                } else false
+                            }
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("Correo de Superadmin", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
@@ -259,47 +314,7 @@ fun SuperadminLoginScreen(
                         }
 
                         Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    isLoading = true
-                                    errorMessage = null
-                                    try {
-                                        val cleanEmail = email.trim()
-                                        val submittedPassword = password
-
-                                        if (cleanEmail.isBlank() || submittedPassword.isBlank()) {
-                                            throw IllegalArgumentException("Por favor ingrese correo y contraseña.")
-                                        }
-
-                                        supabase.auth.signInWith(SupabaseEmail) {
-                                            this.email = cleanEmail
-                                            this.password = submittedPassword
-                                        }
-                                        val session = supabase.auth.currentSessionOrNull() ?: error("No se pudo iniciar sesión.")
-                                        val profile = supabase.postgrest["profiles"]
-                                            .select { filter { eq("id", session.user!!.id) } }
-                                            .decodeSingle<UserProfile>()
-                                        if (profile.role != ProfileRole.SUPERADMIN) {
-                                            supabase.auth.signOut()
-                                            error("Esta cuenta no tiene permisos de Superadmin.")
-                                        }
-
-                                        SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
-                                        onNavigateToAdminMain(cleanEmail)
-                                    } catch (e: Exception) {
-                                        val rawMsg = e.message.orEmpty()
-                                        errorMessage = when {
-                                            rawMsg.contains("missing email or phone", ignoreCase = true) ||
-                                            rawMsg.contains("invalid_credentials", ignoreCase = true) ||
-                                            rawMsg.contains("invalid login", ignoreCase = true) ->
-                                                "Correo o contraseña incorrectos, o cuenta no verificada."
-                                            else -> rawMsg.ifBlank { "Error de acceso. Verifique sus credenciales." }
-                                        }
-                                    } finally {
-                                        isLoading = false
-                                    }
-                                }
-                            },
+                            onClick = ::submitLogin,
                             enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()

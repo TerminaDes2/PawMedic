@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -416,6 +418,7 @@ private fun BookingPetAvatar(
 }
 
 // --- STEP 3: SELECT DATE & TIME ---
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SelectDateTimeStep(
     uiState: BookingUiState,
@@ -427,6 +430,17 @@ private fun SelectDateTimeStep(
     var showDatePickerModal by remember { mutableStateOf(false) }
 
     if (showDatePickerModal) {
+        val today = bookingToday()
+        val limit = bookingDateLimit(today)
+        val selectableDates = remember(today) {
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    isBookableDate(convertMillisToIsoDateString(utcTimeMillis), today)
+
+                override fun isSelectableYear(year: Int): Boolean =
+                    year in today.substring(0, 4).toInt()..limit.substring(0, 4).toInt()
+            }
+        }
         DatePickerModal(
             onDateSelected = { selectedMillis ->
                 if (selectedMillis != null) {
@@ -436,7 +450,9 @@ private fun SelectDateTimeStep(
                 }
                 showDatePickerModal = false
             },
-            onDismiss = { showDatePickerModal = false }
+            onDismiss = { showDatePickerModal = false },
+            yearRange = today.substring(0, 4).toInt()..limit.substring(0, 4).toInt(),
+            selectableDates = selectableDates
         )
     }
 
@@ -456,7 +472,7 @@ private fun SelectDateTimeStep(
 
         // --- CALENDAR DATE SELECTION ---
         Text(
-            text = "Fecha de la cita (Dentro de 1 mes, solo fechas futuras)",
+            text = "Fecha de la cita (desde mañana y hasta dentro de dos años)",
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = PawMedicColors.Gray800,

@@ -132,20 +132,9 @@ class BookingViewModel(
     }
 
     fun selectDate(date: String, millis: Long? = null, displayDate: String = date) {
-        // Validation: Ensure date is in the future within 1 month (30 days)
-        val todayMillis = System.currentTimeMillis()
-        val oneDayMillis = 86400000L
-        val maxAllowedMillis = todayMillis + (30L * oneDayMillis)
-
-        if (millis != null) {
-            if (millis <= todayMillis) {
-                _uiState.update { curr -> curr.copy(errorMessage = "La fecha debe ser futura (a partir de mañana). No se permite hoy ni fechas pasadas.") }
-                return
-            }
-            if (millis > maxAllowedMillis) {
-                _uiState.update { curr -> curr.copy(errorMessage = "La fecha debe estar dentro del próximo mes (máximo 30 días).") }
-                return
-            }
+        if (!isBookableDate(date, bookingToday())) {
+            _uiState.update { curr -> curr.copy(errorMessage = "Selecciona una fecha desde mañana y hasta dentro de dos años.") }
+            return
         }
 
         _uiState.update { curr ->
