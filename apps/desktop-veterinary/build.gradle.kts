@@ -32,6 +32,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
+<<<<<<< HEAD
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
 }
@@ -39,6 +40,12 @@ dependencies {
 application {
     mainClass.set("com.pawsmedic.desktop.veterinary.MainKt")
 }
+=======
+    testImplementation(kotlin("test"))
+}
+
+application { mainClass.set("com.pawsmedic.desktop.veterinary.MainKt") }
+>>>>>>> BapoGod
 
 tasks.withType<JavaExec>().configureEach {
     jvmArgs("--enable-native-access=ALL-UNNAMED")

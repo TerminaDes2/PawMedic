@@ -46,7 +46,6 @@ private data class SubmittedBusinessApplication(
 
 @Composable
 fun RegisterScreen(
-    onNavigateToVetMain: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     var clinicName by remember { mutableStateOf("") }
@@ -77,32 +76,74 @@ fun RegisterScreen(
     val coroutineScope = rememberCoroutineScope()
 
     suspend fun submitApplication() {
-        try {
-            val rpcResult = supabase.postgrest.rpc(
+        val user = supabase.auth.currentUserOrNull()
+            ?: error("Debes verificar el correo e iniciar sesión antes de enviar la solicitud.")
+        val userEmail = user.email ?: adminEmail.trim()
+        val application = try {
+            val result = supabase.postgrest.rpc(
                 function = "submit_business_application",
                 parameters = buildJsonObject {
+                    put("p_veterinarian_name", vetManagerName.trim())
+                    put("p_business_name", clinicName.trim())
+                    put("p_tax_id", rucTaxId.trim())
+                    put("p_contact_phone", contactPhone.trim())
+                    put("p_address", clinicAddress.trim())
+                    put("p_professional_license", licenseNumber.trim())
+                    put("p_contact_email", userEmail)
+                    put("p_city", "Mexico City")
+                }
+            )
+            kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                .decodeFromString<SubmittedBusinessApplication>(result.data)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (!e.message.orEmpty().contains("Could not find the function", ignoreCase = true) &&
+                !e.message.orEmpty().contains("PGRST202", ignoreCase = true)) throw e
+            val result = try {
+                supabase.postgrest.rpc("submit_business_application", buildJsonObject {
                     put("p_applicant_name", vetManagerName.trim())
                     put("p_business_name", clinicName.trim())
                     put("p_tax_id", rucTaxId.trim())
                     put("p_phone", contactPhone.trim())
                     put("p_address", clinicAddress.trim())
                     put("p_license_number", licenseNumber.trim())
+                }).let {
+                    kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                        .decodeFromString<SubmittedBusinessApplication>(it.data)
                 }
-            )
-            val application = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                .decodeFromString<SubmittedBusinessApplication>(rpcResult.data)
-            submittedFolio = application.id
-            successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
-            requiresEmailVerification = false
-            kotlinx.coroutines.delay(2000)
-            supabase.auth.signOut()
-            onNavigateToLogin()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            println("=== PAWSMEDIC SUBMIT APPLICATION ERROR ===")
-            println(e.stackTraceToString())
-            throw e
+            } catch (fallback: CancellationException) {
+                throw fallback
+            } catch (fallback: Exception) {
+                if (!fallback.message.orEmpty().contains("Could not find the function", ignoreCase = true) &&
+                    !fallback.message.orEmpty().contains("PGRST202", ignoreCase = true)) throw fallback
+                supabase.postgrest["business_applications"].insert(
+                    buildJsonObject {
+                        put("applicant_id", user.id)
+                        put("business_name", clinicName.trim())
+                        put("address", clinicAddress.trim())
+                        put("city", "Mexico City")
+                        put("tax_id", rucTaxId.trim())
+                        put("contact_phone", contactPhone.trim())
+                        put("veterinarian_name", vetManagerName.trim())
+                        put("professional_license", licenseNumber.trim())
+                        put("contact_email", userEmail)
+                        put("status", "PENDING")
+                    }
+                ) { select() }.decodeSingle<SubmittedBusinessApplication>()
+            }
+            supabase.postgrest["profiles"].update({ set("role", "VETERINARY_BUSINESS") }) {
+                filter { eq("id", user.id) }
+                select()
+            }.decodeSingle<com.pawsmedic.shared.core.model.UserProfile>()
+            result
         }
+        submittedFolio = application.id
+        successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
+        requiresEmailVerification = false
+        kotlinx.coroutines.delay(2000)
+        supabase.auth.signOut()
+        onNavigateToLogin()
     }
 
     fun validatePassword(pwd: String): String? {
@@ -523,25 +564,32 @@ fun RegisterScreen(
                                                         useExistingAccount = true
                                                         errorMessage = "Este correo ya está registrado en el sistema. Inicia sesión con tus credenciales para enviar la solicitud."
                                                         return@launch
+<<<<<<< HEAD
                                                     } else if (rawMsg.contains("rate limit", ignoreCase = true) ||
                                                         rawMsg.contains("429", ignoreCase = true)) {
                                                         errorMessage = "Supabase ha alcanzado el límite de correos. Espera unos minutos o usa la opción 'Ya tengo cuenta'."
+=======
+                                                    } else if (rawMsg.contains("rate limit", ignoreCase = true) || rawMsg.contains("429", ignoreCase = true)) {
+                                                        errorMessage = "Supabase ha alcanzado el límite de envío de correos por hora. Por favor espera unos minutos o usa la opción 'Ya tengo cuenta'."
+>>>>>>> BapoGod
                                                         return@launch
                                                     } else {
                                                         throw e
                                                     }
                                                 }
 
+                                                // Si Supabase no exige confirmación de correo (o auto-confirma),
+                                                // el usuario ya tiene sesión activa y se envía la solicitud de inmediato.
                                                 if (supabase.auth.currentSessionOrNull() != null) {
-                                                    supabase.auth.signOut()
-                                                    error("Activa la confirmación de correo en Supabase para exigir el código de verificación.")
+                                                    submitApplication()
+                                                } else {
+                                                    accountCreated = true
+                                                    requiresEmailVerification = true
+                                                    verificationCode = ""
+                                                    successMessage =
+                                                        "Si este correo es nuevo, recibirás un código en ${adminEmail.trim()}. " +
+                                                            "Si ya tienes una cuenta de PawMedic, inicia sesión con esa cuenta para enviar la solicitud."
                                                 }
-                                                accountCreated = true
-                                                requiresEmailVerification = true
-                                                verificationCode = ""
-                                                successMessage =
-                                                    "Si este correo es nuevo, recibirás un código en ${adminEmail.trim()}. " +
-                                                        "Si ya tienes una cuenta de PawMedic, inicia sesión con esa cuenta para enviar la solicitud."
                                             }
                                         }
                                     } catch (e: CancellationException) {
@@ -729,14 +777,12 @@ fun RegisterScreen(
 @Composable
 fun RegisterScreenPreview() {
     RegisterScreen(
-        onNavigateToVetMain = {},
         onNavigateToLogin = {}
     )
 }
 
 fun main() = singleWindowApplication(title = "Preview - Register Screen") {
     RegisterScreen(
-        onNavigateToVetMain = {},
         onNavigateToLogin = {}
     )
 }
