@@ -12,17 +12,18 @@ import androidx.compose.ui.unit.dp
  * Iconos de Lucide (https://lucide.dev) convertidos a ImageVector.
  * Son de solo trazo (stroke 2, round caps/joins, viewBox 24x24), así que se tiñen con `Icon(tint = ...)`.
  */
-internal enum class SpeciesIcon { DOG, CAT, RODENT, BIRD, FISH, OTHER }
+internal enum class SpeciesIcon { DOG, CAT, RODENT, BIRD, FISH, REPTIL, OTHER }
 
 /** Mapea el nombre de la especie (viene de la BD) al icono correspondiente. */
 internal fun speciesIconFor(name: String): SpeciesIcon {
     val n = name.lowercase().trim()
     return when {
-        "canin" in n || "perro" in n || "dog" in n -> SpeciesIcon.DOG
-        "felin" in n || "gato" in n || "cat" in n -> SpeciesIcon.CAT
+        "canino" in n || "perro" in n || "dog" in n -> SpeciesIcon.DOG
+        "felino" in n || "gato" in n || "cat" in n -> SpeciesIcon.CAT
         "roedor" in n || "conejo" in n || "peque" in n || "rodent" in n -> SpeciesIcon.RODENT
         n == "ave" || n == "aves" || "pájaro" in n || "pajaro" in n || "bird" in n -> SpeciesIcon.BIRD
         "pez" in n || "peces" in n || "fish" in n -> SpeciesIcon.FISH
+        "reptil" in n || "reptiles" in n || "reptil" in n -> SpeciesIcon.REPTIL
         else -> SpeciesIcon.OTHER
     }
 }
@@ -33,6 +34,7 @@ internal fun SpeciesIcon.vector(): ImageVector = when (this) {
     SpeciesIcon.RODENT -> RodentIcon
     SpeciesIcon.BIRD -> BirdIcon
     SpeciesIcon.FISH -> FishIcon
+    SpeciesIcon.REPTIL -> ReptilIcon
     SpeciesIcon.OTHER -> PawPrintIcon
 }
 
@@ -118,6 +120,15 @@ private val FishIcon: ImageVector by lazy {
     )
 }
 
+private val ReptilIcon: ImageVector by lazy {
+    lucide(
+        "Turtle",
+        "m12 10 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a8 8 0 1 0-16 0v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3l2-4h4Z",
+        "M4.82 7.9 8 10",
+        "M15.18 7.9 12 10",
+        "M16.93 10H20a2 2 0 0 1 0 4H2"
+    )
+}
 private val PawPrintIcon: ImageVector by lazy {
     lucide(
         "PawPrint",

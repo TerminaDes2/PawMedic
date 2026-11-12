@@ -133,64 +133,125 @@ val DEFAULT_SPECIES_OPTIONS = listOf(
     SpeciesOption(1, "Canino"),
     SpeciesOption(2, "Felino"),
     SpeciesOption(3, "Ave"),
-    SpeciesOption(4, "Roedor"),
-    SpeciesOption(5, "Otro")
+    SpeciesOption(4, "Reptil"),
+    SpeciesOption(5, "Conejo"),
+    SpeciesOption(6, "Cobaya / Cuy"),
+    SpeciesOption(7, "Hámster"),
+    SpeciesOption(8, "Hurón"),
+    SpeciesOption(9, "Erizo"),
+    SpeciesOption(10, "Chinchilla y Degú")
 )
 
 val DEFAULT_BREED_OPTIONS = listOf(
     // Canino (speciesId = 1)
-    BreedOption(101, "Mestizo / Criollo", 1, SpeciesOption(1, "Canino")),
-    BreedOption(102, "Labrador Retriever", 1, SpeciesOption(1, "Canino")),
-    BreedOption(103, "Golden Retriever", 1, SpeciesOption(1, "Canino")),
-    BreedOption(104, "Pastor Alemán", 1, SpeciesOption(1, "Canino")),
-    BreedOption(105, "Poodle / Caniche", 1, SpeciesOption(1, "Canino")),
-    BreedOption(106, "Bulldog", 1, SpeciesOption(1, "Canino")),
-    BreedOption(107, "Beagle", 1, SpeciesOption(1, "Canino")),
-    BreedOption(108, "Chihuahua", 1, SpeciesOption(1, "Canino")),
-    BreedOption(109, "Pug", 1, SpeciesOption(1, "Canino")),
-    BreedOption(110, "Schnauzer", 1, SpeciesOption(1, "Canino")),
-    BreedOption(111, "Boxer", 1, SpeciesOption(1, "Canino")),
-    BreedOption(112, "Dachshund (Teckel)", 1, SpeciesOption(1, "Canino")),
-    BreedOption(113, "Shih Tzu", 1, SpeciesOption(1, "Canino")),
-    BreedOption(114, "Yorkshire Terrier", 1, SpeciesOption(1, "Canino")),
-    BreedOption(115, "Pomerania", 1, SpeciesOption(1, "Canino")),
-    BreedOption(116, "Husky Siberiano", 1, SpeciesOption(1, "Canino")),
-    BreedOption(117, "Rottweiler", 1, SpeciesOption(1, "Canino")),
-    BreedOption(118, "Doberman", 1, SpeciesOption(1, "Canino")),
-    BreedOption(119, "Gran Danés", 1, SpeciesOption(1, "Canino")),
-    BreedOption(120, "Otro / Desconocido", 1, SpeciesOption(1, "Canino")),
+    BreedOption(1, "Labrador Retriever", 1, SpeciesOption(1, "Canino")),
+    BreedOption(2, "Pastor Alemán", 1, SpeciesOption(1, "Canino")),
+    BreedOption(3, "Golden Retriever", 1, SpeciesOption(1, "Canino")),
+    BreedOption(4, "Bulldog Francés", 1, SpeciesOption(1, "Canino")),
+    BreedOption(5, "Bulldog Inglés", 1, SpeciesOption(1, "Canino")),
+    BreedOption(6, "Poodle (Caniche)", 1, SpeciesOption(1, "Canino")),
+    BreedOption(7, "Beagle", 1, SpeciesOption(1, "Canino")),
+    BreedOption(8, "Chihuahua", 1, SpeciesOption(1, "Canino")),
+    BreedOption(9, "Rottweiler", 1, SpeciesOption(1, "Canino")),
+    BreedOption(10, "Yorkshire Terrier", 1, SpeciesOption(1, "Canino")),
+    BreedOption(11, "Boxer", 1, SpeciesOption(1, "Canino")),
+    BreedOption(12, "Dachshund (Salchicha)", 1, SpeciesOption(1, "Canino")),
+    BreedOption(13, "Husky Siberiano", 1, SpeciesOption(1, "Canino")),
+    BreedOption(14, "Dóberman", 1, SpeciesOption(1, "Canino")),
+    BreedOption(15, "Schnauzer Miniatura", 1, SpeciesOption(1, "Canino")),
+    BreedOption(16, "Shih Tzu", 1, SpeciesOption(1, "Canino")),
+    BreedOption(17, "Pomerania", 1, SpeciesOption(1, "Canino")),
+    BreedOption(18, "Border Collie", 1, SpeciesOption(1, "Canino")),
+    BreedOption(19, "Pug", 1, SpeciesOption(1, "Canino")),
+    BreedOption(20, "Pitbull (American Pit Bull Terrier)", 1, SpeciesOption(1, "Canino")),
 
     // Felino (speciesId = 2)
-    BreedOption(201, "Mestizo Doméstico", 2, SpeciesOption(2, "Felino")),
-    BreedOption(202, "Siamés", 2, SpeciesOption(2, "Felino")),
-    BreedOption(203, "Persa", 2, SpeciesOption(2, "Felino")),
-    BreedOption(204, "Maine Coon", 2, SpeciesOption(2, "Felino")),
-    BreedOption(205, "Bengalí", 2, SpeciesOption(2, "Felino")),
-    BreedOption(206, "Ragdoll", 2, SpeciesOption(2, "Felino")),
-    BreedOption(207, "Sphynx (Esfinge)", 2, SpeciesOption(2, "Felino")),
-    BreedOption(208, "British Shorthair", 2, SpeciesOption(2, "Felino")),
-    BreedOption(209, "Angora", 2, SpeciesOption(2, "Felino")),
-    BreedOption(210, "Otro / Desconocido", 2, SpeciesOption(2, "Felino")),
+    BreedOption(21, "Gato Doméstico de Pelo Corto (Común Europeo)", 2, SpeciesOption(2, "Felino")),
+    BreedOption(22, "Siamés", 2, SpeciesOption(2, "Felino")),
+    BreedOption(23, "Persa", 2, SpeciesOption(2, "Felino")),
+    BreedOption(24, "Maine Coon", 2, SpeciesOption(2, "Felino")),
+    BreedOption(25, "British Shorthair", 2, SpeciesOption(2, "Felino")),
+    BreedOption(26, "Ragdoll", 2, SpeciesOption(2, "Felino")),
+    BreedOption(27, "Sphynx (Esfinge)", 2, SpeciesOption(2, "Felino")),
+    BreedOption(28, "Bengalí (Bengal)", 2, SpeciesOption(2, "Felino")),
+    BreedOption(29, "Abisinio", 2, SpeciesOption(2, "Felino")),
+    BreedOption(30, "Angora Turco", 2, SpeciesOption(2, "Felino")),
+    BreedOption(31, "Azul Ruso", 2, SpeciesOption(2, "Felino")),
+    BreedOption(32, "Birmano", 2, SpeciesOption(2, "Felino")),
+    BreedOption(33, "Scottish Fold", 2, SpeciesOption(2, "Felino")),
+    BreedOption(34, "Exótico de Pelo Corto", 2, SpeciesOption(2, "Felino")),
+    BreedOption(35, "Bosque de Noruega", 2, SpeciesOption(2, "Felino")),
+    BreedOption(36, "Manx", 2, SpeciesOption(2, "Felino")),
+    BreedOption(37, "Tonkinés", 2, SpeciesOption(2, "Felino")),
+    BreedOption(38, "Balinés", 2, SpeciesOption(2, "Felino")),
+    BreedOption(39, "Mau Egipcio", 2, SpeciesOption(2, "Felino")),
+    BreedOption(40, "Gato Doméstico de Pelo Largo", 2, SpeciesOption(2, "Felino")),
 
     // Ave (speciesId = 3)
-    BreedOption(301, "Perico / Periquito", 3, SpeciesOption(3, "Ave")),
-    BreedOption(302, "Canario", 3, SpeciesOption(3, "Ave")),
-    BreedOption(303, "Ninfa", 3, SpeciesOption(3, "Ave")),
-    BreedOption(304, "Loro", 3, SpeciesOption(3, "Ave")),
-    BreedOption(305, "Cacatúa", 3, SpeciesOption(3, "Ave")),
-    BreedOption(306, "Agapornis", 3, SpeciesOption(3, "Ave")),
-    BreedOption(307, "Otro / Desconocido", 3, SpeciesOption(3, "Ave")),
+    BreedOption(41, "Periquito Australiano (Budgerigar)", 3, SpeciesOption(3, "Ave")),
+    BreedOption(42, "Ninfa (Cockatiel)", 3, SpeciesOption(3, "Ave")),
+    BreedOption(43, "Agapornis (Inseparables)", 3, SpeciesOption(3, "Ave")),
+    BreedOption(44, "Canario", 3, SpeciesOption(3, "Ave")),
+    BreedOption(45, "Guacamayo (Ara)", 3, SpeciesOption(3, "Ave")),
+    BreedOption(46, "Yaco (Loro Gris Africano)", 3, SpeciesOption(3, "Ave")),
+    BreedOption(47, "Cacatúa Galerita / Alba", 3, SpeciesOption(3, "Ave")),
+    BreedOption(48, "Perico Monje (Cotorra Argentina)", 3, SpeciesOption(3, "Ave")),
+    BreedOption(49, "Pinzón Cebras (Zebra Finch)", 3, SpeciesOption(3, "Ave")),
+    BreedOption(50, "Conura de sol (Sun Conure)", 3, SpeciesOption(3, "Ave")),
+    BreedOption(51, "Loro Eclecto", 3, SpeciesOption(3, "Ave")),
+    BreedOption(52, "Perico de Bourke", 3, SpeciesOption(3, "Ave")),
+    BreedOption(53, "Paloma Diamante", 3, SpeciesOption(3, "Ave")),
+    BreedOption(54, "Lorito Lory", 3, SpeciesOption(3, "Ave")),
+    BreedOption(55, "Cacatúa Rosada (Galah)", 3, SpeciesOption(3, "Ave")),
+    BreedOption(56, "Perico Australiano Multicolor", 3, SpeciesOption(3, "Ave")),
+    BreedOption(57, "Cacatúa de Leadbeater", 3, SpeciesOption(3, "Ave")),
+    BreedOption(58, "Lorículo", 3, SpeciesOption(3, "Ave")),
+    BreedOption(59, "Perico de Kramer", 3, SpeciesOption(3, "Ave")),
+    BreedOption(60, "Cacatúa Enana", 3, SpeciesOption(3, "Ave")),
 
-    // Roedor (speciesId = 4)
-    BreedOption(401, "Hámster", 4, SpeciesOption(4, "Roedor")),
-    BreedOption(402, "Cuy / Cobaya", 4, SpeciesOption(4, "Roedor")),
-    BreedOption(403, "Conejo", 4, SpeciesOption(4, "Roedor")),
-    BreedOption(404, "Chinchilla", 4, SpeciesOption(4, "Roedor")),
-    BreedOption(405, "Rata doméstica", 4, SpeciesOption(4, "Roedor")),
-    BreedOption(406, "Otro / Desconocido", 4, SpeciesOption(4, "Roedor")),
+    // Reptil (speciesId = 4)
+    BreedOption(61, "Gecko Leopardo", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(62, "Dragón Barbudo", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(63, "Serpiente del Maíz (Corn Snake)", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(64, "Pitón Real (Ball Python)", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(65, "Tortuga de orejas rojas", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(66, "Tortuga Rusa", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(67, "Iguana Verde", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(68, "Serpiente Rey (Lampropeltis)", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(69, "Gecko Crestado", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(70, "Uromastyx", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(71, "Tortuga Sulcata", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(72, "Anolis Verde", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(73, "Serpiente de Garter", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(74, "Pitón Alfombra", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(75, "Gecko de cola gorda africano", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(76, "Tortuga de caja", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(77, "Gecko Tokay", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(78, "Serpiente de leche (Milk Snake)", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(79, "Skink de lengua azul", 4, SpeciesOption(4, "Reptil")),
+    BreedOption(80, "Tortuga griega", 4, SpeciesOption(4, "Reptil")),
 
-    // Otro (speciesId = 5)
-    BreedOption(501, "Mestizo / General", 5, SpeciesOption(5, "Otro"))
+    // Conejo (speciesId = 5)
+    BreedOption(81, "Conejo Belier (Lop)", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(82, "Conejo Cabeza de León", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(83, "Conejo Enano Holandés", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(84, "Conejo Neocelandés", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(85, "Conejo Angora", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(86, "Conejo Gigante de Flandes", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(87, "Conejo Rex", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(88, "Conejo California", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(89, "Conejo Arlequín", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(90, "Conejo Mini Lop", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(91, "Conejo Holandés", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(92, "Conejo Chinchilla", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(93, "Conejo Hotot", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(94, "Conejo Tan", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(95, "Conejo Polaco", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(96, "Conejo Himalayo", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(97, "Conejo Angora Inglés", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(98, "Conejo Cashmere Lop", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(99, "Conejo Americano", 5, SpeciesOption(5, "Conejo")),
+    BreedOption(100, "Conejo Silver Marten", 5, SpeciesOption(5, "Conejo"))
 )
 
 data class PetFormUiState(
@@ -272,7 +333,13 @@ class PetFormViewModel(
             }.onSuccess { (species, breeds) ->
                 _uiState.update { curr ->
                     curr.copy(
-                        speciesOptions = if (species.isNotEmpty()) species.sortedBy(SpeciesOption::name) else curr.speciesOptions,
+                        speciesOptions = if (species.isNotEmpty()) {
+                            species
+                                .filterNot { it.name.equals("Otro", ignoreCase = true) }
+                                .sortedBy(SpeciesOption::name)
+                        } else {
+                            curr.speciesOptions
+                        },
                         breeds = if (breeds.isNotEmpty()) breeds.sortedBy(BreedOption::name) else curr.breeds
                     )
                 }
@@ -296,23 +363,26 @@ class PetFormViewModel(
                         else -> "Años"
                     }
 
-                    val resolvedSpeciesName = if (p.species.contains("Gato", true)) "Felino" else if (p.species.contains("Perro", true)) "Canino" else p.species
                     val currentOptions = _uiState.value.speciesOptions
                     val currentBreeds = _uiState.value.breeds
-                    val resolvedSpeciesId = p.speciesId ?: currentOptions.firstOrNull {
-                        it.name.equals(resolvedSpeciesName, ignoreCase = true) || resolvedSpeciesName.contains(it.name, ignoreCase = true)
-                    }?.id
-                    val resolvedBreedName = p.breed ?: "Mestizo"
-                    val resolvedBreedId = p.breedId ?: currentBreeds.firstOrNull {
-                        it.name.equals(resolvedBreedName, ignoreCase = true)
-                    }?.id
+                    val resolvedSpecies = p.speciesId?.let { speciesId ->
+                        currentOptions.firstOrNull { it.id == speciesId }
+                    }
+                    val resolvedSpeciesId = p.speciesId ?: resolvedSpecies?.id
+                    val speciesBreeds = currentBreeds.filter {
+                        resolvedSpeciesId != null && it.speciesId == resolvedSpeciesId
+                    }
+                    val resolvedBreed = p.breedId?.let { breedId ->
+                        speciesBreeds.firstOrNull { it.id == breedId }
+                    }
+                    val resolvedBreedId = resolvedBreed?.id ?: p.breedId
 
                     _uiState.update { curr ->
                         curr.copy(
                             id = p.id,
                             name = p.name,
-                            species = resolvedSpeciesName,
-                            breed = resolvedBreedName,
+                            species = resolvedSpecies?.name ?: p.species,
+                            breed = resolvedBreed?.name.orEmpty(),
                             breedId = resolvedBreedId,
                             speciesId = resolvedSpeciesId,
                             gender = p.gender.orEmpty(),
