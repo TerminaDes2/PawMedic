@@ -221,7 +221,7 @@ data class PetFormUiState(
                 it.name.equals(species, ignoreCase = true)
             }?.id
             val filtered = breeds.filter { it.speciesId == targetSpeciesId }
-            return if (filtered.isNotEmpty()) filtered else breeds
+            return if (targetSpeciesId != null) filtered else breeds
         }
 }
 
@@ -491,7 +491,8 @@ class PetFormViewModel(
             _uiState.update { curr -> curr.copy(errorMessage = "Selecciona la especie de la mascota") }
             return
         }
-        if (s.breed.isBlank()) {
+        val hasBreedsForSpecies = s.availableBreeds.isNotEmpty()
+        if (hasBreedsForSpecies && s.breed.isBlank()) {
             _uiState.update { curr -> curr.copy(errorMessage = "Selecciona la raza de la mascota") }
             return
         }
