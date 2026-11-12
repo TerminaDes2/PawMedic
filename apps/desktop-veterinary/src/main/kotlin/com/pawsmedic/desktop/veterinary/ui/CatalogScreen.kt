@@ -110,7 +110,7 @@ fun CatalogScreen(
                 filter { eq("id", userId) }
             }.decodeSingle<UserProfile>()
             if (profile.role != ProfileRole.VETERINARY_BUSINESS) error("El catálogo solo está disponible para cuentas veterinarias.")
-            val clinicId = profile.tenantId ?: error("El perfil no tiene una clínica asignada.")
+            val clinicId = com.pawsmedic.desktop.veterinary.model.resolveTenantId(supabase, userId, profile)
             tenantId = clinicId
             services = supabase.postgrest["services"].select {
                 filter { eq("tenant_id", clinicId) }
@@ -172,6 +172,8 @@ fun CatalogScreen(
 
     suspend fun toggleActive(id: String, current: Boolean, table: String) {
         val clinicId = tenantId ?: return
+        if (isSaving) return
+        isSaving = true
         errorMessage = null
         try {
             val updated = supabase.postgrest[table].update({ set("active", !current) }) {
@@ -186,7 +188,32 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = e.message ?: "No se pudo actualizar el estado del elemento."
+            errorMessage = if (e is IllegalStateException) e.message else "No se pudo actualizar el estado del elemento."
+        } finally {
+            isSaving = false
+        }
+    }
+
+    suspend fun selectAllServices(active: Boolean) {
+        val clinicId = tenantId ?: return
+        if (isSaving) return
+        isSaving = true
+        errorMessage = null
+        try {
+            val updated = supabase.postgrest["services"].update({ set("active", active) }) {
+                filter { eq("tenant_id", clinicId) }
+                select()
+            }.decodeList<CatalogService>()
+            check(updated.size == services.size) {
+                "No se pudieron actualizar todos los servicios. Actualiza el catálogo y vuelve a intentarlo."
+            }
+            services = updated.sortedBy { it.name }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            errorMessage = if (e is IllegalStateException) e.message else "No se pudieron actualizar los servicios."
+        } finally {
+            isSaving = false
         }
     }
 
@@ -238,6 +265,19 @@ fun CatalogScreen(
                     FilterChip(selected = selectedTab == tab, onClick = { selectedTab = tab }, label = { Text(tab) })
                 }
             }
+            if (selectedTab == "Servicios") {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = services.isNotEmpty() && services.all { it.active },
+                        onCheckedChange = { selected -> coroutineScope.launch { selectAllServices(selected) } },
+                        enabled = services.isNotEmpty() && !isLoading && !isSaving
+                    )
+                    Column {
+                        Text("Seleccionar todos", fontWeight = FontWeight.Medium, color = TextPrimary)
+                        Text("Solo los servicios seleccionados estarán disponibles para agendar en la app móvil.", fontSize = 12.sp, color = TextSecondary)
+                    }
+                }
+            }
             errorMessage?.let {
                 Spacer(Modifier.height(8.dp))
                 Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp, modifier = Modifier.fillMaxWidth().background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp)).padding(10.dp))
@@ -254,7 +294,7 @@ fun CatalogScreen(
                     Text("PRECIO", Modifier.weight(0.16f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
                     Text("PUBLICADO", Modifier.weight(0.12f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
                 }
-                Text("ESTADO", Modifier.weight(0.14f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                Text(if (selectedTab == "Servicios") "SELECCIONADO" else "ESTADO", Modifier.weight(0.14f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
             }
             Spacer(Modifier.height(8.dp))
             when {
@@ -268,7 +308,13 @@ fun CatalogScreen(
                         Column(Modifier.weight(0.42f)) { Text(service.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary); if (service.description.isNotBlank()) Text(service.description, fontSize = 11.sp, color = TextSecondary) }
                         Text("${service.durationMinutes} min", Modifier.weight(0.16f), fontSize = 12.sp, color = TextSecondary)
                         Text(formatPrice(service.priceCents), Modifier.weight(0.16f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = EmeraldGreen)
-                        TextButton(onClick = { coroutineScope.launch { toggleActive(service.id, service.active, "services") } }) { Text(if (service.active) "Activo" else "Inactivo", color = if (service.active) Color(0xFF166534) else Color(0xFF991B1B)) }
+                        Row(Modifier.weight(0.14f), verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = service.active,
+                                onCheckedChange = { coroutineScope.launch { toggleActive(service.id, service.active, "services") } },
+                                enabled = !isLoading && !isSaving
+                            )
+                        }
                     }
                 }
                 else items(products, key = { it.id }) { product ->

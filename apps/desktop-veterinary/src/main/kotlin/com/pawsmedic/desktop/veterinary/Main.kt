@@ -24,16 +24,16 @@ import com.pawsmedic.desktop.admin.ui.SuperadminDashboardScreen
 import com.pawsmedic.desktop.veterinary.ui.AgendaScreen
 import com.pawsmedic.desktop.veterinary.ui.CatalogScreen
 import com.pawsmedic.desktop.veterinary.ui.ExpedientesScreen
+import com.pawsmedic.desktop.veterinary.ui.ScheduleScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.LoginScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.RegisterScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.SuperadminLoginScreen
+import com.pawsmedic.desktop.veterinary.model.veterinaryAccessStatus
 import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.shared.core.model.ProfileRole
 import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.coroutines.launch
@@ -42,12 +42,6 @@ import kotlinx.coroutines.launch
 private data class BusinessApplicationState(
     @SerialName("status") val status: String = "",
     @SerialName("decision_reason") val decisionReason: String? = null
-)
-
-@Serializable
-private data class TenantState(
-    @SerialName("id") val id: String = "",
-    @SerialName("status") val status: String = "ACTIVE"
 )
 
 @Composable
@@ -107,37 +101,18 @@ fun main() = application {
             currentScreen = when (profile.role) {
                 ProfileRole.SUPERADMIN -> "Admin"
                 ProfileRole.VETERINARY_BUSINESS -> {
-                    val app = try {
-                        val list1 = supabase.postgrest["business_applications"]
-                            .select { filter { eq("applicant_id", userId) } }
-                            .decodeList<BusinessApplicationState>()
-                        list1.firstOrNull() ?: supabase.postgrest["businesses"]
-                            .select { filter { eq("submitted_by", userId) } }
-                            .decodeList<BusinessApplicationState>().firstOrNull()
-                    } catch (_: Exception) { null }
-
-                    val appStatus = app?.status
-
-                    if (appStatus == "PENDING") {
-                        statusMessage = "Tu solicitud de registro veterinario está pendiente de aprobación por el Superadministrador."
-                        "AccessStatus"
-                    } else if (appStatus == "REJECTED") {
-                        statusMessage = app?.decisionReason ?: "Tu solicitud de registro fue rechazada por el Superadministrador."
-                        "AccessStatus"
-                    } else {
-                        var tenantId = profile.tenantId
-                        if (tenantId == null) {
-                            tenantId = try {
-                                supabase.postgrest["tenants"]
-                                    .select { filter { eq("owner_id", userId) } }
-                                    .decodeList<TenantState>().firstOrNull()?.id
-                            } catch (_: Exception) { null }
-
-                            if (tenantId != null) {
-                                try { supabase.postgrest["profiles"].update({ set("tenant_id", tenantId) }) { filter { eq("id", userId) } } } catch (_: Exception) {}
+                    val app = veterinaryAccessStatus(supabase, userId)
+                    when (app?.status) {
+                        "APPROVED" -> "Agenda"
+                        else -> {
+                            statusMessage = when (app?.status) {
+                                "PENDING" -> "Tu solicitud de registro veterinario está pendiente de aprobación por el Superadministrador."
+                                "REJECTED" -> app.decisionReason ?: "Tu solicitud de registro fue rechazada por el Superadministrador."
+                                "SUSPENDED" -> "Tu clínica está suspendida."
+                                else -> "No se pudo confirmar la aprobación de tu solicitud veterinaria."
                             }
+                            "AccessStatus"
                         }
-                        "Agenda"
                     }
                 }
                 ProfileRole.USER -> {
@@ -173,7 +148,7 @@ fun main() = application {
 
     Window(
         onCloseRequest = {
-            if (currentScreen == "Agenda" || currentScreen == "Admin" || currentScreen == "Expedientes" || currentScreen == "Catalog") {
+            if (currentScreen == "Agenda" || currentScreen == "Admin" || currentScreen == "Expedientes" || currentScreen == "Catalog" || currentScreen == "Horarios") {
                 showExitDialog = true
             } else {
                 exitApplication()
@@ -193,6 +168,10 @@ fun main() = application {
                         onNavigateToAdminLogin = {
                             currentScreen = "AdminLogin"
                         },
+                        onNavigateToAccessStatus = { message ->
+                            statusMessage = message
+                            currentScreen = "AccessStatus"
+                        },
                         onNavigateToRegister = { currentScreen = "Register" }
                     )
                     "AdminLogin" -> SuperadminLoginScreen(
@@ -203,7 +182,6 @@ fun main() = application {
                         onBackToLogin = { currentScreen = "Login" }
                     )
                     "Register" -> RegisterScreen(
-                        onNavigateToVetMain = { currentScreen = "Agenda" },
                         onNavigateToLogin = { currentScreen = "Login" }
                     )
                     "Agenda" -> AgendaScreen(
@@ -217,6 +195,11 @@ fun main() = application {
                         onLogout = { handleLogout() }
                     )
                     "Catalog" -> CatalogScreen(
+                        userEmail = activeUserEmail,
+                        onNavigate = { currentScreen = it },
+                        onLogout = { handleLogout() }
+                    )
+                    "Horarios" -> ScheduleScreen(
                         userEmail = activeUserEmail,
                         onNavigate = { currentScreen = it },
                         onLogout = { handleLogout() }

@@ -65,7 +65,7 @@ fun AgendaScreen(
             if (profile.role != ProfileRole.VETERINARY_BUSINESS) {
                 error("La agenda solo está disponible para cuentas veterinarias.")
             }
-            val tenantId = profile.tenantId ?: error("El perfil no tiene una clínica asignada.")
+            val tenantId = com.pawsmedic.desktop.veterinary.model.resolveTenantId(supabase, userId, profile)
             appointments = supabase.postgrest.rpc(
                 function = "get_tenant_appointments",
                 parameters = buildJsonObject {

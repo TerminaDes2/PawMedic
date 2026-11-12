@@ -46,7 +46,6 @@ private data class SubmittedBusinessApplication(
 
 @Composable
 fun RegisterScreen(
-    onNavigateToVetMain: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     var clinicName by remember { mutableStateOf("") }
@@ -78,76 +77,10 @@ fun RegisterScreen(
 
     suspend fun submitApplication() {
         val user = supabase.auth.currentUserOrNull()
-        val userId = user?.id
-        val userEmail = user?.email ?: adminEmail.trim()
-
-        if (userId != null) {
-            try {
-                supabase.postgrest["profiles"].update({
-                    set("role", "VETERINARY_BUSINESS")
-                }) {
-                    filter { eq("id", userId) }
-                }
-            } catch (_: Exception) {}
-        }
-
-        var lastError: Exception? = null
-
-        // 1. Intentar RPC submit_business_application con nombres de parámetros p_* (Español / Schema original)
-        try {
-            val rpcResult = supabase.postgrest.rpc(
-                function = "submit_business_application",
-                parameters = buildJsonObject {
-                    put("p_applicant_name", vetManagerName.trim())
-                    put("p_business_name", clinicName.trim())
-                    put("p_tax_id", rucTaxId.trim())
-                    put("p_phone", contactPhone.trim())
-                    put("p_address", clinicAddress.trim())
-                    put("p_license_number", licenseNumber.trim())
-                }
-            )
-            val application = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                .decodeFromString<SubmittedBusinessApplication>(rpcResult.data)
-            submittedFolio = application.id
-            successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
-            requiresEmailVerification = false
-            kotlinx.coroutines.delay(2000)
-            supabase.auth.signOut()
-            onNavigateToLogin()
-            return
-        } catch (e: Exception) {
-            lastError = e
-        }
-
-        // 2. Intentar RPC submit_business_application sin prefijo p_
-        try {
-            val rpcResult = supabase.postgrest.rpc(
-                function = "submit_business_application",
-                parameters = buildJsonObject {
-                    put("applicant_name", vetManagerName.trim())
-                    put("business_name", clinicName.trim())
-                    put("tax_id", rucTaxId.trim())
-                    put("phone", contactPhone.trim())
-                    put("address", clinicAddress.trim())
-                    put("license_number", licenseNumber.trim())
-                }
-            )
-            val application = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                .decodeFromString<SubmittedBusinessApplication>(rpcResult.data)
-            submittedFolio = application.id
-            successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
-            requiresEmailVerification = false
-            kotlinx.coroutines.delay(2000)
-            supabase.auth.signOut()
-            onNavigateToLogin()
-            return
-        } catch (e: Exception) {
-            lastError = e
-        }
-
-        // 3. Intentar RPC submit_business_application con nombres de parámetros en inglés
-        try {
-            val rpcResult = supabase.postgrest.rpc(
+            ?: error("Debes verificar el correo e iniciar sesión antes de enviar la solicitud.")
+        val userEmail = user.email ?: adminEmail.trim()
+        val application = try {
+            val result = supabase.postgrest.rpc(
                 function = "submit_business_application",
                 parameters = buildJsonObject {
                     put("p_veterinarian_name", vetManagerName.trim())
@@ -160,25 +93,33 @@ fun RegisterScreen(
                     put("p_city", "Mexico City")
                 }
             )
-            val application = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                .decodeFromString<SubmittedBusinessApplication>(rpcResult.data)
-            submittedFolio = application.id
-            successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
-            requiresEmailVerification = false
-            kotlinx.coroutines.delay(2000)
-            supabase.auth.signOut()
-            onNavigateToLogin()
-            return
+            kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                .decodeFromString<SubmittedBusinessApplication>(result.data)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            lastError = e
-        }
-
-        // 4. Intentar inserción directa en la tabla 'business_applications'
-        try {
-            if (userId != null) {
-                val result = supabase.postgrest["business_applications"].insert(
+            if (!e.message.orEmpty().contains("Could not find the function", ignoreCase = true) &&
+                !e.message.orEmpty().contains("PGRST202", ignoreCase = true)) throw e
+            val result = try {
+                supabase.postgrest.rpc("submit_business_application", buildJsonObject {
+                    put("p_applicant_name", vetManagerName.trim())
+                    put("p_business_name", clinicName.trim())
+                    put("p_tax_id", rucTaxId.trim())
+                    put("p_phone", contactPhone.trim())
+                    put("p_address", clinicAddress.trim())
+                    put("p_license_number", licenseNumber.trim())
+                }).let {
+                    kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                        .decodeFromString<SubmittedBusinessApplication>(it.data)
+                }
+            } catch (fallback: CancellationException) {
+                throw fallback
+            } catch (fallback: Exception) {
+                if (!fallback.message.orEmpty().contains("Could not find the function", ignoreCase = true) &&
+                    !fallback.message.orEmpty().contains("PGRST202", ignoreCase = true)) throw fallback
+                supabase.postgrest["business_applications"].insert(
                     buildJsonObject {
-                        put("applicant_id", userId)
+                        put("applicant_id", user.id)
                         put("business_name", clinicName.trim())
                         put("address", clinicAddress.trim())
                         put("city", "Mexico City")
@@ -190,57 +131,19 @@ fun RegisterScreen(
                         put("status", "PENDING")
                     }
                 ) { select() }.decodeSingle<SubmittedBusinessApplication>()
-                submittedFolio = result.id
-                successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
-                requiresEmailVerification = false
-                kotlinx.coroutines.delay(2000)
-                supabase.auth.signOut()
-                onNavigateToLogin()
-                return
             }
-        } catch (e: Exception) {
-            lastError = e
+            supabase.postgrest["profiles"].update({ set("role", "VETERINARY_BUSINESS") }) {
+                filter { eq("id", user.id) }
+                select()
+            }.decodeSingle<com.pawsmedic.shared.core.model.UserProfile>()
+            result
         }
-
-        // 5. Intentar inserción directa en la tabla 'businesses'
-        try {
-            if (userId != null) {
-                val result = supabase.postgrest["businesses"].insert(
-                    buildJsonObject {
-                        put("submitted_by", userId)
-                        put("legal_name", clinicName.trim())
-                        put("public_name", clinicName.trim())
-                        put("applicant_name", vetManagerName.trim())
-                        put("tax_id", rucTaxId.trim())
-                        put("email", userEmail)
-                        put("phone", contactPhone.trim())
-                        put("address", clinicAddress.trim())
-                        put("license_number", licenseNumber.trim())
-                        put("status", "PENDING")
-                    }
-                ) { select() }.decodeSingle<SubmittedBusinessApplication>()
-                submittedFolio = result.id
-                successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
-                requiresEmailVerification = false
-                kotlinx.coroutines.delay(2000)
-                supabase.auth.signOut()
-                onNavigateToLogin()
-                return
-            }
-        } catch (e: Exception) {
-            lastError = e
-        }
-
-        // Si todos fallan, capturar el error amigablemente en la interfaz
-        val msg = lastError?.message.orEmpty()
-        errorMessage = when {
-            msg.contains("schema cache", ignoreCase = true) || msg.contains("Could not find the function", ignoreCase = true) ->
-                "No se encontró la función RPC 'submit_business_application' en Supabase. Por favor ejecuta el script SQL de creación del RPC en Supabase Dashboard."
-            msg.contains("row-level security", ignoreCase = true) ->
-                "La política RLS restringió el acceso directo. Asegúrate de ejecutar el script RPC 'submit_business_application'."
-            else ->
-                "Error al enviar la solicitud: ${msg.ifBlank { "Desconocido" }}"
-        }
+        submittedFolio = application.id
+        successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
+        requiresEmailVerification = false
+        kotlinx.coroutines.delay(2000)
+        supabase.auth.signOut()
+        onNavigateToLogin()
     }
 
     fun validatePassword(pwd: String): String? {
@@ -868,14 +771,12 @@ fun RegisterScreen(
 @Composable
 fun RegisterScreenPreview() {
     RegisterScreen(
-        onNavigateToVetMain = {},
         onNavigateToLogin = {}
     )
 }
 
 fun main() = singleWindowApplication(title = "Preview - Register Screen") {
     RegisterScreen(
-        onNavigateToVetMain = {},
         onNavigateToLogin = {}
     )
 }

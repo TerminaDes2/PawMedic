@@ -1,266 +1,367 @@
--- =============================================================================
--- SCRIPT DE CORRECCIÓN DEFINITIVA PARA REGISTRO Y SUPERADMIN (PAWSMEDIC)
--- Copiar y ejecutar todo este contenido en:
--- Supabase Dashboard -> SQL Editor -> Run
--- =============================================================================
+-- Apply in the Supabase SQL editor after the English-column migration.
+-- All changes below are transactional. A failed statement rolls back the repair.
+begin;
 
--- 1. Crear / Reemplazar la función RPC submit_business_application (11 parámetros con valores por defecto)
-CREATE OR REPLACE FUNCTION public.submit_business_application(
-    p_applicant_name text DEFAULT '',
-    p_business_name text DEFAULT '',
-    p_tax_id text DEFAULT '',
-    p_phone text DEFAULT '',
-    p_address text DEFAULT '',
-    p_license_number text DEFAULT '',
-    p_veterinarian_name text DEFAULT '',
-    p_contact_phone text DEFAULT '',
-    p_professional_license text DEFAULT '',
-    p_contact_email text DEFAULT '',
-    p_city text DEFAULT 'Mexico City'
-) RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_user_id uuid := auth.uid();
-    v_applicant_name text := COALESCE(NULLIF(trim(p_applicant_name), ''), NULLIF(trim(p_veterinarian_name), ''), 'Solicitante');
-    v_b_name text := COALESCE(NULLIF(trim(p_business_name), ''), 'Veterinaria');
-    v_tax text := COALESCE(NULLIF(trim(p_tax_id), ''), 'N/A');
-    v_ph text := COALESCE(NULLIF(trim(p_phone), ''), NULLIF(trim(p_contact_phone), ''), '');
-    v_addr text := COALESCE(NULLIF(trim(p_address), ''), 'Sin dirección');
-    v_lic text := COALESCE(NULLIF(trim(p_license_number), ''), NULLIF(trim(p_professional_license), ''), '');
-    v_email text := COALESCE(NULLIF(trim(p_contact_email), ''), auth.jwt() ->> 'email', '');
-    v_new_id uuid := gen_random_uuid();
-BEGIN
-    IF v_user_id IS NULL THEN
-        RAISE EXCEPTION 'Authentication required';
-    END IF;
+alter table public.tenants
+    add column if not exists owner_id uuid references public.profiles(id),
+    add column if not exists address text not null default '',
+    add column if not exists phone text not null default '',
+    add column if not exists email text not null default '',
+    add column if not exists operational_status text not null default 'ACTIVE';
 
-    -- Garantizar que exista perfil del usuario con rol VETERINARY_BUSINESS
-    IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = v_user_id) THEN
-        INSERT INTO public.profiles (id, email, display_name, role)
-        VALUES (v_user_id, v_email, v_applicant_name, 'VETERINARY_BUSINESS'::public.profile_role)
-        ON CONFLICT (id) DO UPDATE SET role = 'VETERINARY_BUSINESS'::public.profile_role;
-    ELSE
-        UPDATE public.profiles SET role = 'VETERINARY_BUSINESS'::public.profile_role WHERE id = v_user_id;
-    END IF;
+create table if not exists public.business_applications (
+    id uuid primary key default gen_random_uuid(),
+    applicant_id uuid not null references public.profiles(id),
+    business_name text not null,
+    address text not null,
+    city text not null,
+    tax_id text not null default '',
+    contact_phone text not null default '',
+    veterinarian_name text not null default '',
+    professional_license text not null default '',
+    contact_email text not null default '',
+    status text not null default 'PENDING',
+    created_at timestamptz not null default now()
+);
 
-    -- Insertar en business_applications si la tabla existe
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'business_applications') THEN
-        INSERT INTO public.business_applications (
-            id, applicant_id, business_name, address, city, tax_id,
-            contact_phone, veterinarian_name, professional_license, contact_email, status
-        ) VALUES (
-            v_new_id, v_user_id, v_b_name, v_addr, p_city, v_tax,
-            v_ph, v_applicant_name, v_lic, v_email, 'PENDING'
-        );
-    END IF;
-
-    -- Insertar en businesses si la tabla existe
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'businesses') THEN
-        INSERT INTO public.businesses (
-            id, submitted_by, applicant_name, legal_name, public_name,
-            tax_id, email, phone, address, license_number, status
-        ) VALUES (
-            v_new_id, v_user_id, v_applicant_name, v_b_name, v_b_name,
-            v_tax, v_email, v_ph, v_addr, v_lic, 'PENDING'
-        ) ON CONFLICT DO NOTHING;
-    END IF;
-
-    -- Retornar objeto JSON con el id generado
-    RETURN jsonb_build_object('id', v_new_id::text, 'status', 'PENDING');
-END;
+create or replace function public.is_superadmin()
+returns boolean language sql stable security definer set search_path = public as $$
+    select exists (select 1 from public.profiles where id = auth.uid() and role = 'SUPERADMIN');
 $$;
 
--- 2. Sobrecarga de 6 parámetros para clientes existentes
-CREATE OR REPLACE FUNCTION public.submit_business_application(
-    p_applicant_name text,
-    p_business_name text,
-    p_tax_id text,
-    p_phone text,
-    p_address text,
-    p_license_number text
-) RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    RETURN public.submit_business_application(
-        p_applicant_name => p_applicant_name,
-        p_business_name => p_business_name,
-        p_tax_id => p_tax_id,
-        p_phone => p_phone,
-        p_address => p_address,
-        p_license_number => p_license_number
+create or replace function public.has_verified_email()
+returns boolean language sql stable security definer set search_path = public as $$
+    select exists (select 1 from auth.users where id = auth.uid() and email_confirmed_at is not null);
+$$;
+revoke all on function public.has_verified_email() from public, anon;
+grant execute on function public.has_verified_email() to authenticated, service_role;
+
+-- Run after the existing profile-creation trigger, preserving its metadata handling.
+create or replace function public.assign_desktop_veterinary_role()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+    if new.raw_user_meta_data ->> 'role' = 'VETERINARY_BUSINESS' then
+        update public.profiles set role = 'VETERINARY_BUSINESS' where id = new.id and role = 'USER';
+        if not found then raise exception 'desktop veterinary profile was not created'; end if;
+    end if;
+    return new;
+end;
+$$;
+drop trigger if exists zz_assign_desktop_veterinary_role on auth.users;
+create trigger zz_assign_desktop_veterinary_role after insert on auth.users
+for each row execute function public.assign_desktop_veterinary_role();
+
+-- Permit only the applicant's verified transition and recovery of an already
+-- approved tenant. Other privilege changes still require a superadministrator.
+create or replace function public.guard_profile_privileges()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+    if (new.role is distinct from old.role or new.tenant_id is distinct from old.tenant_id)
+       and auth.uid() is not null
+       and not exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'SUPERADMIN') then
+        if old.id <> auth.uid()
+           or (new.role is distinct from old.role and not (
+               old.role = 'USER' and new.role = 'VETERINARY_BUSINESS'
+               and exists (select 1 from auth.users u where u.id = old.id and u.email_confirmed_at is not null)
+               and (exists (select 1 from public.business_applications a where a.applicant_id = old.id and a.status = 'PENDING')
+                    or exists (select 1 from public.businesses b where b.submitted_by = old.id and b.status = 'PENDING'))
+           ))
+           or (new.tenant_id is distinct from old.tenant_id and not (
+               old.tenant_id is null and new.role = 'VETERINARY_BUSINESS'
+               and exists (
+                   select 1 from public.businesses b join public.tenants t on t.id = b.tenant_id
+                   where b.submitted_by = old.id and b.status = 'APPROVED'
+                     and b.tenant_id = new.tenant_id and t.status = 'ACTIVE'
+               )
+           )) then
+            raise exception 'profile role and tenant can only be changed by an administrator';
+        end if;
+    end if;
+    return new;
+end;
+$$;
+drop trigger if exists profiles_guard_privileges on public.profiles;
+create trigger profiles_guard_privileges before update on public.profiles
+for each row execute function public.guard_profile_privileges();
+
+-- Remove legacy overloads, including functions with incompatible return types.
+drop function if exists public.submit_business_application(text, text, text, text, text, text);
+drop function if exists public.submit_business_application(text, text, text, text, text, text, text, text, text, text, text);
+drop function if exists public.get_all_business_applications();
+drop function if exists public.approve_business_application(uuid);
+drop function if exists public.approve_business_application(uuid, uuid, uuid);
+drop function if exists public.reject_business_application(uuid, text);
+drop function if exists public.reject_business_application(uuid, uuid, uuid, text);
+
+create function public.submit_business_application(
+    p_applicant_name text default '',
+    p_business_name text default '',
+    p_tax_id text default '',
+    p_phone text default '',
+    p_address text default '',
+    p_license_number text default '',
+    p_veterinarian_name text default '',
+    p_contact_phone text default '',
+    p_professional_license text default '',
+    p_contact_email text default '',
+    p_city text default 'Mexico City'
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+    v_user uuid := auth.uid();
+    v_id uuid := gen_random_uuid();
+    v_name text := coalesce(nullif(trim(p_veterinarian_name), ''), nullif(trim(p_applicant_name), ''));
+    v_business text := nullif(trim(p_business_name), '');
+    v_phone text := coalesce(nullif(trim(p_contact_phone), ''), nullif(trim(p_phone), ''));
+    v_license text := coalesce(nullif(trim(p_professional_license), ''), nullif(trim(p_license_number), ''));
+    v_email text;
+    v_role public.profile_role;
+begin
+    if v_user is null then raise exception 'authentication required'; end if;
+    select email into v_email from auth.users where id = v_user and email_confirmed_at is not null;
+    if not found then raise exception 'verify the account email before submitting a business application'; end if;
+    select role into v_role from public.profiles where id = v_user for update;
+    if not found or v_role not in ('USER', 'VETERINARY_BUSINESS') then
+        raise exception 'this account cannot submit a veterinary application';
+    end if;
+    if v_name is null or v_business is null or nullif(trim(p_tax_id), '') is null
+       or v_phone is null or nullif(trim(p_address), '') is null or v_license is null
+       or nullif(trim(p_city), '') is null then
+        raise exception 'complete all required business application fields';
+    end if;
+    if exists (select 1 from public.business_applications where applicant_id = v_user and status in ('PENDING', 'APPROVED'))
+       or exists (select 1 from public.businesses where submitted_by = v_user and status in ('PENDING', 'APPROVED', 'SUSPENDED')) then
+        raise exception 'an active business application already exists for this account';
+    end if;
+    insert into public.business_applications (
+        id, applicant_id, business_name, address, city, tax_id, contact_phone,
+        veterinarian_name, professional_license, contact_email, status
+    ) values (
+        v_id, v_user, v_business, trim(p_address), trim(p_city), trim(p_tax_id), v_phone,
+        v_name, v_license, coalesce(nullif(trim(p_contact_email), ''), v_email), 'PENDING'
     );
-END;
+    insert into public.businesses (
+        id, submitted_by, applicant_name, legal_name, public_name, tax_id, email, phone, address, license_number, status
+    ) values (
+        v_id, v_user, v_name, v_business, v_business, trim(p_tax_id),
+        coalesce(nullif(trim(p_contact_email), ''), v_email), v_phone, trim(p_address), v_license, 'PENDING'
+    );
+    update public.profiles set role = 'VETERINARY_BUSINESS' where id = v_user;
+    insert into public.audit_logs (actor_id, action, entity_type, entity_id)
+    values (v_user, 'SUBMIT_BUSINESS_APPLICATION', 'business', v_id);
+    return jsonb_build_object('id', v_id, 'status', 'PENDING');
+end;
 $$;
 
--- 3. Función RPC para consultar todas las solicitudes (Permite al Superadmin leer todo sin restricciones de RLS)
-CREATE OR REPLACE FUNCTION public.get_all_business_applications()
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_result jsonb;
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'business_applications') THEN
-        SELECT jsonb_agg(to_jsonb(ba)) INTO v_result FROM public.business_applications ba;
-    END IF;
-
-    IF v_result IS NULL AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'businesses') THEN
-        SELECT jsonb_agg(to_jsonb(b)) INTO v_result FROM public.businesses b;
-    END IF;
-
-    RETURN COALESCE(v_result, '[]'::jsonb);
-END;
+create function public.get_all_business_applications()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_result jsonb;
+begin
+    if not (coalesce(auth.role(), '') = 'service_role' or exists (
+        select 1 from public.profiles where id = auth.uid() and role = 'SUPERADMIN'
+    )) then raise exception 'superadministrator access required'; end if;
+    select coalesce(jsonb_agg(item order by created_at desc), '[]'::jsonb) into v_result
+    from (
+        select to_jsonb(a) || case when b.id is null then '{}'::jsonb else
+            jsonb_build_object(
+                'status', case when a.status = 'PENDING' then 'PENDING' else b.status::text end,
+                'tenant_id', b.tenant_id, 'decision_reason', b.decision_reason
+            ) end as item, a.created_at
+        from public.business_applications a left join public.businesses b on b.id = a.id
+        union all
+        select to_jsonb(b), b.created_at from public.businesses b
+        where not exists (select 1 from public.business_applications a where a.id = b.id)
+    ) applications;
+    return v_result;
+end;
 $$;
 
--- 4. Funciones RPC para Aprobar y Rechazar solicitudes desde Superadmin
-CREATE OR REPLACE FUNCTION public.approve_business_application(
-    p_business_id uuid DEFAULT NULL,
-    p_application_id uuid DEFAULT NULL,
-    p_id uuid DEFAULT NULL
-) RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_target_id uuid := COALESCE(p_business_id, p_application_id, p_id);
-    v_actor_id uuid := auth.uid();
-    v_owner_id uuid;
-    v_b_name text := 'Clínica Veterinaria';
-    v_addr text := '';
-    v_ph text := '';
-    v_email text := '';
-    v_tenant_id uuid;
-BEGIN
-    IF v_target_id IS NULL THEN
-        RAISE EXCEPTION 'ID de solicitud requerido';
-    END IF;
-
-    -- Extraer datos del negocio desde business_applications o businesses
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'business_applications') THEN
-        SELECT applicant_id, business_name, address, contact_phone, contact_email
-        INTO v_owner_id, v_b_name, v_addr, v_ph, v_email
-        FROM public.business_applications WHERE id = v_target_id;
-    END IF;
-
-    IF v_owner_id IS NULL AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'businesses') THEN
-        SELECT submitted_by, COALESCE(NULLIF(public_name, ''), legal_name), address, phone, email
-        INTO v_owner_id, v_b_name, v_addr, v_ph, v_email
-        FROM public.businesses WHERE id = v_target_id;
-    END IF;
-
-    -- Marcar estado APPROVED en business_applications
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'business_applications') THEN
-        UPDATE public.business_applications SET status = 'APPROVED' WHERE id = v_target_id OR applicant_id = v_owner_id;
-    END IF;
-
-    -- Crear o encontrar el tenant correspondiente en public.tenants con name, address, phone y status ACTIVE
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'tenants') THEN
-        SELECT id INTO v_tenant_id FROM public.tenants WHERE owner_id = v_owner_id LIMIT 1;
-        IF v_tenant_id IS NULL THEN
-            v_tenant_id := gen_random_uuid();
-            INSERT INTO public.tenants (
-                id, owner_id, name, address, phone, email, status, operational_status
-            ) VALUES (
-                v_tenant_id, v_owner_id, v_b_name, v_addr, v_ph, v_email, 'ACTIVE', 'ACTIVE'
-            );
-        ELSE
-            UPDATE public.tenants
-            SET name = v_b_name, address = v_addr, phone = v_ph, email = v_email, status = 'ACTIVE', operational_status = 'ACTIVE'
-            WHERE id = v_tenant_id;
-        END IF;
-    END IF;
-
-    -- Vincular tenant_id y estado APPROVED en la tabla businesses
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'businesses') THEN
-        UPDATE public.businesses
-        SET tenant_id = v_tenant_id,
-            status = 'APPROVED',
-            approved_by = v_actor_id,
-            approved_at = now(),
-            updated_at = now()
-        WHERE id = v_target_id OR submitted_by = v_owner_id;
-    END IF;
-
-    -- Actualizar el perfil del dueño a VETERINARY_BUSINESS con su tenant_id en public.profiles
-    IF v_owner_id IS NOT NULL THEN
-        UPDATE public.profiles
-        SET role = 'VETERINARY_BUSINESS'::public.profile_role,
-            tenant_id = v_tenant_id,
-            updated_at = now()
-        WHERE id = v_owner_id;
-    END IF;
-
-    RETURN jsonb_build_object('success', true, 'id', v_target_id::text, 'tenant_id', v_tenant_id::text, 'status', 'APPROVED');
-END;
+create function public.approve_business_application(
+    p_business_id uuid default null,
+    p_application_id uuid default null,
+    p_id uuid default null
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+    v_id uuid := coalesce(p_business_id, p_application_id, p_id);
+    v_app public.business_applications%rowtype;
+    v_business public.businesses%rowtype;
+    v_owner uuid;
+    v_tenant uuid;
+    v_has_app boolean;
+    v_has_business boolean;
+begin
+    if not (coalesce(auth.role(), '') = 'service_role' or exists (
+        select 1 from public.profiles where id = auth.uid() and role = 'SUPERADMIN'
+    )) then raise exception 'superadministrator access required'; end if;
+    if v_id is null or (p_business_id is not null and p_business_id <> v_id)
+       or (p_application_id is not null and p_application_id <> v_id)
+       or (p_id is not null and p_id <> v_id) then raise exception 'invalid application ID'; end if;
+    select * into v_app from public.business_applications where id = v_id for update;
+    v_has_app := found;
+    select * into v_business from public.businesses where id = v_id for update;
+    v_has_business := found;
+    if not v_has_app and not v_has_business then raise exception 'business application not found'; end if;
+    if (v_has_app and v_app.status <> 'PENDING') or (v_has_business and v_business.status <> 'PENDING') then
+        raise exception 'business application is not pending';
+    end if;
+    v_owner := coalesce(v_app.applicant_id, v_business.submitted_by);
+    if v_owner is null or (v_has_app and v_has_business and v_app.applicant_id is distinct from v_business.submitted_by) then
+        raise exception 'application owner is missing or inconsistent';
+    end if;
+    perform 1 from public.profiles where id = v_owner for update;
+    if not found then raise exception 'applicant profile not found'; end if;
+    if not v_has_app then
+        insert into public.business_applications (id, applicant_id, business_name, address, city, tax_id, contact_phone, veterinarian_name, professional_license, contact_email, status)
+        values (v_id, v_owner, coalesce(nullif(v_business.public_name, ''), v_business.legal_name), v_business.address,
+            'Mexico City', v_business.tax_id, v_business.phone, v_business.applicant_name, v_business.license_number, v_business.email, 'PENDING')
+        returning * into v_app;
+    end if;
+    if not v_has_business then
+        insert into public.businesses (id, submitted_by, legal_name, public_name, applicant_name, tax_id, email, phone, address, license_number, status)
+        values (v_id, v_owner, v_app.business_name, v_app.business_name, v_app.veterinarian_name, v_app.tax_id,
+            v_app.contact_email, v_app.contact_phone, v_app.address, v_app.professional_license, 'PENDING')
+        returning * into v_business;
+    end if;
+    v_tenant := v_business.tenant_id;
+    if v_tenant is null then
+        select id into v_tenant from public.tenants where owner_id = v_owner order by created_at desc limit 1 for update;
+    end if;
+    if v_tenant is null then
+        insert into public.tenants (owner_id, created_by, name, address, phone, email, status, operational_status)
+        values (v_owner, v_owner, v_app.business_name, v_app.address, v_app.contact_phone, v_app.contact_email, 'ACTIVE', 'ACTIVE')
+        returning id into v_tenant;
+    else
+        update public.tenants set owner_id = v_owner, name = v_app.business_name, address = v_app.address,
+            phone = v_app.contact_phone, email = v_app.contact_email, status = 'ACTIVE', operational_status = 'ACTIVE'
+        where id = v_tenant and (owner_id is null or owner_id = v_owner);
+        if not found then raise exception 'tenant belongs to another owner'; end if;
+    end if;
+    update public.business_applications set status = 'APPROVED' where id = v_id;
+    update public.businesses set tenant_id = v_tenant, status = 'APPROVED', approved_by = auth.uid(),
+        approved_at = now(), updated_at = now(), public_name = v_app.business_name, address = v_app.address,
+        phone = v_app.contact_phone, email = v_app.contact_email where id = v_id;
+    update public.profiles set role = 'VETERINARY_BUSINESS', tenant_id = v_tenant, updated_at = now() where id = v_owner;
+    insert into public.audit_logs (actor_id, tenant_id, action, entity_type, entity_id)
+    values (auth.uid(), v_tenant, 'APPROVE_BUSINESS', 'business', v_id);
+    return jsonb_build_object('id', v_id, 'tenant_id', v_tenant, 'status', 'APPROVED');
+end;
 $$;
 
-CREATE OR REPLACE FUNCTION public.reject_business_application(
-    p_business_id uuid DEFAULT NULL,
-    p_application_id uuid DEFAULT NULL,
-    p_id uuid DEFAULT NULL,
-    p_reason text DEFAULT ''
-) RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_target_id uuid := COALESCE(p_business_id, p_application_id, p_id);
-BEGIN
-    IF v_target_id IS NULL THEN
-        RAISE EXCEPTION 'ID de solicitud requerido';
-    END IF;
-
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'business_applications') THEN
-        UPDATE public.business_applications SET status = 'REJECTED' WHERE id = v_target_id;
-    END IF;
-
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'businesses') THEN
-        UPDATE public.businesses SET status = 'REJECTED' WHERE id = v_target_id;
-    END IF;
-
-    RETURN jsonb_build_object('success', true, 'id', v_target_id::text, 'status', 'REJECTED');
-END;
+create function public.reject_business_application(
+    p_business_id uuid default null,
+    p_application_id uuid default null,
+    p_id uuid default null,
+    p_reason text default ''
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+    v_id uuid := coalesce(p_business_id, p_application_id, p_id);
+    v_app public.business_applications%rowtype;
+    v_business public.businesses%rowtype;
+    v_has_app boolean;
+    v_has_business boolean;
+begin
+    if not (coalesce(auth.role(), '') = 'service_role' or exists (
+        select 1 from public.profiles where id = auth.uid() and role = 'SUPERADMIN'
+    )) then raise exception 'superadministrator access required'; end if;
+    if v_id is null or (p_business_id is not null and p_business_id <> v_id)
+       or (p_application_id is not null and p_application_id <> v_id)
+       or (p_id is not null and p_id <> v_id) then raise exception 'invalid application ID'; end if;
+    select * into v_app from public.business_applications where id = v_id for update;
+    v_has_app := found;
+    select * into v_business from public.businesses where id = v_id for update;
+    v_has_business := found;
+    if not v_has_app and not v_has_business then raise exception 'business application not found'; end if;
+    if (v_has_app and v_app.status <> 'PENDING') or (v_has_business and v_business.status <> 'PENDING') then
+        raise exception 'business application is not pending';
+    end if;
+    if (v_has_app and v_app.applicant_id is null) or (v_has_business and v_business.submitted_by is null)
+       or (v_has_app and v_has_business and v_app.applicant_id is distinct from v_business.submitted_by) then
+        raise exception 'application owner is missing or inconsistent';
+    end if;
+    if not v_has_app then
+        insert into public.business_applications (id, applicant_id, business_name, address, city, tax_id, contact_phone, veterinarian_name, professional_license, contact_email, status)
+        values (v_id, v_business.submitted_by, coalesce(nullif(v_business.public_name, ''), v_business.legal_name),
+            v_business.address, 'Mexico City', v_business.tax_id, v_business.phone, v_business.applicant_name,
+            v_business.license_number, v_business.email, 'PENDING');
+    end if;
+    if not v_has_business then
+        insert into public.businesses (id, submitted_by, legal_name, public_name, applicant_name, tax_id, email, phone, address, license_number, status)
+        values (v_id, v_app.applicant_id, v_app.business_name, v_app.business_name, v_app.veterinarian_name, v_app.tax_id,
+            v_app.contact_email, v_app.contact_phone, v_app.address, v_app.professional_license, 'PENDING');
+    end if;
+    update public.business_applications set status = 'REJECTED' where id = v_id and status = 'PENDING';
+    update public.businesses set status = 'REJECTED', decision_reason = nullif(trim(p_reason), ''),
+        approved_by = auth.uid(), approved_at = now(), updated_at = now() where id = v_id and status = 'PENDING';
+    insert into public.audit_logs (actor_id, action, entity_type, entity_id, metadata)
+    values (auth.uid(), 'REJECT_BUSINESS', 'business', v_id, jsonb_build_object('reason', nullif(trim(p_reason), '')));
+    return jsonb_build_object('id', v_id, 'status', 'REJECTED');
+end;
 $$;
 
--- 5. Permisos de ejecución
-GRANT EXECUTE ON FUNCTION public.submit_business_application(text, text, text, text, text, text, text, text, text, text, text) TO authenticated, service_role, anon;
-GRANT EXECUTE ON FUNCTION public.submit_business_application(text, text, text, text, text, text) TO authenticated, service_role, anon;
-GRANT EXECUTE ON FUNCTION public.get_all_business_applications() TO authenticated, service_role, anon;
-GRANT EXECUTE ON FUNCTION public.approve_business_application(uuid, uuid, uuid) TO authenticated, service_role, anon;
-GRANT EXECUTE ON FUNCTION public.reject_business_application(uuid, uuid, uuid, text) TO authenticated, service_role, anon;
+create or replace function public.link_approved_tenant(p_tenant_id uuid)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare v_user uuid := auth.uid(); v_business_id uuid;
+begin
+    if v_user is null then raise exception 'authentication required'; end if;
+    perform 1 from public.profiles
+        where id = v_user and role = 'VETERINARY_BUSINESS'
+          and (tenant_id is null or tenant_id = p_tenant_id) for update;
+    if not found then raise exception 'profile cannot be linked to this tenant'; end if;
+    if not exists (select 1 from public.tenants where id = p_tenant_id and status = 'ACTIVE'
+        and (owner_id = v_user or exists (
+            select 1 from public.businesses b where b.submitted_by = v_user
+                and b.tenant_id = p_tenant_id and b.status = 'APPROVED'
+        ))) then raise exception 'active tenant not found for this account'; end if;
+    select id into v_business_id from public.businesses
+        where submitted_by = v_user and status = 'APPROVED'
+          and (tenant_id is null or tenant_id = p_tenant_id)
+        order by created_at desc limit 1 for update;
+    if not found then raise exception 'approved business not found for this tenant'; end if;
+    update public.businesses set tenant_id = p_tenant_id, updated_at = now() where id = v_business_id;
+    update public.profiles set tenant_id = p_tenant_id, updated_at = now() where id = v_user;
+    return p_tenant_id;
+end;
+$$;
+revoke all on function public.link_approved_tenant(uuid) from public, anon;
+grant execute on function public.link_approved_tenant(uuid) to authenticated, service_role;
 
--- 6. Políticas RLS permisivas de Lectura/Inserción para Solicitantes y Superadmins
-ALTER TABLE IF EXISTS public.business_applications ENABLE ROW LEVEL SECURITY;
+revoke all on function public.submit_business_application(text,text,text,text,text,text,text,text,text,text,text) from public;
+revoke all on function public.get_all_business_applications() from public;
+revoke all on function public.approve_business_application(uuid,uuid,uuid) from public;
+revoke all on function public.reject_business_application(uuid,uuid,uuid,text) from public;
+grant execute on function public.submit_business_application(text,text,text,text,text,text,text,text,text,text,text) to authenticated, service_role, anon;
+grant execute on function public.get_all_business_applications() to authenticated, service_role, anon;
+grant execute on function public.approve_business_application(uuid,uuid,uuid) to authenticated, service_role, anon;
+grant execute on function public.reject_business_application(uuid,uuid,uuid,text) to authenticated, service_role, anon;
 
-DROP POLICY IF EXISTS business_applications_insert_own ON public.business_applications;
-CREATE POLICY business_applications_insert_own ON public.business_applications FOR INSERT TO authenticated WITH CHECK (true);
+alter table public.business_applications enable row level security;
+alter table public.businesses enable row level security;
+alter table public.tenants enable row level security;
+drop policy if exists tenants_owner_recovery on public.tenants;
+create policy tenants_owner_recovery on public.tenants for select to authenticated
+    using (owner_id = auth.uid());
+drop policy if exists business_applications_insert_own on public.business_applications;
+drop policy if exists business_applications_select_policy on public.business_applications;
+drop policy if exists business_applications_update_policy on public.business_applications;
+create policy business_applications_insert_own on public.business_applications for insert to authenticated
+    with check (applicant_id = auth.uid() and status = 'PENDING'
+        and public.has_verified_email());
+create policy business_applications_select_policy on public.business_applications for select to authenticated
+    using (applicant_id = auth.uid() or exists (select 1 from public.profiles where id = auth.uid() and role = 'SUPERADMIN'));
+drop policy if exists businesses_insert_own on public.businesses;
+drop policy if exists businesses_select_policy on public.businesses;
+drop policy if exists businesses_update_policy on public.businesses;
+create policy businesses_insert_own on public.businesses for insert to authenticated
+    with check (submitted_by = auth.uid() and status = 'PENDING' and tenant_id is null
+        and public.has_verified_email());
+create policy businesses_select_policy on public.businesses for select to authenticated
+    using (submitted_by = auth.uid() or exists (select 1 from public.profiles where id = auth.uid() and role = 'SUPERADMIN'));
 
-DROP POLICY IF EXISTS business_applications_select_policy ON public.business_applications;
-CREATE POLICY business_applications_select_policy ON public.business_applications FOR SELECT TO authenticated USING (true);
+create or replace view public.business_directory with (security_barrier = true) as
+select b.tenant_id as id, b.public_name as name, b.address, b.phone
+from public.businesses b join public.tenants t on t.id = b.tenant_id
+where b.status = 'APPROVED' and t.status = 'ACTIVE';
+revoke all on public.business_directory from public, anon;
+grant select on public.business_directory to authenticated;
 
-DROP POLICY IF EXISTS business_applications_update_policy ON public.business_applications;
-CREATE POLICY business_applications_update_policy ON public.business_applications FOR UPDATE TO authenticated USING (true);
-
-ALTER TABLE IF EXISTS public.businesses ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS businesses_insert_own ON public.businesses;
-CREATE POLICY businesses_insert_own ON public.businesses FOR INSERT TO authenticated WITH CHECK (true);
-
-DROP POLICY IF EXISTS businesses_select_policy ON public.businesses;
-CREATE POLICY businesses_select_policy ON public.businesses FOR SELECT TO authenticated USING (true);
-
-DROP POLICY IF EXISTS businesses_update_policy ON public.businesses;
-CREATE POLICY businesses_update_policy ON public.businesses FOR UPDATE TO authenticated USING (true);
-
--- 7. Notificar actualización de esquema a PostgREST
-NOTIFY pgrst, 'reload schema';
+notify pgrst, 'reload schema';
+commit;
