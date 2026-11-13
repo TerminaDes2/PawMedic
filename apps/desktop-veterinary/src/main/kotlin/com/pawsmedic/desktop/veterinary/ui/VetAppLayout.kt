@@ -90,9 +90,9 @@ fun VetAppLayout(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // ÚNICOS 3 ÍTEMS DE NAVEGACIÓN
                 val menuItems = listOf(
                     Triple("Agenda", "Agenda y Citas", Icons.Default.CalendarMonth),
+                    Triple("Horarios", "Horarios de atención", Icons.Default.Schedule),
                     Triple("Expedientes", "Expedientes Clínicos", Icons.Default.FolderShared),
                     Triple("Catalog", "Catálogo de Servicios", Icons.Default.ShoppingCart)
                 )

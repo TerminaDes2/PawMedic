@@ -21,6 +21,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -57,6 +62,38 @@ fun main() = application {
         return profile.email
     }
 
+    fun submitLogin() {
+        if (isLoading || email.isBlank() || password.isBlank()) return
+        isLoading = true
+        coroutineScope.launch {
+            errorMessage = null
+            try {
+                val cleanEmail = email.trim()
+                val submittedPassword = password
+                supabase.auth.signInWith(Email) {
+                    this.email = cleanEmail
+                    this.password = submittedPassword
+                }
+                authorizedEmail = authorizeCurrentSession()
+                password = ""
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val rawMsg = e.message.orEmpty()
+                errorMessage = when {
+                    rawMsg.contains("missing email or phone", ignoreCase = true) ||
+                    rawMsg.contains("invalid_credentials", ignoreCase = true) ||
+                    rawMsg.contains("invalid login", ignoreCase = true) ->
+                        "Correo o contraseña incorrectos, o la cuenta no ha sido verificada."
+                    e is IllegalStateException -> rawMsg.lineSequence().firstOrNull().orEmpty()
+                    else -> "No se pudo iniciar sesión. Revisa tu conexión e inténtalo de nuevo."
+                }
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
     Window(
         onCloseRequest = ::exitApplication,
         title = "Plataforma de Administración Central - Superadmin",
@@ -68,7 +105,7 @@ fun main() = application {
                     val session = supabase.auth.currentSessionOrNull()
                     if (session != null) authorizedEmail = authorizeCurrentSession()
                 } catch (e: Exception) {
-                    errorMessage = e.message ?: "No se pudo validar la sesión."
+                    errorMessage = "No se pudo validar la sesión."
                 } finally {
                     isLoading = false
                 }
@@ -85,7 +122,7 @@ fun main() = application {
                                 authorizedEmail = null
                                 password = ""
                             } catch (e: Exception) {
-                                errorMessage = e.message ?: "No se pudo cerrar la sesión."
+                                errorMessage = "No se pudo cerrar la sesión."
                             } finally {
                                 isLoading = false
                             }
@@ -107,7 +144,12 @@ fun main() = application {
                     verticalArrangement = Arrangement.Center
                 ) {
                     Column(
-                        modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth().padding(28.dp),
+                        modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth().padding(28.dp).onPreviewKeyEvent {
+                            if (it.type == KeyEventType.KeyDown && (it.key == Key.Enter || it.key == Key.NumPadEnter)) {
+                                submitLogin()
+                                true
+                            } else false
+                        },
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Text("Acceso Superadmin", style = MaterialTheme.typography.headlineMedium)
@@ -130,33 +172,7 @@ fun main() = application {
                         Button(
                             enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
                             modifier = Modifier.fillMaxWidth().height(48.dp),
-                            onClick = {
-                                coroutineScope.launch {
-                                    isLoading = true
-                                    errorMessage = null
-                                    try {
-                                        val cleanEmail = email.trim()
-                                        val submittedPassword = password
-                                        supabase.auth.signInWith(Email) {
-                                            this.email = cleanEmail
-                                            this.password = submittedPassword
-                                        }
-                                        authorizedEmail = authorizeCurrentSession()
-                                        password = ""
-                                    } catch (e: Exception) {
-                                        val rawMsg = e.message.orEmpty()
-                                        errorMessage = when {
-                                            rawMsg.contains("missing email or phone", ignoreCase = true) ||
-                                            rawMsg.contains("invalid_credentials", ignoreCase = true) ||
-                                            rawMsg.contains("invalid login", ignoreCase = true) ->
-                                                "Correo o contraseña incorrectos, o la cuenta no ha sido verificada."
-                                            else -> rawMsg.ifBlank { "No se pudo iniciar sesión." }
-                                        }
-                                    } finally {
-                                        isLoading = false
-                                    }
-                                }
-                            }
+                            onClick = ::submitLogin
                         ) {
                             Text("Iniciar sesión")
                         }

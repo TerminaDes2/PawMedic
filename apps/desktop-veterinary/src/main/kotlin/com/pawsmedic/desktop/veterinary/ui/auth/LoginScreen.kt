@@ -16,12 +16,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.veterinary.model.veterinaryAccessStatus
 import com.pawsmedic.desktop.veterinary.SessionManager
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
@@ -30,26 +36,13 @@ import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email as SupabaseEmail
 import io.github.jan.supabase.postgrest.postgrest
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.coroutines.launch
-
-@Serializable
-private data class BusinessLoginStatus(
-    @SerialName("status") val status: String = "",
-    @SerialName("decision_reason") val decisionReason: String? = null
-)
-
-@Serializable
-private data class TenantLoginStatus(
-    @SerialName("id") val id: String? = null,
-    @SerialName("status") val status: String = ""
-)
 
 @Composable
 fun LoginScreen(
     onNavigateToVetMain: (String) -> Unit = {},
     onNavigateToAdminLogin: () -> Unit = {},
+    onNavigateToAccessStatus: (String) -> Unit = {},
     onNavigateToRegister: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
@@ -63,6 +56,66 @@ fun LoginScreen(
     val coroutineScope = rememberCoroutineScope()
     val cardDarkIllustration = Color(0xFF1C2A3A)
     val borderDark = Color(0xFF2A3C4E)
+
+    fun submitLogin() {
+        if (isLoading) return
+        isLoading = true
+        coroutineScope.launch {
+            errorMessage = null
+            try {
+                val cleanEmail = email.trim()
+                val submittedPassword = password
+                if (cleanEmail.isBlank() || submittedPassword.isBlank()) {
+                    throw IllegalArgumentException("Por favor ingrese correo electrónico y contraseña")
+                }
+                if (!Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$").matches(cleanEmail)) {
+                    throw IllegalArgumentException("Ingresa un correo electrónico válido.")
+                }
+                supabase.auth.signInWith(SupabaseEmail) {
+                    this.email = cleanEmail
+                    this.password = submittedPassword
+                }
+                val session = supabase.auth.currentSessionOrNull()
+                    ?: error("Supabase no devolvió una sesión autenticada.")
+                val userId = session.user?.id
+                    ?: error("La sesión no contiene un identificador de usuario.")
+                val profile = supabase.postgrest["profiles"]
+                    .select { filter { eq("id", userId) } }
+                    .decodeSingle<UserProfile>()
+
+                when (profile.role) {
+                    ProfileRole.SUPERADMIN -> onNavigateToAdminLogin()
+                    ProfileRole.VETERINARY_BUSINESS -> {
+                        val application = veterinaryAccessStatus(supabase, userId)
+                        when (application?.status) {
+                            "APPROVED" -> onNavigateToVetMain(cleanEmail)
+                            "PENDING" -> onNavigateToAccessStatus("Tu solicitud de registro veterinario está pendiente de aprobación por el Superadministrador.")
+                            "REJECTED" -> onNavigateToAccessStatus(application.decisionReason ?: "Tu solicitud de registro fue rechazada por el Superadministrador.")
+                            "SUSPENDED" -> onNavigateToAccessStatus("Tu clínica está suspendida.")
+                            else -> onNavigateToAccessStatus("No se pudo confirmar la aprobación de tu solicitud veterinaria.")
+                        }
+                    }
+                    ProfileRole.USER -> error("Esta aplicación de escritorio es exclusiva para negocios veterinarios. Las cuentas de usuario de clientes deben ingresar desde la app móvil.")
+                }
+                SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val rawMsg = e.message.orEmpty()
+                errorMessage = when {
+                    rawMsg.contains("missing email or phone", ignoreCase = true) ||
+                    rawMsg.contains("invalid_credentials", ignoreCase = true) ||
+                    rawMsg.contains("invalid login", ignoreCase = true) ->
+                        "Correo o contraseña incorrectos, o la cuenta no ha sido verificada."
+                    e is IllegalArgumentException || e is IllegalStateException ->
+                        rawMsg.lineSequence().firstOrNull().orEmpty().ifBlank { "Error de acceso." }
+                    else -> "No se pudo iniciar sesión. Revisa tu conexión e inténtalo de nuevo."
+                }
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -341,7 +394,12 @@ fun LoginScreen(
 
                         Column(
                             verticalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth().onPreviewKeyEvent {
+                                if (it.type == KeyEventType.KeyDown && (it.key == Key.Enter || it.key == Key.NumPadEnter)) {
+                                    submitLogin()
+                                    true
+                                } else false
+                            }
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("Email", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
@@ -411,77 +469,7 @@ fun LoginScreen(
 
                         // Botón Principal Esmeralda
                         Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    isLoading = true
-                                    errorMessage = null
-                                    try {
-                                        val cleanEmail = email.trim()
-                                        val cleanPassword = password
-
-                                        if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
-                                            throw IllegalArgumentException("Por favor ingrese correo electrónico y contraseña")
-                                        }
-                                        if (!Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$").matches(cleanEmail)) {
-                                            throw IllegalArgumentException("Ingresa un correo electrónico válido.")
-                                        }
-
-                                        supabase.auth.signInWith(SupabaseEmail) {
-                                            this.email = cleanEmail
-                                            this.password = cleanPassword
-                                        }
-                                        val session = supabase.auth.currentSessionOrNull()
-                                            ?: error("Supabase no devolvió una sesión autenticada.")
-                                        val userId = session.user?.id
-                                            ?: error("La sesión no contiene un identificador de usuario.")
-                                        val profile = supabase.postgrest["profiles"]
-                                            .select {
-                                                filter { eq("id", userId) }
-                                            }
-                                            .decodeSingle<UserProfile>()
-
-                                        when (profile.role) {
-                                            ProfileRole.SUPERADMIN -> onNavigateToAdminLogin()
-                                            ProfileRole.VETERINARY_BUSINESS -> {
-                                                val ownerTenant = supabase.postgrest["tenants"]
-                                                    .select { filter { eq("owner_id", userId) } }
-                                                    .decodeList<TenantLoginStatus>()
-                                                    .firstOrNull()
-                                                val tenantId = ownerTenant?.id
-                                                if (tenantId.isNullOrBlank()) {
-                                                    error("La cuenta veterinaria todavía no tiene una clínica aprobada.")
-                                                }
-                                                if (profile.tenantId != null && profile.tenantId != tenantId) {
-                                                    error("La cuenta veterinaria tiene una vinculación de clínica inconsistente.")
-                                                }
-                                                if (ownerTenant?.status != "ACTIVE") {
-                                                    error("La clínica no está activa. Contacta al administrador.")
-                                                }
-                                                onNavigateToVetMain(cleanEmail)
-                                            }
-                                            ProfileRole.USER -> {
-                                                error("Esta aplicación de escritorio es exclusiva para negocios veterinarios. Las cuentas de usuario de clientes deben ingresar desde la app móvil.")
-                                            }
-                                        }
-
-                                        SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
-                                        } catch (e: Exception) {
-                                        e.printStackTrace()
-                                        println("=== PAWSMEDIC LOGIN ERROR ===")
-                                        println(e.stackTraceToString())
-                                        val rawMsg = e.message.orEmpty()
-                                        errorMessage = when {
-                                            rawMsg.contains("missing email or phone", ignoreCase = true) ||
-                                            rawMsg.contains("invalid_credentials", ignoreCase = true) ||
-                                            rawMsg.contains("invalid login", ignoreCase = true) ->
-                                                "Correo o contraseña incorrectos, o la cuenta no ha sido verificada."
-                                            else -> rawMsg.ifBlank { "Error de acceso. Verifique sus credenciales." }
-                                        }
-                                        } finally {
-                                        isLoading = false
-                                        }
-                                }
-                            },
+                            onClick = ::submitLogin,
                             enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
