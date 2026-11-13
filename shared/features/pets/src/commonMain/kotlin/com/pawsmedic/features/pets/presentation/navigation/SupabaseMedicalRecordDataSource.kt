@@ -16,9 +16,10 @@ internal class SupabaseMedicalRecordDataSource(
         val pets = supabase.postgrest["pets"]
             .select { filter { eq("owner_id", ownerId) } }
             .decodeList<OwnedPetRecord>()
+        val clinics = getClinics()
         val records = buildList {
             pets.forEach { pet ->
-                addAll(getRecordsForPet(pet))
+                addAll(getRecordsForPet(pet, clinics))
             }
         }
         return records.sortedByDescending(MedicalRecordDto::date)
@@ -35,33 +36,32 @@ internal class SupabaseMedicalRecordDataSource(
             }
             .decodeList<OwnedPetRecord>()
             .singleOrNull() ?: return emptyList()
-        return getRecordsForPet(pet)
+        return getRecordsForPet(pet, getClinics())
     }
 
-    private suspend fun getRecordsForPet(pet: OwnedPetRecord): List<MedicalRecordDto> {
+    private suspend fun getClinics(): Map<String, String> =
+        supabase.postgrest.rpc("get_owned_record_clinics").decodeList<TenantRecord>()
+            .associate { it.id to it.name }
+
+    private suspend fun getRecordsForPet(pet: OwnedPetRecord, clinics: Map<String, String>): List<MedicalRecordDto> {
         val records = supabase.postgrest["medical_records"]
             .select { filter { eq("pet_id", pet.id) } }
             .decodeList<MedicalRecordRecord>()
 
         return records.map { record ->
-            val clinicName = supabase.postgrest["tenants"]
-                .select { filter { eq("id", record.tenantId) } }
-                .decodeList<TenantRecord>()
-                .singleOrNull()
-                ?.name
-                ?: "Clínica no disponible (${record.tenantId})"
+            val clinicName = clinics[record.tenantId] ?: "Clínica no disponible"
 
             MedicalRecordDto(
                 id = record.id,
                 petId = pet.id,
                 petName = pet.name,
                 clinicName = clinicName,
-                doctorName = "Autor: ${record.authoredBy}",
+                doctorName = record.authoredBy?.let { "Autor: $it" } ?: "Autor no disponible",
                 date = record.createdAt.substringBefore('T'),
                 title = record.title,
-                diagnosis = record.content,
-                treatment = "No especificado en el registro.",
-                vetNotes = null
+                diagnosis = record.diagnosis?.takeIf { it.isNotBlank() } ?: record.content,
+                treatment = record.treatment?.takeIf { it.isNotBlank() } ?: "No especificado en el registro.",
+                vetNotes = record.observations?.takeIf { it.isNotBlank() }
             )
         }
     }
@@ -74,12 +74,15 @@ private data class OwnedPetRecord(val id: String, val name: String)
 private data class MedicalRecordRecord(
     val id: String,
     @SerialName("pet_id") val petId: String,
-    @SerialName("tenant_id") val tenantId: String,
-    @SerialName("authored_by") val authoredBy: String,
+    @SerialName("tenant_id") val tenantId: String? = null,
+    @SerialName("authored_by") val authoredBy: String? = null,
     val title: String,
     val content: String,
+    val diagnosis: String? = null,
+    val treatment: String? = null,
+    val observations: String? = null,
     @SerialName("created_at") val createdAt: String
 )
 
 @Serializable
-private data class TenantRecord(val name: String)
+private data class TenantRecord(@SerialName("tenant_id") val id: String, val name: String)

@@ -59,9 +59,9 @@ internal fun shiftValidationError(
     existing: List<ClinicShift>,
     editingId: String? = null
 ): String? {
-    val format = Regex("^([01]\\d|2[0-3]):[0-5]\\d$")
-    if (day !in 0..6 || !format.matches(open) || !format.matches(close)) {
-        return "Ingresa horarios válidos en formato HH:mm, por ejemplo 09:00."
+    val format = Regex("^([01]\\d|2[0-3]):00$")
+    if (day !in 0..6 || !format.matches(open) || (!format.matches(close) && close != "24:00")) {
+        return "Selecciona horas en punto, por ejemplo 09:00."
     }
     if (open >= close) return "La hora de cierre debe ser posterior a la apertura en el mismo día."
     if (existing.any {
@@ -88,17 +88,33 @@ internal fun shiftsValidationError(
     return null
 }
 
+internal fun selectedHourRanges(hours: Set<Int>): List<Pair<String, String>> {
+    require(hours.all { it in 0..23 })
+    val sorted = hours.sorted()
+    if (sorted.isEmpty()) return emptyList()
+    val ranges = mutableListOf<Pair<String, String>>()
+    var start = sorted.first()
+    var last = start
+    for (hour in sorted.drop(1)) {
+        if (hour != last + 1) {
+            ranges.add("%02d:00".format(start) to "%02d:00".format(last + 1))
+            start = hour
+        }
+        last = hour
+    }
+    ranges.add("%02d:00".format(start) to "%02d:00".format(last + 1))
+    return ranges
+}
+
 @Composable
-private fun TimeChoice(label: String, value: String, enabled: Boolean, onChange: (String) -> Unit) {
+private fun TimeChoice(label: String, value: String, enabled: Boolean, allowMidnight: Boolean = false, onChange: (String) -> Unit) {
     val parts = value.split(":")
-    val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: 0
-    val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: 0
+    val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, if (allowMidnight) 24 else 23) ?: 0
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, color = TextSecondary, fontSize = 12.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            NumberChoice(hour, 23, enabled) { onChange("${it.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}") }
-            Text(":", Modifier.padding(horizontal = 4.dp), fontWeight = FontWeight.Bold)
-            NumberChoice(minute, 59, enabled) { onChange("${hour.toString().padStart(2, '0')}:${it.toString().padStart(2, '0')}") }
+            NumberChoice(hour, if (allowMidnight) 24 else 23, enabled) { onChange("${it.toString().padStart(2, '0')}:00") }
+            Text(":00", Modifier.padding(start = 4.dp), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -137,8 +153,8 @@ fun ScheduleScreen(
     var editing by remember { mutableStateOf<ClinicShift?>(null) }
     var showEditor by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<ClinicShift?>(null) }
-    var showDateAvailability by remember { mutableStateOf(false) }
     var selectedDays by remember { mutableStateOf(setOf(1)) }
+    var selectedHours by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var open by remember { mutableStateOf("09:00") }
     var close by remember { mutableStateOf("18:00") }
     val scope = rememberCoroutineScope()
@@ -174,7 +190,14 @@ fun ScheduleScreen(
         val clinicId = tenantId ?: return
         val start = open.trim()
         val end = close.trim()
-        val validation = shiftsValidationError(selectedDays, start, end, shifts, editing?.id)
+        val ranges = if (editing == null) selectedHourRanges(selectedHours) else listOf(start to end)
+        val validation = when {
+            selectedDays.isEmpty() -> "Selecciona al menos un día."
+            ranges.isEmpty() -> "Selecciona al menos una franja horaria."
+            else -> ranges.firstNotNullOfOrNull { (from, to) ->
+                shiftsValidationError(selectedDays, from, to, shifts, editing?.id)
+            }
+        }
         if (validation != null) {
             errorMessage = validation
             return
@@ -185,9 +208,11 @@ fun ScheduleScreen(
             val current = editing
             if (current == null) {
                 val inserted = supabase.postgrest["business_schedules"]
-                    .insert(selectedDays.sorted().map { NewClinicShift(clinicId, it, start, end) }) { select() }
+                    .insert(selectedDays.sorted().flatMap { day ->
+                        ranges.map { (from, to) -> NewClinicShift(clinicId, day, from, to) }
+                    }) { select() }
                     .decodeList<ClinicShift>()
-                check(inserted.size == selectedDays.size) { "No se pudieron confirmar todos los turnos. Actualiza la pantalla antes de volver a intentarlo." }
+                check(inserted.size == selectedDays.size * ranges.size) { "No se pudieron confirmar todos los turnos. Actualiza la pantalla antes de volver a intentarlo." }
             } else {
                 val updated = supabase.postgrest["business_schedules"].update({
                     set("day_of_week", selectedDays.single())
@@ -248,9 +273,8 @@ fun ScheduleScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { scope.launch { load() } }, enabled = !loading && !saving) { Text("Actualizar") }
-                    OutlinedButton(onClick = { showDateAvailability = true }, enabled = tenantId != null && !loading && !saving) { Text("Horarios por fecha") }
                     Button(onClick = {
-                        editing = null; selectedDays = setOf(1); open = "09:00"; close = "18:00"; errorMessage = null; showEditor = true
+                        editing = null; selectedDays = setOf(1); selectedHours = emptySet(); errorMessage = null; showEditor = true
                     }, enabled = tenantId != null && !loading && !saving) { Text("Agregar horario") }
                 }
             }
@@ -276,10 +300,6 @@ fun ScheduleScreen(
                     }
                 }
             }
-        }
-
-        if (showDateAvailability && tenantId != null) {
-            DateAvailabilityDialog(tenantId!!, timeZone) { showDateAvailability = false }
         }
 
         if (showEditor) Dialog(onDismissRequest = { if (!saving) showEditor = false }) {
@@ -321,9 +341,37 @@ fun ScheduleScreen(
                         }
                     }
                     Text("Horario de 24 horas · zona: $timeZone", color = TextSecondary, fontSize = 12.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                        TimeChoice("Apertura", open, !saving) { open = it }
-                        TimeChoice("Cierre", close, !saving) { close = it }
+                    if (editing == null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = selectedHours.size == 24, onCheckedChange = {
+                                selectedHours = if (it) (0..23).toSet() else emptySet()
+                            }, enabled = !saving)
+                            Text("Seleccionar todas las horas")
+                        }
+                        (0..23).toList().chunked(6).forEach { group ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                group.forEach { hour ->
+                                    val selected = hour in selectedHours
+                                    Box(
+                                        Modifier.weight(1f)
+                                            .background(if (selected) EmeraldLightBg else OffWhiteBg, RoundedCornerShape(6.dp))
+                                            .border(1.dp, if (selected) ClinicalEmerald else BorderLight, RoundedCornerShape(6.dp))
+                                            .clickable(enabled = !saving) {
+                                                selectedHours = if (selected) selectedHours - hour else selectedHours + hour
+                                            }.padding(vertical = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("${hour.toString().padStart(2, '0')}:00", color = if (selected) ClinicalEmerald else TextPrimary)
+                                    }
+                                }
+                            }
+                        }
+                        Text("Cada franja dura una hora y se repite semanalmente. Las horas consecutivas se agrupan.", color = TextSecondary, fontSize = 12.sp)
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                            TimeChoice("Apertura", open, !saving) { open = it }
+                            TimeChoice("Cierre", close, !saving, allowMidnight = true) { close = it }
+                        }
                     }
                     if (editing?.active == false) Text("Al guardar, este turno se activará.", color = TextSecondary)
                     errorMessage?.let { Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp) }

@@ -83,15 +83,27 @@ private fun AccessStatusScreen(
 fun main() = application {
     val windowState = rememberWindowState(placement = WindowPlacement.Maximized)
     var showExitDialog by remember { mutableStateOf(false) }
-    var currentScreen by remember { mutableStateOf("Login") }
+    var currentScreen by remember { mutableStateOf("Restoring") }
     var activeUserEmail by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf("") }
+    var sessionBusy by remember { mutableStateOf(false) }
+    var exitError by remember { mutableStateOf<String?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         try {
-            val user = supabase.auth.currentSessionOrNull()?.user ?: return@LaunchedEffect
+            if (!SessionManager.isRememberMeEnabled()) {
+                SecureSessionStorage.deleteSession()
+                currentScreen = "Login"
+                return@LaunchedEffect
+            }
+            supabase.auth.loadFromStorage()
+            val user = supabase.auth.currentSessionOrNull()?.user
+            if (user == null) {
+                currentScreen = "Login"
+                return@LaunchedEffect
+            }
             val userId = user.id
             val email = user.email.orEmpty()
             val profile = supabase.postgrest["profiles"]
@@ -130,36 +142,89 @@ fun main() = application {
                 }
             }
 
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
-            statusMessage = e.message ?: "No se pudo restaurar la sesión de Supabase."
+            statusMessage = "No se pudo restaurar la sesión. Revisa tu conexión e inicia sesión de nuevo."
             currentScreen = "AccessStatus"
         }
     }
 
     fun handleLogout() {
+        if (sessionBusy) return
+        sessionBusy = true
         coroutineScope.launch {
-            SessionManager.clearSession()
-            supabase.auth.signOut()
-            activeUserEmail = ""
-            statusMessage = ""
-            currentScreen = "Login"
+            try {
+                SessionManager.clearSession()
+                SecureSessionStorage.deleteSession()
+                supabase.auth.signOut()
+                activeUserEmail = ""
+                statusMessage = ""
+                currentScreen = "Login"
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                statusMessage = "No se pudo cerrar la sesión. Revisa tu conexión e inténtalo de nuevo."
+                currentScreen = "AccessStatus"
+            } finally {
+                sessionBusy = false
+            }
         }
     }
 
     Window(
         onCloseRequest = {
-            if (currentScreen == "Agenda" || currentScreen == "Admin" || currentScreen == "Expedientes" || currentScreen == "Catalog" || currentScreen == "Horarios") {
+            if (sessionBusy || currentScreen == "Restoring") {
+                Unit
+            } else if (SessionManager.isRememberMeEnabled() && supabase.auth.currentSessionOrNull() != null) {
+                exitError = null
                 showExitDialog = true
             } else {
-                exitApplication()
+                sessionBusy = true
+                coroutineScope.launch {
+                    try {
+                        SessionManager.clearSession()
+                        SecureSessionStorage.deleteSession()
+                        supabase.auth.signOut()
+                        exitApplication()
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        exitError = "No se pudo cerrar la sesión. Revisa tu conexión e inténtalo de nuevo."
+                        showExitDialog = true
+                    } finally {
+                        sessionBusy = false
+                    }
+                }
             }
         },
         title = "PawsMedic - Sistema Veterinario",
         state = windowState
     ) {
-        MaterialTheme {
+        MaterialTheme(
+            colorScheme = lightColorScheme(
+                primary = ClinicalEmerald,
+                onPrimary = Color.White,
+                secondary = EmeraldHover,
+                surface = CardWhite,
+                background = OffWhiteBg,
+                onSurface = TextPrimary,
+                outline = BorderLight
+            ),
+            shapes = Shapes(
+                small = RoundedCornerShape(8.dp),
+                medium = RoundedCornerShape(12.dp),
+                large = RoundedCornerShape(16.dp)
+            )
+        ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 when (currentScreen) {
+                    "Restoring" -> Box(Modifier.fillMaxSize().background(OffWhiteBg), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            CircularProgressIndicator(color = ClinicalEmerald)
+                            Text("Preparando tu sesión...", color = TextSecondary)
+                        }
+                    }
                     "Login" -> LoginScreen(
                         onNavigateToVetMain = { email ->
                             activeUserEmail = email
@@ -217,7 +282,7 @@ fun main() = application {
 
                 // DIÁLOGO DE CONFIRMACIÓN DE SALIDA CON SESIÓN ACTIVA
                 if (showExitDialog) {
-                    Dialog(onDismissRequest = { showExitDialog = false }) {
+                    Dialog(onDismissRequest = { if (!sessionBusy) showExitDialog = false }) {
                         Card(
                             modifier = Modifier
                                 .width(540.dp)
@@ -254,11 +319,12 @@ fun main() = application {
                                 )
 
                                 Text(
-                                    text = "No cerraste sesión. Cuando vuelvas a abrir el programa tu sesión estará activa.",
+                                    text = "Elige si deseas conservar tu sesión para la próxima vez que abras PawMedic.",
                                     fontSize = 14.sp,
                                     color = TextSecondary,
                                     textAlign = TextAlign.Center
                                 )
+                                exitError?.let { Text(it, color = Color(0xFFDC2626), fontSize = 12.sp) }
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -266,6 +332,7 @@ fun main() = application {
                                 ) {
                                     OutlinedButton(
                                         onClick = { showExitDialog = false },
+                                        enabled = !sessionBusy,
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(42.dp),
@@ -276,13 +343,23 @@ fun main() = application {
 
                                     OutlinedButton(
                                         onClick = {
+                                            sessionBusy = true
                                             coroutineScope.launch {
-                                                SessionManager.clearSession()
-                                                supabase.auth.signOut()
-                                                showExitDialog = false
-                                                exitApplication()
+                                                try {
+                                                    SessionManager.clearSession()
+                                                    SecureSessionStorage.deleteSession()
+                                                    supabase.auth.signOut()
+                                                    exitApplication()
+                                                } catch (e: kotlinx.coroutines.CancellationException) {
+                                                    throw e
+                                                } catch (e: Exception) {
+                                                    exitError = "No se pudo cerrar la sesión. Revisa tu conexión e inténtalo de nuevo."
+                                                } finally {
+                                                    sessionBusy = false
+                                                }
                                             }
                                         },
+                                        enabled = !sessionBusy,
                                         modifier = Modifier
                                             .weight(1.3f)
                                             .height(42.dp),
@@ -297,6 +374,7 @@ fun main() = application {
                                             showExitDialog = false
                                             exitApplication()
                                         },
+                                        enabled = !sessionBusy && SessionManager.isRememberMeEnabled(),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(42.dp),

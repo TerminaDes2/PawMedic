@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
 import com.pawsmedic.desktop.veterinary.model.veterinaryAccessStatus
 import com.pawsmedic.desktop.veterinary.SessionManager
+import com.pawsmedic.desktop.veterinary.SecureSessionStorage
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.shared.core.model.ProfileRole
@@ -48,7 +49,7 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(true) }
+    var rememberMe by remember { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -83,6 +84,16 @@ fun LoginScreen(
                     .select { filter { eq("id", userId) } }
                     .decodeSingle<UserProfile>()
 
+                if (profile.role != ProfileRole.USER) {
+                    try {
+                        SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
+                        if (rememberMe) SecureSessionStorage.saveSession(session) else SecureSessionStorage.deleteSession()
+                    } catch (e: Exception) {
+                        SessionManager.clearSession()
+                        SecureSessionStorage.deleteSession()
+                        throw IllegalStateException("No se pudo guardar la preferencia de sesión de forma segura.", e)
+                    }
+                }
                 when (profile.role) {
                     ProfileRole.SUPERADMIN -> onNavigateToAdminLogin()
                     ProfileRole.VETERINARY_BUSINESS -> {
@@ -97,7 +108,6 @@ fun LoginScreen(
                     }
                     ProfileRole.USER -> error("Esta aplicación de escritorio es exclusiva para negocios veterinarios. Las cuentas de usuario de clientes deben ingresar desde la app móvil.")
                 }
-                SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

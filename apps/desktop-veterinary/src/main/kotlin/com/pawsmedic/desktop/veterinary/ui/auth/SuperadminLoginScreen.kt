@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
 import com.pawsmedic.desktop.veterinary.SessionManager
+import com.pawsmedic.desktop.veterinary.SecureSessionStorage
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.shared.core.model.ProfileRole
@@ -46,7 +47,7 @@ fun SuperadminLoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(true) }
+    var rememberMe by remember { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -77,7 +78,14 @@ fun SuperadminLoginScreen(
                     supabase.auth.signOut()
                     error("Esta cuenta no tiene permisos de Superadmin.")
                 }
-                SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
+                try {
+                    SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
+                    if (rememberMe) SecureSessionStorage.saveSession(session) else SecureSessionStorage.deleteSession()
+                } catch (e: Exception) {
+                    SessionManager.clearSession()
+                    SecureSessionStorage.deleteSession()
+                    throw IllegalStateException("No se pudo guardar la preferencia de sesión de forma segura.", e)
+                }
                 onNavigateToAdminMain(cleanEmail)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e

@@ -41,6 +41,16 @@ To configure date-specific booking availability, apply
 replaces weekly shifts for that date; an empty selection marks the day closed.
 Consecutive hourly selections form a continuous interval. Existing appointments
 are not cancelled by availability changes.
+The desktop editor now uses weekly schedules instead. Apply
+`use_weekly_availability.sql` to stop applying date overrides without deleting
+their stored rows or existing appointments. It also limits appointment start
+times to the hour while retaining each service's configured duration.
+
+For consultation start and clinical records, run `enable_consultation_status.sql`
+first and, in a separate SQL Editor execution, `consultation_workflow.sql`.
+The second script requires the deployed `medical_records` fields shown by
+`diagnose_consultation_workflow.sql`. Completed appointments from before this
+change can be given a record manually; their clinical details cannot be inferred.
 
 ## Edge Functions
 

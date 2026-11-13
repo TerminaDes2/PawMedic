@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.assertEquals
 
 class ScheduleValidationTest {
     private val shift = ClinicShift("1", 1, "09:00:00", "12:00:00", true)
@@ -25,8 +26,9 @@ class ScheduleValidationTest {
 
     @Test
     fun allowsEditingSameShiftAndIgnoresInactiveShifts() {
-        assertNull(shiftValidationError(1, "09:30", "12:00", listOf(shift), "1"))
-        assertNull(shiftValidationError(1, "09:30", "12:00", listOf(shift.copy(active = false))))
+        assertNull(shiftValidationError(1, "10:00", "12:00", listOf(shift), "1"))
+        assertNull(shiftValidationError(1, "10:00", "12:00", listOf(shift.copy(active = false))))
+        assertNotNull(shiftValidationError(1, "09:30", "12:00", emptyList()))
     }
 
     @Test
@@ -35,5 +37,13 @@ class ScheduleValidationTest {
         assertTrue(shiftsValidationError(emptySet(), "09:00", "12:00", emptyList())!!.contains("al menos un día"))
         assertTrue(shiftsValidationError(setOf(1, 2, 3), "10:00", "13:00", listOf(shift))!!.contains("Lunes"))
         assertNull(shiftsValidationError((0..6).toSet(), "12:00", "18:00", listOf(shift)))
+    }
+
+    @Test
+    fun groupsSelectedHoursIncludingMidnight() {
+        assertEquals(listOf("00:00" to "24:00"), selectedHourRanges((0..23).toSet()))
+        assertEquals(listOf("08:00" to "10:00", "23:00" to "24:00"), selectedHourRanges(setOf(8, 9, 23)))
+        assertEquals(emptyList(), selectedHourRanges(emptySet()))
+        assertNull(shiftsValidationError(setOf(1), "23:00", "24:00", emptyList()))
     }
 }

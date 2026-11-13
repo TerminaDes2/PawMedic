@@ -48,8 +48,7 @@ fun VetAppLayout(
                 modifier = Modifier
                     .width(260.dp)
                     .fillMaxHeight()
-                    .background(CardWhite)
-                    .border(1.dp, BorderLight)
+                    .background(DarkSlate)
                     .padding(vertical = 20.dp, horizontal = 16.dp)
             ) {
                 // Header Marca PawsMedic
@@ -77,7 +76,7 @@ fun VetAppLayout(
                             text = "Paws",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            color = Color.White
                         )
                         Text(
                             text = "Medic",
@@ -88,7 +87,9 @@ fun VetAppLayout(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(30.dp))
+                Text("ESPACIO DE TRABAJO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 1.sp)
+                Spacer(modifier = Modifier.height(12.dp))
 
                 val menuItems = listOf(
                     Triple("Agenda", "Agenda y Citas", Icons.Default.CalendarMonth),
@@ -107,9 +108,9 @@ fun VetAppLayout(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) EmeraldLightBg else Color.Transparent)
+                                .height(46.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) ClinicalEmerald else Color.Transparent)
                                 .clickable { onNavigate(id) }
                                 .padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -117,7 +118,7 @@ fun VetAppLayout(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = if (isSelected) ClinicalEmerald else TextSecondary,
+                                tint = if (isSelected) Color.White else Color(0xFFCBD5E1),
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -125,7 +126,7 @@ fun VetAppLayout(
                                 text = label,
                                 fontSize = 14.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) ClinicalEmerald else TextSecondary
+                                color = if (isSelected) Color.White else Color(0xFFCBD5E1)
                             )
                         }
                     }
@@ -145,12 +146,11 @@ fun VetAppLayout(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = title,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
+                    Column {
+                        Text(text = "PANEL VETERINARIO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald, letterSpacing = 1.sp)
+                        Spacer(Modifier.height(3.dp))
+                        Text(text = title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -165,7 +165,7 @@ fun VetAppLayout(
                         )
 
                         // Perfil Usuario (Muestra icono y nombre antes de @)
-                        val displayName = if (userEmail.isNotBlank()) userEmail.substringBefore("@") else "Dr. Valdez"
+                        val displayName = if (userEmail.isNotBlank()) userEmail.substringBefore("@") else "Cuenta veterinaria"
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)

@@ -68,6 +68,12 @@ The Supabase client is configured in `shared/core/network` and consumed by the `
 
 On Windows use `gradlew.bat`; on macOS/Linux use `./gradlew`.
 
+The veterinary desktop app can remember a signed-in session on Windows. The
+session is protected with Windows DPAPI for the current OS user; the password
+is not stored. Without “Recordarme”, closing the app signs out. Remembered
+sessions are rechecked for veterinary approval when the app is reopened.
+Secure session persistence is currently available only on Windows.
+
 ```text
 gradlew.bat test
 gradlew.bat :shared:features:auth:jvmTest

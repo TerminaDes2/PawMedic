@@ -25,6 +25,7 @@ dependencies {
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.auth)
     implementation(libs.ktor.client.cio)
+    implementation("net.java.dev.jna:jna-platform:5.6.0")
     implementation("org.slf4j:slf4j-nop:2.0.13")
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)

@@ -28,6 +28,9 @@ val supabase = createSupabaseClient(
     supabaseUrl = supabaseUrl,
     supabaseKey = supabaseAnonKey
 ) {
-    install(Auth)
+    install(Auth) {
+        autoLoadFromStorage = false
+        sessionManager = SecureSessionStorage
+    }
     install(Postgrest)
 }
