@@ -2,6 +2,7 @@ package com.pawsmedic.desktop.veterinary.ui.auth
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -27,17 +29,21 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.singleWindowApplication
 import com.pawsmedic.desktop.veterinary.supabase
+import com.pawsmedic.desktop.veterinary.ui.SelectedPhoto
+import com.pawsmedic.desktop.veterinary.ui.ProfilePhotoPicker
 import com.pawsmedic.desktop.veterinary.ui.theme.*
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email as SupabaseEmail
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 @Serializable
 private data class SubmittedBusinessApplication(
@@ -58,6 +64,8 @@ fun RegisterScreen(
     var licenseNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var profilePhoto by remember { mutableStateOf<SelectedPhoto?>(null) }
+    var photoLoading by remember { mutableStateOf(false) }
 
     var acceptTerms by remember { mutableStateOf(false) }
 
@@ -79,6 +87,15 @@ fun RegisterScreen(
         val user = supabase.auth.currentUserOrNull()
             ?: error("Debes verificar el correo e iniciar sesión antes de enviar la solicitud.")
         val userEmail = user.email ?: adminEmail.trim()
+        profilePhoto?.let { photo ->
+            val bucket = supabase.storage.from("profiles")
+            val key = "${user.id}/${UUID.randomUUID()}.${photo.extension}"
+            bucket.upload(key, photo.bytes)
+            supabase.postgrest["profiles"].update({ set("avatar_url", bucket.publicUrl(key)) }) {
+                filter { eq("id", user.id) }
+                select()
+            }.decodeSingle<kotlinx.serialization.json.JsonObject>()
+        }
         val application = try {
             val result = supabase.postgrest.rpc(
                 function = "submit_business_application",
@@ -397,6 +414,25 @@ fun RegisterScreen(
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ClinicalEmerald, unfocusedBorderColor = BorderLight)
                         )
 
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            profilePhoto?.let { photo ->
+                                Image(photo.preview, contentDescription = "Vista previa de la foto",
+                                    modifier = Modifier.size(72.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+                            }
+                            Column {
+                                ProfilePhotoPicker(
+                                    enabled = !isLoading,
+                                    onPhotoSelected = { profilePhoto = it; errorMessage = null },
+                                    onError = { errorMessage = it },
+                                    onBusyChange = { photoLoading = it }
+                                )
+                                Text("JPG o PNG, máximo 5 MB", color = TextSecondary, fontSize = 12.sp)
+                                if (profilePhoto != null) TextButton(onClick = { profilePhoto = null }, enabled = !isLoading) {
+                                    Text("Quitar foto")
+                                }
+                            }
+                        }
+
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             OutlinedTextField(
                                 value = password,
@@ -598,7 +634,7 @@ fun RegisterScreen(
                                     }
                                 }
                             },
-                            enabled = !isLoading && submittedFolio == null,
+                            enabled = !isLoading && !photoLoading && submittedFolio == null,
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald),
                             modifier = Modifier.height(44.dp)

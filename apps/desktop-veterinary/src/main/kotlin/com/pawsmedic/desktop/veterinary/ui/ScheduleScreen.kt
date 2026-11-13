@@ -6,7 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -106,6 +108,14 @@ internal fun selectedHourRanges(hours: Set<Int>): List<Pair<String, String>> {
     return ranges
 }
 
+internal fun groupShiftsByDay(shifts: List<ClinicShift>): List<Pair<Int, List<ClinicShift>>> =
+    shifts.groupBy { it.day }
+        .entries.sortedBy { (it.key + 6) % 7 }
+        .map { (day, dayShifts) -> day to dayShifts.sortedWith(compareBy<ClinicShift> { it.openTime }.thenBy { it.id }) }
+
+internal fun selectShiftsForDeletion(shifts: List<ClinicShift>, day: Int): Set<String> =
+    shifts.filter { it.day == day }.map { it.id }.toSet()
+
 @Composable
 private fun TimeChoice(label: String, value: String, enabled: Boolean, allowMidnight: Boolean = false, onChange: (String) -> Unit) {
     val parts = value.split(":")
@@ -153,6 +163,9 @@ fun ScheduleScreen(
     var editing by remember { mutableStateOf<ClinicShift?>(null) }
     var showEditor by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<ClinicShift?>(null) }
+    var deletionDay by remember { mutableStateOf<Int?>(null) }
+    var selectedForDeletion by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var confirmBulkDelete by remember { mutableStateOf(false) }
     var selectedDays by remember { mutableStateOf(setOf(1)) }
     var selectedHours by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var open by remember { mutableStateOf("09:00") }
@@ -258,6 +271,46 @@ fun ScheduleScreen(
         }
     }
 
+    suspend fun deleteSelected(day: Int, ids: Set<String>) {
+        val clinicId = tenantId ?: return
+        if (ids.isEmpty()) return
+        saving = true
+        errorMessage = null
+        notice = null
+        try {
+            val removed = supabase.postgrest["business_schedules"].delete {
+                filter {
+                    eq("tenant_id", clinicId)
+                    eq("day_of_week", day)
+                    isIn("id", ids.toList())
+                }
+                select()
+            }.decodeList<ClinicShift>()
+            confirmBulkDelete = false
+            deletionDay = null
+            selectedForDeletion = emptySet()
+            load()
+            if (removed.map { it.id }.toSet() != ids) {
+                errorMessage = "No se pudieron confirmar todas las eliminaciones. Actualiza la pantalla antes de volver a intentarlo."
+            } else if (errorMessage == null) {
+                notice = "Se eliminaron ${removed.size} franjas. Las citas existentes no se cancelaron."
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            confirmBulkDelete = false
+            deletionDay = null
+            selectedForDeletion = emptySet()
+            load()
+            errorMessage = if (errorMessage == null)
+                "No se pudo confirmar la eliminación. Revisa los horarios actualizados antes de volver a intentarlo."
+            else
+                "No se pudo confirmar la eliminación ni actualizar los horarios. Actualiza la pantalla antes de volver a intentarlo."
+        } finally {
+            saving = false
+        }
+    }
+
     LaunchedEffect(Unit) { load() }
 
     VetAppLayout("Horarios", onNavigate, onLogout, "Horarios de atención", userEmail) {
@@ -283,20 +336,35 @@ fun ScheduleScreen(
             if (!showEditor) errorMessage?.let { Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp) }
             if (loading) Text("Cargando horarios…", color = TextSecondary)
             else if (shifts.isEmpty()) Text("No hay horarios configurados. Agrega un turno para que tus clientes puedan reservar.", color = TextSecondary)
+            val groupedShifts = remember(shifts) { groupShiftsByDay(shifts) }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-                items(shifts, key = { it.id }) { shift ->
-                    Row(
+                items(groupedShifts, key = { it.first }) { (day, dayShifts) ->
+                    Column(
                         Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(7.dp)).padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(weekdays.getOrElse(shift.day) { "Día ${shift.day}" }, Modifier.weight(1f), fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Text("${shift.openTime.take(5)} – ${shift.closeTime.take(5)}", Modifier.weight(1f), color = TextSecondary)
-                        Text(if (shift.active) "Activo" else "Inactivo", Modifier.weight(0.7f), color = TextSecondary)
-                        TextButton(onClick = {
-                            editing = shift; selectedDays = setOf(shift.day); open = shift.openTime.take(5); close = shift.closeTime.take(5)
-                            errorMessage = null; showEditor = true
-                        }, enabled = !saving) { Text("Editar") }
-                        TextButton(onClick = { deleting = shift }, enabled = !saving) { Text("Eliminar", color = Color(0xFFB91C1C)) }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(weekdays.getOrElse(day) { "Día $day" }, Modifier.weight(1f), fontWeight = FontWeight.Bold, color = TextPrimary)
+                            TextButton(onClick = {
+                                deletionDay = day
+                                selectedForDeletion = selectShiftsForDeletion(dayShifts, day)
+                                errorMessage = null
+                                notice = null
+                            }, enabled = !loading && !saving) {
+                                Text("Eliminar horarios", color = Color(0xFFB91C1C))
+                            }
+                        }
+                        dayShifts.forEach { shift ->
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("${shift.openTime.take(5)} – ${shift.closeTime.take(5)}", Modifier.weight(1f), color = TextSecondary)
+                                Text(if (shift.active) "Activo" else "Inactivo", Modifier.weight(0.7f), color = TextSecondary)
+                                TextButton(onClick = {
+                                    editing = shift; selectedDays = setOf(shift.day); open = shift.openTime.take(5); close = shift.closeTime.take(5)
+                                    errorMessage = null; showEditor = true
+                                }, enabled = !saving) { Text("Editar") }
+                                TextButton(onClick = { deleting = shift }, enabled = !saving) { Text("Eliminar", color = Color(0xFFB91C1C)) }
+                            }
+                        }
                     }
                 }
             }
@@ -390,6 +458,70 @@ fun ScheduleScreen(
                 confirmButton = { TextButton(onClick = { scope.launch { delete(shift) } }, enabled = !saving) { Text("Eliminar") } },
                 dismissButton = { TextButton(onClick = { deleting = null }, enabled = !saving) { Text("Cancelar") } }
             )
+        }
+        deletionDay?.let { day ->
+            val dayShifts = shifts.filter { it.day == day }
+            if (!confirmBulkDelete) {
+                AlertDialog(
+                    onDismissRequest = {
+                        if (!saving) { deletionDay = null; selectedForDeletion = emptySet() }
+                    },
+                    title = { Text("Eliminar horarios del ${weekdays.getOrElse(day) { "día $day" }}") },
+                    text = {
+                        Column {
+                            Text("Selecciona las franjas que deseas eliminar. Puedes desmarcar las que quieras conservar.")
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = dayShifts.isNotEmpty() && dayShifts.all { it.id in selectedForDeletion },
+                                    onCheckedChange = { checked ->
+                                        selectedForDeletion = if (checked) selectShiftsForDeletion(dayShifts, day) else emptySet()
+                                    }
+                                )
+                                Text("Seleccionar todas")
+                            }
+                            Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
+                                dayShifts.forEach { shift ->
+                                    Row(
+                                        Modifier.fillMaxWidth().clickable {
+                                            selectedForDeletion = if (shift.id in selectedForDeletion) selectedForDeletion - shift.id
+                                                else selectedForDeletion + shift.id
+                                        },
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Checkbox(
+                                            checked = shift.id in selectedForDeletion,
+                                            onCheckedChange = { checked ->
+                                                selectedForDeletion = if (checked) selectedForDeletion + shift.id else selectedForDeletion - shift.id
+                                            }
+                                        )
+                                        Text("${shift.openTime.take(5)} – ${shift.closeTime.take(5)} (${if (shift.active) "Activo" else "Inactivo"})")
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { confirmBulkDelete = true }, enabled = selectedForDeletion.isNotEmpty() && !saving) {
+                            Text("Eliminar seleccionados (${selectedForDeletion.size})")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { deletionDay = null; selectedForDeletion = emptySet() }, enabled = !saving) { Text("Cancelar") }
+                    }
+                )
+            } else {
+                AlertDialog(
+                    onDismissRequest = { if (!saving) confirmBulkDelete = false },
+                    title = { Text("Confirmar eliminación") },
+                    text = { Text("Se eliminarán ${selectedForDeletion.size} franjas del ${weekdays.getOrElse(day) { "día $day" }}. Las citas existentes no se cancelarán.") },
+                    confirmButton = {
+                        TextButton(onClick = { scope.launch { deleteSelected(day, selectedForDeletion) } }, enabled = !saving) {
+                            Text(if (saving) "Eliminando…" else "Eliminar", color = Color(0xFFB91C1C))
+                        }
+                    },
+                    dismissButton = { TextButton(onClick = { confirmBulkDelete = false }, enabled = !saving) { Text("Volver") } }
+                )
+            }
         }
     }
 }

@@ -30,6 +30,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import kotlinx.coroutines.delay
+
+@Serializable
+private data class AgendaClinicZone(@SerialName("time_zone") val timeZone: String)
+
+internal fun appointmentDayReached(startsAt: String, zone: ZoneId, today: LocalDate): Boolean =
+    !Instant.parse(startsAt).atZone(zone).toLocalDate().isAfter(today)
 
 @Serializable
 private data class AgendaAppointment(
@@ -65,6 +75,8 @@ fun AgendaScreen(
     var medication by remember { mutableStateOf("") }
     var dosage by remember { mutableStateOf("") }
     var formError by remember { mutableStateOf<String?>(null) }
+    var clinicZone by remember { mutableStateOf<ZoneId?>(null) }
+    var clinicToday by remember { mutableStateOf<LocalDate?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     suspend fun loadAppointments() {
@@ -80,6 +92,9 @@ fun AgendaScreen(
                 error("La agenda solo está disponible para cuentas veterinarias.")
             }
             val tenantId = com.pawsmedic.desktop.veterinary.model.resolveTenantId(supabase, userId, profile)
+            val zone = ZoneId.of(supabase.postgrest["tenants"].select {
+                filter { eq("id", tenantId) }
+            }.decodeSingle<AgendaClinicZone>().timeZone)
             val loadedAppointments = supabase.postgrest.rpc(
                 function = "get_tenant_appointments",
                 parameters = buildJsonObject {
@@ -91,6 +106,8 @@ fun AgendaScreen(
                 parameters = buildJsonObject { put("p_tenant_id", tenantId) }
             ).decodeList<String>()
             appointments = loadedAppointments
+            clinicZone = zone
+            clinicToday = LocalDate.now(zone)
             missingRecords = missing.toSet()
         } catch (e: CancellationException) {
             throw e
@@ -163,6 +180,13 @@ fun AgendaScreen(
     }
 
     LaunchedEffect(Unit) { loadAppointments() }
+    LaunchedEffect(clinicZone) {
+        val zone = clinicZone ?: return@LaunchedEffect
+        while (true) {
+            clinicToday = LocalDate.now(zone)
+            delay(60_000)
+        }
+    }
 
     VetAppLayout(
         currentScreen = "Agenda",
@@ -216,15 +240,21 @@ fun AgendaScreen(
                                     TextButton(enabled = busyAppointmentId != appointment.id, onClick = { coroutineScope.launch { transition(appointment, "CONFIRMED") } }) { Text("Confirmar", fontSize = 10.sp) }
                                     TextButton(enabled = busyAppointmentId != appointment.id, onClick = { coroutineScope.launch { transition(appointment, "CANCELLED") } }) { Text("Cancelar", fontSize = 10.sp, color = Color(0xFFB91C1C)) }
                                 }
-                                "CONFIRMED" -> TextButton(enabled = busyAppointmentId != appointment.id, onClick = { coroutineScope.launch { transition(appointment, "IN_PROGRESS") } }) { Text("Iniciar consulta", fontSize = 10.sp) }
-                                "IN_PROGRESS" -> TextButton(enabled = busyAppointmentId != appointment.id, onClick = { openRecord(appointment) }) { Text("Terminar consulta", fontSize = 10.sp) }
+                                "CONFIRMED" -> if (clinicZone != null && clinicToday != null &&
+                                    appointmentDayReached(appointment.startsAt, clinicZone!!, clinicToday!!)) {
+                                    TextButton(enabled = busyAppointmentId != appointment.id, onClick = { coroutineScope.launch { transition(appointment, "IN_PROGRESS") } }) { Text("Iniciar consulta", fontSize = 10.sp) }
+                                }
+                                "IN_PROGRESS" -> if (clinicZone != null && clinicToday != null &&
+                                    appointmentDayReached(appointment.startsAt, clinicZone!!, clinicToday!!)) {
+                                    TextButton(enabled = busyAppointmentId != appointment.id, onClick = { openRecord(appointment) }) { Text("Terminar consulta", fontSize = 10.sp) }
+                                }
                                 "COMPLETED" -> if (appointment.id in missingRecords) {
                                     TextButton(enabled = busyAppointmentId != appointment.id, onClick = { openRecord(appointment) }) { Text("Registrar expediente", fontSize = 10.sp) }
                                 } else {
                                     Text("En expediente", color = TextSecondary, fontSize = 10.sp)
                                 }
                             }
-                            completing?.let { appointment ->
+                            completing?.takeIf { it.id == appointment.id }?.let { appointment ->
                                 Dialog(onDismissRequest = { if (busyAppointmentId == null) completing = null }) {
                                     Card(Modifier.width(620.dp).heightIn(max = 850.dp), shape = RoundedCornerShape(16.dp)) {
                                         Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {

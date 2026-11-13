@@ -46,4 +46,30 @@ class ScheduleValidationTest {
         assertEquals(emptyList(), selectedHourRanges(emptySet()))
         assertNull(shiftsValidationError(setOf(1), "23:00", "24:00", emptyList()))
     }
+
+    @Test
+    fun groupsShiftsOncePerDayWithoutDroppingIndividualRecords() {
+        val mondayEarly = ClinicShift("2", 1, "06:00:00", "07:00:00", true)
+        val mondayLater = ClinicShift("3", 1, "08:00:00", "10:00:00", false)
+        val sunday = ClinicShift("4", 0, "09:00:00", "10:00:00", true)
+        val tuesday = ClinicShift("5", 2, "09:00:00", "10:00:00", true)
+        val grouped = groupShiftsByDay(listOf(sunday, mondayLater, tuesday, mondayEarly))
+        assertEquals(listOf(1, 2, 0), grouped.map { it.first })
+        assertEquals(listOf(mondayEarly, mondayLater), grouped.first().second)
+        assertEquals(listOf(tuesday), grouped[1].second)
+        assertEquals(listOf(sunday), grouped[2].second)
+        assertTrue(groupShiftsByDay(emptyList()).isEmpty())
+    }
+
+    @Test
+    fun selectAllForDeletionIsRestrictedToOneDay() {
+        val monday = shift.copy(id = "monday")
+        val inactiveMonday = shift.copy(id = "inactive", active = false)
+        val tuesday = shift.copy(id = "tuesday", day = 2)
+        val shifts = listOf(monday, inactiveMonday, tuesday)
+        val selected = selectShiftsForDeletion(shifts, 1)
+        assertEquals(setOf("monday", "inactive"), selected)
+        assertEquals(setOf("monday"), selected - "inactive")
+        assertEquals(emptySet(), selectShiftsForDeletion(shifts, 3))
+    }
 }

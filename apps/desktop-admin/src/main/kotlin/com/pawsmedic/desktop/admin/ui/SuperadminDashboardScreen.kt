@@ -95,7 +95,6 @@ fun SuperadminDashboardScreen(
     supabaseClient: SupabaseClient = supabase
 ) {
     var selectedModule by remember { mutableStateOf(1) }
-    var searchQuery by remember { mutableStateOf("") }
 
     val requests = remember { mutableStateListOf<RegistrationRequest>() }
     val auditLogs = remember { mutableStateListOf<AuditLog>() }
@@ -240,55 +239,6 @@ fun SuperadminDashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Buscador
-                        Box(
-                            modifier = Modifier
-                                .width(300.dp)
-                                .height(40.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(AdminOffWhiteBg)
-                                .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp))
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    Icons.Default.Search,
-                                    contentDescription = null,
-                                    tint = AdminTextMuted,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Box(
-                                    modifier = Modifier.weight(1f),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (searchQuery.isEmpty()) {
-                                        Text(
-                                            text = "Buscar veterinaria, solicitante o RFC...",
-                                            fontSize = 13.sp,
-                                            color = AdminTextMuted,
-                                            maxLines = 1
-                                        )
-                                    }
-                                    androidx.compose.foundation.text.BasicTextField(
-                                        value = searchQuery,
-                                        onValueChange = { searchQuery = it },
-                                        singleLine = true,
-                                        textStyle = androidx.compose.ui.text.TextStyle(
-                                            fontSize = 13.sp,
-                                            color = AdminTextPrimary,
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-                        }
-
                         // Profile Root & Cerrar Sesión
                         val displayName = if (userEmail.isNotBlank()) userEmail.substringBefore("@") else "admin"
                         Row(
@@ -370,7 +320,7 @@ fun SuperadminDashboardScreen(
                 ) {
                     when (selectedModule) {
                         0 -> MonitoreoModule(supabaseClient)
-                        1 -> SolicitudesModule(requests, supabaseClient, searchQuery)
+                        1 -> SolicitudesModule(requests, supabaseClient)
                         2 -> AuditoriaModule(auditLogs, auditLoadError)
                     }
                 }
@@ -549,19 +499,14 @@ fun MonitoreoModule(supabaseClient: SupabaseClient) {
 @Composable
 fun SolicitudesModule(
     requests: MutableList<RegistrationRequest>,
-    supabaseClient: SupabaseClient,
-    searchQuery: String
+    supabaseClient: SupabaseClient
 ) {
     var selectedRequestForDetail by remember { mutableStateOf<RegistrationRequest?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isActionLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
-    val visibleRequests = requests.filter { request ->
-        searchQuery.isBlank() || listOf(
-            request.id, request.name, request.rep, request.rfc, request.email
-        ).any { it.contains(searchQuery, ignoreCase = true) }
-    }
+    val visibleRequests = requests
 
     LaunchedEffect(supabaseClient) {
         try {

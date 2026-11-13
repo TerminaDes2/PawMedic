@@ -1,13 +1,13 @@
 package com.pawsmedic.desktop.veterinary.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,11 +15,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.desktop.veterinary.supabase
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import java.net.URI
+import javax.imageio.ImageIO
+
+@Serializable
+private data class ProfileAvatar(
+    @SerialName("avatar_url") val url: String? = null,
+    @SerialName("display_name") val displayName: String? = null
+)
 
 @Composable
 fun VetAppLayout(
@@ -31,11 +50,36 @@ fun VetAppLayout(
     content: @Composable BoxScope.() -> Unit
 ) {
     var showAdminModal by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
 
     var adminUsername by remember { mutableStateOf("") }
     var adminPassword by remember { mutableStateOf("") }
     var loginError by remember { mutableStateOf(false) }
+    var showProfile by remember(userEmail) { mutableStateOf(false) }
+    var profileRevision by remember(userEmail) { mutableIntStateOf(0) }
+    var profileName by remember(userEmail) { mutableStateOf("") }
+    var avatar by remember(userEmail) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(userEmail, profileRevision) {
+        try {
+            val userId = supabase.auth.currentUserOrNull()?.id ?: return@LaunchedEffect
+            val profile = supabase.postgrest["profiles"].select { filter { eq("id", userId) } }
+                .decodeSingle<ProfileAvatar>()
+            profileName = profile.displayName.orEmpty()
+            val url = profile.url ?: return@LaunchedEffect
+            avatar = withContext(Dispatchers.IO) {
+                val uri = URI(url)
+                require(uri.scheme == "https") { "La foto debe usar HTTPS." }
+                val connection = uri.toURL().openConnection().apply {
+                    connectTimeout = 5000
+                    readTimeout = 5000
+                }
+                connection.getInputStream().use { input -> ImageIO.read(input)?.toComposeImageBitmap() }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            System.err.println("No se pudo cargar la foto del perfil.")
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -156,17 +200,11 @@ fun VetAppLayout(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Buscador
-                        AlignedSearchBox(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = "Buscar paciente, dueño, folio...",
-                            modifier = Modifier.width(300.dp)
-                        )
-
                         // Perfil Usuario (Muestra icono y nombre antes de @)
-                        val displayName = if (userEmail.isNotBlank()) userEmail.substringBefore("@") else "Cuenta veterinaria"
+                        val displayName = profileName.ifBlank { "Cuenta veterinaria" }
                         Row(
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                .clickable { showProfile = true }.padding(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
@@ -181,12 +219,13 @@ fun VetAppLayout(
                                         .background(EmeraldLightBg),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = ClinicalEmerald,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    val image = avatar
+                                    if (image == null) {
+                                        Icon(imageVector = Icons.Default.Person, contentDescription = null,
+                                            tint = ClinicalEmerald, modifier = Modifier.size(20.dp))
+                                    } else {
+                                        Image(image, contentDescription = "Foto de perfil", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                    }
                                 }
 
                                 Column {
@@ -197,42 +236,13 @@ fun VetAppLayout(
                                         color = TextPrimary
                                     )
                                     Text(
-                                        text = userEmail.ifBlank { "Clínica Principal" },
+                                        text = "Mi perfil",
                                         fontSize = 11.sp,
                                         color = TextMuted
                                     )
                                 }
                             }
 
-                            // Botón Cerrar Sesión
-                            Box(
-                                modifier = Modifier
-                                    .height(36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(OffWhiteBg)
-                                    .border(1.dp, BorderLight, RoundedCornerShape(8.dp))
-                                    .clickable { onLogout() }
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                        contentDescription = null,
-                                        tint = Color(0xFFDC2626),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "Cerrar Sesión",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFDC2626)
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -246,6 +256,16 @@ fun VetAppLayout(
                     content()
                 }
             }
+        }
+
+        if (showProfile) {
+            AccountSidebar(
+                avatar = avatar,
+                onClose = { showProfile = false },
+                onLogout = { showProfile = false; onLogout() },
+                onProfileLoaded = { profileName = it },
+                onProfileSaved = { name -> profileName = name; profileRevision++ }
+            )
         }
 
         // MODAL DE AUTENTICACIÓN ADMIN

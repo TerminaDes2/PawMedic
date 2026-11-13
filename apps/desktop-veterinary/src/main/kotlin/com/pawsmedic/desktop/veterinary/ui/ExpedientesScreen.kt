@@ -13,6 +13,9 @@ import kotlinx.serialization.Serializable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +55,19 @@ private data class MedicalRecord(
     @SerialName("pet_id") val petId: String,
     val title: String,
     val content: String,
+    @SerialName("appointment_id") val appointmentId: String? = null,
+    @SerialName("veterinarian_id") val veterinarianId: String? = null,
+    @SerialName("weight_grams") val weightGrams: Int? = null,
+    @SerialName("record_date") val recordDate: String? = null,
+    @SerialName("record_time") val recordTime: String? = null,
+    @SerialName("consultation_reason") val consultationReason: String? = null,
+    val symptoms: String? = null,
+    val diagnosis: String? = null,
+    val treatment: String? = null,
+    val medication: String? = null,
+    val dosage: String? = null,
+    val observations: String? = null,
+    @SerialName("next_review_date") val nextReviewDate: String? = null,
     @SerialName("created_at") val createdAt: String
 )
 
@@ -80,6 +96,8 @@ fun ExpedientesScreen(
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var showConsultationDialog by remember { mutableStateOf(false) }
+    var selectedRecord by remember { mutableStateOf<MedicalRecord?>(null) }
+    var selectedConsultation by remember { mutableStateOf<ClinicalConsultation?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var petIdInput by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
@@ -196,7 +214,8 @@ fun ExpedientesScreen(
                     Text("CONSULTAS CLÍNICAS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMuted)
                 }
                 items(consultations, key = { "consultation-${it.id}" }) { consultation ->
-                    Column(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp))
+                        .clickable { selectedConsultation = consultation }.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(consultation.reason, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                             Text("${consultation.status} · ${consultation.occurredAt}", fontSize = 11.sp, color = TextMuted)
@@ -212,13 +231,60 @@ fun ExpedientesScreen(
                     Text("EXPEDIENTES MÉDICOS EXISTENTES (SOLO LECTURA)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMuted)
                 }
                 items(medicalRecords, key = { "record-${it.id}" }) { record ->
-                    Column(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp))
+                        .clickable { selectedRecord = record }.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(record.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                         Text("Mascota ID: ${record.petId} · ${record.createdAt}", fontSize = 11.sp, color = TextMuted)
                         Text(record.content, fontSize = 12.sp, color = TextSecondary)
                     }
                 }
             }
+        }
+
+        selectedRecord?.let { record ->
+            Dialog(onDismissRequest = { selectedRecord = null }) {
+                Card(Modifier.width(640.dp).heightIn(max = 780.dp), shape = RoundedCornerShape(16.dp)) {
+                    Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Expediente médico", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        listOf(
+                            "Servicio" to record.title, "Mascota ID" to record.petId,
+                            "Cita ID" to record.appointmentId, "Veterinario ID" to record.veterinarianId,
+                            "Fecha" to record.recordDate, "Hora" to record.recordTime,
+                            "Peso" to record.weightGrams?.let { "$it g" },
+                            "Motivo" to record.consultationReason, "Síntomas" to record.symptoms,
+                            "Diagnóstico" to record.diagnosis, "Tratamiento" to record.treatment,
+                            "Medicamento" to record.medication, "Dosis" to record.dosage,
+                            "Observaciones" to record.observations, "Próxima revisión" to record.nextReviewDate,
+                            "Detalle" to record.content
+                        ).forEach { (label, value) ->
+                            if (!value.isNullOrBlank()) {
+                                Text(label, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text(value, color = TextSecondary)
+                            }
+                        }
+                        TextButton(onClick = { selectedRecord = null }, modifier = Modifier.align(Alignment.End)) { Text("Cerrar") }
+                    }
+                }
+            }
+        }
+        selectedConsultation?.let { consultation ->
+            AlertDialog(
+                onDismissRequest = { selectedConsultation = null },
+                title = { Text("Consulta clínica") },
+                text = {
+                    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Mascota ID: ${consultation.petId}")
+                        Text("Veterinario ID: ${consultation.veterinarianId}")
+                        Text("Fecha: ${consultation.occurredAt}")
+                        Text("Estado: ${consultation.status}")
+                        Text("Motivo: ${consultation.reason}")
+                        Text("Observaciones: ${consultation.observations}")
+                        Text("Diagnóstico: ${consultation.diagnosis}")
+                        Text("Tratamiento: ${consultation.plan}")
+                    }
+                },
+                confirmButton = { TextButton(onClick = { selectedConsultation = null }) { Text("Cerrar") } }
+            )
         }
 
         if (showConsultationDialog) Dialog(onDismissRequest = { if (!isSaving) showConsultationDialog = false }) {

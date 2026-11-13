@@ -2,7 +2,13 @@ package com.pawsmedic.desktop.veterinary
 
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.minimalSettings
+import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.storage.Storage
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Properties
 
@@ -33,4 +39,20 @@ val supabase = createSupabaseClient(
         sessionManager = SecureSessionStorage
     }
     install(Postgrest)
+    install(Storage)
+}
+
+internal suspend fun verifyAccountPassword(email: String, password: String, userId: String): Boolean {
+    val temporaryClient = createSupabaseClient(supabaseUrl, supabaseAnonKey) {
+        install(Auth) { minimalSettings() }
+    }
+    try {
+        temporaryClient.auth.signInWith(Email) {
+            this.email = email
+            this.password = password
+        }
+        return temporaryClient.auth.currentUserOrNull()?.id == userId
+    } finally {
+        withContext(NonCancellable) { temporaryClient.close() }
+    }
 }
