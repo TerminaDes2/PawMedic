@@ -17,13 +17,7 @@ import kotlinx.serialization.Serializable
 data class BusinessScheduleModel(
     @SerialName("id") val id: String? = null,
     @SerialName("tenant_id") val tenantId: String,
-<<<<<<< HEAD
-    @SerialName("weekday") val diaSemana: Int,
-    @SerialName("opens_at") val horaApertura: String,
-    @SerialName("closes_at") val horaCierre: String
-=======
     @SerialName("day_of_week") val diaSemana: Int,
     @SerialName("open_time") val horaApertura: String,
     @SerialName("close_time") val horaCierre: String
->>>>>>> BapoGod
 )

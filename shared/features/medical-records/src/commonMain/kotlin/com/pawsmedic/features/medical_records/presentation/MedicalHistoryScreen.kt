@@ -87,7 +87,7 @@ fun MedicalHistoryScreen(
                                 .background(PawMedicColors.Teal50),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "🐱", fontSize = 20.sp)
+                            Text(text = "🐾", fontSize = 20.sp)
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
@@ -106,7 +106,7 @@ fun MedicalHistoryScreen(
                 onDismissRequest = { dropdownExpanded = false },
                 modifier = Modifier.fillMaxWidth(0.85f)
             ) {
-                listOf("Tobías", "Joey", "Rudy", "Todas").forEach { name ->
+                uiState.availablePetNames.forEach { name ->
                     DropdownMenuItem(
                         text = { Text(text = name, fontWeight = FontWeight.Medium) },
                         onClick = {
@@ -156,7 +156,7 @@ fun MedicalHistoryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No se encontraron registros médicos.",
+                    text = "No se encontraron registros médicos para tus mascotas.",
                     fontSize = 14.sp,
                     color = PawMedicColors.Gray500
                 )
@@ -212,7 +212,7 @@ private fun MedicalRecordCard(record: MedicalRecord) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = record.title,
+                text = "${record.petName}: ${record.title}",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicColors.Gray900

@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 data class MedicalHistoryUiState(
     val records: List<MedicalRecord> = emptyList(),
     val filteredRecords: List<MedicalRecord> = emptyList(),
-    val selectedPetName: String = "Tobías",
+    val availablePetNames: List<String> = listOf("Todas"),
+    val selectedPetName: String = "Todas",
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null
@@ -37,8 +38,14 @@ class MedicalHistoryViewModel(
             repository.getAllMedicalRecords()
                 .onSuccess { list ->
                     _uiState.update { curr ->
+                        val petNames = (listOf("Todas") + list.map { it.petName }.filter { it.isNotBlank() }.distinct())
                         val filtered = filterRecords(list, curr.selectedPetName, curr.searchQuery)
-                        curr.copy(records = list, filteredRecords = filtered, isLoading = false)
+                        curr.copy(
+                            records = list,
+                            filteredRecords = filtered,
+                            availablePetNames = petNames,
+                            isLoading = false
+                        )
                     }
                 }
                 .onFailure { err ->
@@ -65,11 +72,12 @@ class MedicalHistoryViewModel(
 
     private fun filterRecords(list: List<MedicalRecord>, petName: String, query: String): List<MedicalRecord> {
         return list.filter { record ->
-            val matchesPet = petName == "Todas" || record.petName.equals(petName, ignoreCase = true)
+            val matchesPet = petName == "Todas" || petName == "Todos" || record.petName.equals(petName, ignoreCase = true)
             val matchesQuery = query.isBlank() ||
                 record.title.contains(query, ignoreCase = true) ||
                 record.diagnosis.contains(query, ignoreCase = true) ||
-                record.doctorName.contains(query, ignoreCase = true)
+                record.doctorName.contains(query, ignoreCase = true) ||
+                record.petName.contains(query, ignoreCase = true)
             matchesPet && matchesQuery
         }
     }

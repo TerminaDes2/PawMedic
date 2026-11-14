@@ -1,6 +1,7 @@
 package com.pawsmedic.features.pets.data.datasource
 
 import com.pawsmedic.features.pets.data.dto.PetDto
+import com.pawsmedic.shared.core.common.calculateAgeFromIsoDate
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.SerialName
@@ -59,6 +60,8 @@ class SupabasePetDataSource(
         name = name,
         breedId = breedId,
         speciesId = speciesId,
+        species = species,
+        breed = breed,
         dateOfBirth = dateOfBirth,
         gender = gender,
         photo_url = photo_url,
@@ -73,6 +76,7 @@ class SupabasePetDataSource(
         name = name,
         species = species.orEmpty(),
         breed = breed,
+        age = calculateAgeFromIsoDate(dateOfBirth),
         dateOfBirth = dateOfBirth,
         gender = gender,
         photo_url = photo_url,
@@ -110,6 +114,8 @@ private data class PetWriteRecord(
     val name: String,
     @SerialName("breed_id") val breedId: Int? = null,
     @SerialName("species_id") val speciesId: Int? = null,
+    val species: String? = null,
+    val breed: String? = null,
     @SerialName("date_of_birth") val dateOfBirth: String? = null,
     @SerialName("sex") val gender: String? = null,
     @SerialName("photo_url") val photo_url: String? = null,

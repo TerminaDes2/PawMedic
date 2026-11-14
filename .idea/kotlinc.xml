@@ -2,10 +2,6 @@
 <project version="4">
   <component name="KotlinJpsPluginSettings">
     <option name="externalSystemId" value="Gradle" />
-<<<<<<< HEAD
-    <option name="version" value="2.2.21" />
-=======
     <option name="version" value="2.1.20" />
->>>>>>> BapoGod
   </component>
 </project>

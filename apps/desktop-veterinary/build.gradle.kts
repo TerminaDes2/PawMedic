@@ -17,6 +17,18 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     }
 }
 
+tasks.withType<Tar>().configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.withType<Zip>().configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.withType<Copy>().configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 dependencies {
     implementation(project(":shared:features:auth"))
     implementation(project(":shared:features:medical-records"))
@@ -31,20 +43,12 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
-<<<<<<< HEAD
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
-}
-
-application {
-    mainClass.set("com.pawsmedic.desktop.veterinary.MainKt")
-}
-=======
     testImplementation(kotlin("test"))
 }
 
 application { mainClass.set("com.pawsmedic.desktop.veterinary.MainKt") }
->>>>>>> BapoGod
 
 tasks.withType<JavaExec>().configureEach {
     jvmArgs("--enable-native-access=ALL-UNNAMED")

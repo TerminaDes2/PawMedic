@@ -564,14 +564,9 @@ fun RegisterScreen(
                                                         useExistingAccount = true
                                                         errorMessage = "Este correo ya está registrado en el sistema. Inicia sesión con tus credenciales para enviar la solicitud."
                                                         return@launch
-<<<<<<< HEAD
-                                                    } else if (rawMsg.contains("rate limit", ignoreCase = true) ||
-                                                        rawMsg.contains("429", ignoreCase = true)) {
-                                                        errorMessage = "Supabase ha alcanzado el límite de correos. Espera unos minutos o usa la opción 'Ya tengo cuenta'."
-=======
                                                     } else if (rawMsg.contains("rate limit", ignoreCase = true) || rawMsg.contains("429", ignoreCase = true)) {
                                                         errorMessage = "Supabase ha alcanzado el límite de envío de correos por hora. Por favor espera unos minutos o usa la opción 'Ya tengo cuenta'."
->>>>>>> BapoGod
+                                                        return@launch
                                                         return@launch
                                                     } else {
                                                         throw e

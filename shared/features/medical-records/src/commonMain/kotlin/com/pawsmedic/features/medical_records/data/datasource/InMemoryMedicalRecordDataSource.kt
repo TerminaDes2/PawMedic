@@ -14,43 +14,7 @@ import com.pawsmedic.features.medical_records.domain.model.VitalSigns
 
 class InMemoryMedicalRecordDataSource : MedicalRecordDataSource {
 
-    private val legacyRecords = mutableListOf(
-        MedicalRecordDto(
-            id = "1",
-            petId = "pet-1",
-            petName = "Tobías",
-            clinicName = "Clinipet Central",
-            doctorName = "Dra. Ana Milena",
-            date = "15 Oct 2023",
-            title = "Vacunación Triple Felina & Control General",
-            diagnosis = "Paciente felino sano. Refuerzo de vacunación anual aplicado exitosamente.",
-            treatment = "Aplicación de vacuna Triple Felina. Recomendación de dieta balanceada.",
-            vetNotes = "El paciente presentó un comportamiento dócil. Mantener dieta alta en proteína."
-        ),
-        MedicalRecordDto(
-            id = "2",
-            petId = "pet-1",
-            petName = "Tobías",
-            clinicName = "Clinipet Central",
-            doctorName = "Dr. Carlos Ruiz",
-            date = "02 Sep 2023",
-            title = "Control de Parásitos Internos y Externos",
-            diagnosis = "Leve infestación por pulgas (Ctenocephalides felis). Sin dermatitis.",
-            treatment = "Aplicación de pipeta antipulgas en nuca + antiparasitario oral.",
-            vetNotes = "Revisar en 30 días para evaluar efectividad de la pipeta."
-        ),
-        MedicalRecordDto(
-            id = "3",
-            petId = "pet-2",
-            petName = "Thor",
-            clinicName = "Hospital Veterinario San Juan",
-            doctorName = "Dr. Roberto Gómez",
-            date = "20 Ago 2023",
-            title = "Chequeo Preventivo Canino",
-            diagnosis = "Canino saludable de raza grande. Ligera acumulación de sarro dental.",
-            treatment = "Limpieza profiláctica recomendada en 6 meses. Cepillado dental 3 veces por semana."
-        )
-    )
+    private val legacyRecords = mutableListOf<MedicalRecordDto>()
 
     private val backgrounds = mutableMapOf(
         "pet-1" to PetBackground(
