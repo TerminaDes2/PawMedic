@@ -27,7 +27,7 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
             implementation(compose.animation)
-            implementation(compose.components.uiToolingPreview)
+            compileOnly(compose.components.uiToolingPreview)
         }
         androidMain.dependencies {
             implementation(libs.coil.compose)

@@ -45,7 +45,7 @@ private data class CatalogService(
 
 @Serializable
 private data class CatalogProduct(
-    val id: String,
+    val id: Int,
     @SerialName("tenant_id") val tenantId: String,
     val sku: String,
     val name: String,
@@ -170,7 +170,7 @@ fun CatalogScreen(
         }
     }
 
-    suspend fun toggleActive(id: String, current: Boolean, table: String) {
+    suspend fun toggleActive(id: Any, current: Boolean, table: String) {
         val clinicId = tenantId ?: return
         if (isSaving) return
         isSaving = true

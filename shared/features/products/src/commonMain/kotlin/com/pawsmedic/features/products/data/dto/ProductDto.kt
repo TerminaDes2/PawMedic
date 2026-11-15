@@ -8,13 +8,12 @@ import kotlinx.serialization.Serializable
 data class ProductDto(
     val id: Int? = null,
     @SerialName("tenant_id") val tenantId: String,
-    val sku: String? = null,
-    @SerialName("nombre") val name: String,
-    @SerialName("descripcion") val description: String,
-    @SerialName("precio_centavos") val priceCents: Int,
-    @SerialName("cantidad") val stockQuantity: Int = 0,
-    @SerialName("estado") val status: String = "ACTIVO",
-    @SerialName("activo") val active: Boolean = true
+    val sku: String = "",
+    val name: String,
+    val description: String = "",
+    @SerialName("price_cents") val priceCents: Int,
+    @SerialName("stock_quantity") val stockQuantity: Int = 0,
+    val active: Boolean = true
 ) {
     fun toDomain() = Product(
         id = id,
@@ -22,22 +21,31 @@ data class ProductDto(
         name = name,
         description = description,
         priceCents = priceCents,
-        sku = sku.orEmpty(),
+        sku = sku,
         stockQuantity = stockQuantity,
         active = active
     )
 
     companion object {
-        fun fromDomain(product: Product, tenantId: String) = ProductDto(
-            id = product.id,
+        fun fromDomain(product: Product, tenantId: String) = ProductInsertDto(
             tenantId = tenantId,
             sku = product.sku.ifBlank { "P-${product.name.hashCode().toUInt()}" },
             name = product.name,
             description = product.description.orEmpty(),
             priceCents = product.priceCents,
             stockQuantity = product.stockQuantity,
-            status = if (product.active) "ACTIVO" else "INACTIVO",
             active = product.active
         )
     }
 }
+
+@Serializable
+data class ProductInsertDto(
+    @SerialName("tenant_id") val tenantId: String,
+    val sku: String,
+    val name: String,
+    val description: String = "",
+    @SerialName("price_cents") val priceCents: Int,
+    @SerialName("stock_quantity") val stockQuantity: Int = 0,
+    val active: Boolean = true
+)
