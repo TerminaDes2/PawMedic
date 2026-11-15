@@ -27,4 +27,5 @@ interface MedicalRecordDataSource {
     suspend fun addPrescription(prescription: PrescriptionRecord): PrescriptionRecord
     suspend fun addClinicalStudy(study: ClinicalStudyRecord): ClinicalStudyRecord
     suspend fun getAuditLogs(petId: String): List<AuditLogEntry>
+    suspend fun getPrescriptionsForOwner(ownerId: String): List<PrescriptionRecord>
 }

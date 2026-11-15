@@ -23,6 +23,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.pawsmedic.desktop.admin.ui.SuperadminDashboardScreen
 import com.pawsmedic.desktop.veterinary.ui.AgendaScreen
 import com.pawsmedic.desktop.veterinary.ui.CatalogScreen
+import com.pawsmedic.desktop.veterinary.ui.ConsultasScreen
 import com.pawsmedic.desktop.veterinary.ui.ExpedientesScreen
 import com.pawsmedic.desktop.veterinary.ui.ScheduleScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.LoginScreen
@@ -148,7 +149,7 @@ fun main() = application {
 
     Window(
         onCloseRequest = {
-            if (currentScreen == "Agenda" || currentScreen == "Admin" || currentScreen == "Expedientes" || currentScreen == "Catalog" || currentScreen == "Horarios") {
+            if (currentScreen == "Agenda" || currentScreen == "Admin" || currentScreen == "Consultas" || currentScreen == "Expedientes" || currentScreen == "Catalog" || currentScreen == "Horarios") {
                 showExitDialog = true
             } else {
                 exitApplication()
@@ -185,6 +186,11 @@ fun main() = application {
                         onNavigateToLogin = { currentScreen = "Login" }
                     )
                     "Agenda" -> AgendaScreen(
+                        userEmail = activeUserEmail,
+                        onNavigate = { currentScreen = it },
+                        onLogout = { handleLogout() }
+                    )
+                    "Consultas" -> ConsultasScreen(
                         userEmail = activeUserEmail,
                         onNavigate = { currentScreen = it },
                         onLogout = { handleLogout() }

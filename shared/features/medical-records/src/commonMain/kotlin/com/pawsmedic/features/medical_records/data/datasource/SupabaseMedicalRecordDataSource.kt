@@ -384,4 +384,39 @@ class SupabaseMedicalRecordDataSource(
             emptyList()
         }
     }
+
+    override suspend fun getPrescriptionsForOwner(ownerId: String): List<PrescriptionRecord> {
+        return try {
+            val userPets = if (!ownerId.isNullOrBlank()) {
+                supabase.postgrest["pets"]
+                    .select { filter { eq("owner_id", ownerId) } }
+                    .decodeList<SupabasePetRow>()
+            } else emptyList()
+
+            if (userPets.isEmpty()) return emptyList()
+
+            val petMap = userPets.associateBy { it.id }
+            val petIds = userPets.map { it.id }
+
+            val dtos = supabase.postgrest["prescriptions"]
+                .select {
+                    filter {
+                        isIn("pet_id", petIds)
+                    }
+                }
+                .decodeList<PrescriptionRecordDto>()
+
+            dtos.map { dto ->
+                val petInfo = petMap[dto.petId]
+                val realPetName = petInfo?.nombre ?: petInfo?.name ?: "Mascota"
+                dto.toDomain(
+                    vetName = "Dr. Veterinario",
+                    petName = realPetName,
+                    clinicName = "Clínica Veterinaria"
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
 }

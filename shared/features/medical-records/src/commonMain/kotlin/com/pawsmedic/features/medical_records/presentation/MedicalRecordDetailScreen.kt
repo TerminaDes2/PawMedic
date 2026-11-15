@@ -604,15 +604,28 @@ private fun PrescriptionsTab(record: PetMedicalRecord) {
 @Composable
 private fun PrescriptionRowItem(p: PrescriptionRecord) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(p.drugName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
-            Text("${p.dosage} ${p.unit}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(if (p.isActive) Color(0xFFE6F4EA) else PawMedicColors.Gray100)
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    text = if (p.isActive) "🟢 ACTIVA (Vence: ${p.endDate ?: "N/A"})" else "⚪ VENCIDA (Venció: ${p.endDate ?: "N/A"})",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (p.isActive) PawMedicColors.Teal600 else PawMedicColors.Gray600
+                )
+            }
         }
-        Text("Vía: ${p.route} • Frecuencia: ${p.frequency} • Duración: ${p.duration}", fontSize = 12.sp, color = PawMedicColors.Gray600)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text("Dosis: ${p.dosage} ${p.unit} • Vía: ${p.route} • Frecuencia: ${p.frequency} • Duración: ${p.duration}", fontSize = 12.sp, color = PawMedicColors.Gray600)
         if (p.notes.isNotBlank()) {
             Text("Instrucciones: ${p.notes}", fontSize = 12.sp, color = PawMedicColors.Gray700)
         }
-        HorizontalDivider(color = PawMedicColors.Gray100, modifier = Modifier.padding(top = 4.dp))
+        HorizontalDivider(color = PawMedicColors.Gray100, modifier = Modifier.padding(top = 6.dp))
     }
 }
 

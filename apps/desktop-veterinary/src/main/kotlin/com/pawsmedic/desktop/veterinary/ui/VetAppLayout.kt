@@ -93,6 +93,7 @@ fun VetAppLayout(
                 val menuItems = listOf(
                     Triple("Agenda", "Agenda y Citas", Icons.Default.CalendarMonth),
                     Triple("Horarios", "Horarios de atención", Icons.Default.Schedule),
+                    Triple("Consultas", "Consultas Clínicas", Icons.Default.Healing),
                     Triple("Expedientes", "Expedientes Clínicos", Icons.Default.FolderShared),
                     Triple("Catalog", "Catálogo de Servicios", Icons.Default.ShoppingCart)
                 )

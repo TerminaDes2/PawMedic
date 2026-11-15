@@ -95,6 +95,7 @@ fun NewConsultationDialog(
     var drugRoute by remember { mutableStateOf("Oral") }
     var drugFreq by remember { mutableStateOf("Cada 12h") }
     var drugDuration by remember { mutableStateOf("5 días") }
+    var drugEndDate by remember { mutableStateOf("") }
     var isConsultationAdmin by remember { mutableStateOf(false) }
 
     // Estudios
@@ -154,6 +155,11 @@ fun NewConsultationDialog(
                         nextAppointmentDate = nextDate.ifBlank { null }
                     )
 
+                    val todayIso = com.pawsmedic.shared.core.common.convertMillisToIsoDateString(System.currentTimeMillis())
+                    val defaultExpiry = com.pawsmedic.shared.core.common.convertMillisToIsoDateString(
+                        System.currentTimeMillis() + 7L * 86400000L
+                    )
+
                     val prescriptions = if (drugName.isNotBlank()) {
                         listOf(
                             PrescriptionRecord(
@@ -163,6 +169,8 @@ fun NewConsultationDialog(
                                 route = drugRoute,
                                 frequency = drugFreq,
                                 duration = drugDuration,
+                                startDate = todayIso,
+                                endDate = drugEndDate.ifBlank { defaultExpiry },
                                 isAdministeredInConsultation = isConsultationAdmin,
                                 prescribingVetName = vetName
                             )
@@ -392,6 +400,15 @@ fun NewConsultationDialog(
                                 OutlinedTextField(value = drugDuration, onValueChange = { drugDuration = it }, label = { Text("Duración (7 días)") })
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        OutlinedTextField(
+                            value = drugEndDate,
+                            onValueChange = { drugEndDate = it },
+                            label = { Text("Fecha Caducidad / Vencimiento de Receta (*Obligatoria)") },
+                            placeholder = { Text("AAAA-MM-DD (ej. 2026-10-15)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
                             Checkbox(checked = isConsultationAdmin, onCheckedChange = { isConsultationAdmin = it })

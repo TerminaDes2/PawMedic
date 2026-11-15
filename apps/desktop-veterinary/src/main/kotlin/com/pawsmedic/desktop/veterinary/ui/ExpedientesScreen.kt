@@ -1,26 +1,49 @@
 package com.pawsmedic.desktop.veterinary.ui
 
-import com.pawsmedic.desktop.veterinary.supabase
-import com.pawsmedic.desktop.veterinary.ui.theme.*
-import com.pawsmedic.shared.core.model.ProfileRole
-import com.pawsmedic.shared.core.model.UserProfile
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.postgrest.postgrest
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FolderShared
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,43 +52,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import java.util.UUID
-
-@Serializable
-private data class ClinicalConsultation(
-    val id: String,
-    @SerialName("tenant_id") val tenantId: String,
-    @SerialName("pet_id") val petId: String,
-    @SerialName("veterinarian_id") val veterinarianId: String,
-    val reason: String,
-    val observations: String,
-    val diagnosis: String,
-    val plan: String,
-    val status: String,
-    @SerialName("occurred_at") val occurredAt: String
-)
-
-@Serializable
-private data class MedicalRecord(
-    val id: String,
-    @SerialName("tenant_id") val tenantId: String,
-    @SerialName("pet_id") val petId: String,
-    val title: String,
-    val content: String,
-    @SerialName("created_at") val createdAt: String
-)
-
-@Serializable
-private data class NewClinicalConsultation(
-    @SerialName("tenant_id") val tenantId: String,
-    @SerialName("pet_id") val petId: String,
-    @SerialName("veterinarian_id") val veterinarianId: String,
-    val reason: String,
-    val observations: String,
-    val diagnosis: String,
-    val plan: String,
-    @SerialName("idempotency_key") val idempotencyKey: String
-)
+import com.pawsmedic.desktop.veterinary.model.resolveTenantId
+import com.pawsmedic.desktop.veterinary.supabase
+import com.pawsmedic.desktop.veterinary.ui.theme.BorderLight
+import com.pawsmedic.desktop.veterinary.ui.theme.ClinicalEmerald
+import com.pawsmedic.desktop.veterinary.ui.theme.EmeraldGreen
+import com.pawsmedic.desktop.veterinary.ui.theme.EmeraldLightBg
+import com.pawsmedic.desktop.veterinary.model.OwnerProfileRow
+import com.pawsmedic.desktop.veterinary.model.PatientRow
+import com.pawsmedic.desktop.veterinary.ui.dialog.EditPetDataDialog
+import com.pawsmedic.desktop.veterinary.ui.dialog.LinkOrRegisterPatientDialog
+import com.pawsmedic.desktop.veterinary.ui.theme.SelectedBg
+import com.pawsmedic.desktop.veterinary.ui.theme.SelectedText
+import com.pawsmedic.desktop.veterinary.ui.theme.TextMuted
+import com.pawsmedic.desktop.veterinary.ui.theme.TextPrimary
+import com.pawsmedic.desktop.veterinary.ui.theme.TextSecondary
+import com.pawsmedic.features.medical_records.data.datasource.SupabaseMedicalRecordDataSource
+import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
+import com.pawsmedic.features.medical_records.domain.model.PetBackground
+import com.pawsmedic.features.medical_records.domain.model.PetMedicalRecord
+import com.pawsmedic.features.medical_records.presentation.dialog.EditBackgroundDialog
+import com.pawsmedic.shared.core.common.calculateAgeFromIsoDate
+import com.pawsmedic.shared.core.common.formatIsoToDisplayDate
+import com.pawsmedic.shared.core.model.ProfileRole
+import com.pawsmedic.shared.core.model.UserProfile
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.launch
 
 @Composable
 fun ExpedientesScreen(
@@ -73,42 +86,59 @@ fun ExpedientesScreen(
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {}
 ) {
-    var consultations by remember { mutableStateOf<List<ClinicalConsultation>>(emptyList()) }
-    var medicalRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
-    var tenantId by remember { mutableStateOf<String?>(null) }
-    var veterinarianId by remember { mutableStateOf<String?>(null) }
+    var searchMedicalIdQuery by remember { mutableStateOf("") }
+    var patientsList by remember { mutableStateOf<List<PatientRow>>(emptyList()) }
+    var selectedPatient by remember { mutableStateOf<PatientRow?>(null) }
+    var selectedOwner by remember { mutableStateOf<OwnerProfileRow?>(null) }
+    var fullRecord by remember { mutableStateOf<PetMedicalRecord?>(null) }
+    var selectedTab by remember { mutableStateOf(0) } // 0: Antecedentes, 1: Consultas SOAP, 2: TODAS las Recetas, 3: Examen Físico, 4: Bitácora
     var isLoading by remember { mutableStateOf(true) }
-    var isSaving by remember { mutableStateOf(false) }
-    var showConsultationDialog by remember { mutableStateOf(false) }
+    var isLoadingRecord by remember { mutableStateOf(false) }
+    var showEditBackgroundDialog by remember { mutableStateOf(false) }
+    var showLinkOrRegisterDialog by remember { mutableStateOf(false) }
+    var showEditPetDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var petIdInput by remember { mutableStateOf("") }
-    var reason by remember { mutableStateOf("") }
-    var observations by remember { mutableStateOf("") }
-    var diagnosis by remember { mutableStateOf("") }
-    var plan by remember { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
+    var vetUserName by remember { mutableStateOf("Dr. Veterinario") }
 
-    suspend fun loadRecords() {
+    val coroutineScope = rememberCoroutineScope()
+    val repository = remember { DefaultMedicalRecordRepository(SupabaseMedicalRecordDataSource(supabase)) }
+
+    fun loadFullRecord(petId: String) {
+        coroutineScope.launch {
+            isLoadingRecord = true
+            repository.getPetMedicalRecord(petId)
+                .onSuccess { rec ->
+                    fullRecord = rec
+                    isLoadingRecord = false
+                }
+                .onFailure { err ->
+                    errorMessage = err.message ?: "No se pudo cargar el expediente."
+                    isLoadingRecord = false
+                }
+        }
+    }
+
+    LaunchedEffect(Unit) {
         isLoading = true
-        errorMessage = null
         try {
-            val userId = supabase.auth.currentSessionOrNull()?.user?.id
-                ?: error("No hay una sesión de Supabase activa. Inicia sesión nuevamente.")
-            val profile = supabase.postgrest["profiles"].select {
-                filter { eq("id", userId) }
-            }.decodeSingle<UserProfile>()
-            if (profile.role != ProfileRole.VETERINARY_BUSINESS) error("Los expedientes solo están disponibles para cuentas veterinarias.")
-            val clinicId = com.pawsmedic.desktop.veterinary.model.resolveTenantId(supabase, userId, profile)
-            tenantId = clinicId
-            veterinarianId = userId
-            consultations = supabase.postgrest["clinical_consultations"].select {
-                filter { eq("tenant_id", clinicId) }
-            }.decodeList<ClinicalConsultation>().sortedByDescending { it.occurredAt }
-            medicalRecords = supabase.postgrest["medical_records"].select {
-                filter { eq("tenant_id", clinicId) }
-            }.decodeList<MedicalRecord>().sortedByDescending { it.createdAt }
-        } catch (e: CancellationException) {
-            throw e
+            val user = supabase.auth.currentSessionOrNull()?.user
+                ?: error("No hay una sesión activa en Supabase.")
+            val profile = supabase.postgrest["profiles"]
+                .select { filter { eq("id", user.id) } }
+                .decodeSingle<UserProfile>()
+            if (profile.role != ProfileRole.VETERINARY_BUSINESS && profile.role != ProfileRole.SUPERADMIN) {
+                error("Los expedientes solo están disponibles para cuentas veterinarias.")
+            }
+            vetUserName = profile.displayName.ifBlank { "Dr. Veterinario" }
+
+            val pets = supabase.postgrest["pets"]
+                .select()
+                .decodeList<PatientRow>()
+            patientsList = pets
+            if (pets.isNotEmpty()) {
+                selectedPatient = pets.first()
+                loadFullRecord(pets.first().id)
+            }
         } catch (e: Exception) {
             errorMessage = e.message ?: "No se pudieron cargar los expedientes desde Supabase."
         } finally {
@@ -116,127 +146,474 @@ fun ExpedientesScreen(
         }
     }
 
-    suspend fun createConsultation() {
-        val clinicId = tenantId ?: run { errorMessage = "No hay una clínica autorizada."; return }
-        val userId = veterinarianId ?: run { errorMessage = "No se encontró el veterinario de la sesión."; return }
-        val petId = petIdInput.trim()
-        if (runCatching { UUID.fromString(petId) }.isFailure) { errorMessage = "Ingresa un ID de mascota UUID válido."; return }
-        if (reason.isBlank() || observations.isBlank()) { errorMessage = "El motivo y las observaciones son obligatorios."; return }
-        isSaving = true
-        errorMessage = null
-        try {
-            val accessibleRecords = supabase.postgrest["medical_records"].select {
-                filter {
-                    eq("tenant_id", clinicId)
-                    eq("pet_id", petId)
+    LaunchedEffect(selectedPatient) {
+        val p = selectedPatient
+        if (p != null) {
+            loadFullRecord(p.id)
+            val ownerId = p.ownerId
+            if (!ownerId.isNullOrBlank()) {
+                runCatching {
+                    supabase.postgrest["profiles"]
+                        .select { filter { eq("id", ownerId) } }
+                        .decodeSingleOrNull<OwnerProfileRow>()
+                }.onSuccess { owner ->
+                    selectedOwner = owner
                 }
-            }.decodeList<MedicalRecord>()
-            if (accessibleRecords.isEmpty()) {
-                error("No se puede crear la consulta: la política RLS solo permite leer mascotas con un expediente médico existente de esta clínica. La tabla medical_records tampoco tiene una política INSERT en las migraciones actuales.")
+            } else {
+                selectedOwner = null
             }
-            supabase.postgrest["clinical_consultations"].insert(
-                NewClinicalConsultation(
-                    tenantId = clinicId,
-                    petId = petId,
-                    veterinarianId = userId,
-                    reason = reason.trim(),
-                    observations = observations.trim(),
-                    diagnosis = diagnosis.trim(),
-                    plan = plan.trim(),
-                    idempotencyKey = UUID.randomUUID().toString()
-                )
-            )
-            showConsultationDialog = false
-            petIdInput = ""
-            reason = ""
-            observations = ""
-            diagnosis = ""
-            plan = ""
-            loadRecords()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            errorMessage = e.message ?: "No se pudo guardar la consulta clínica en Supabase."
-        } finally {
-            isSaving = false
         }
     }
 
-    LaunchedEffect(Unit) { loadRecords() }
+    if (showLinkOrRegisterDialog) {
+        LinkOrRegisterPatientDialog(
+            onDismiss = { showLinkOrRegisterDialog = false },
+            onPatientSelected = { newPatient ->
+                if (patientsList.none { it.id == newPatient.id }) {
+                    patientsList = listOf(newPatient) + patientsList
+                }
+                selectedPatient = newPatient
+                loadFullRecord(newPatient.id)
+            }
+        )
+    }
+
+    if (showEditPetDialog && selectedPatient != null) {
+        EditPetDataDialog(
+            initialPatient = selectedPatient!!,
+            onDismiss = { showEditPetDialog = false },
+            onConfirm = { updatedPet ->
+                patientsList = patientsList.map { if (it.id == updatedPet.id) updatedPet else it }
+                selectedPatient = updatedPet
+                loadFullRecord(updatedPet.id)
+            }
+        )
+    }
+
+    if (showEditBackgroundDialog && fullRecord != null) {
+        EditBackgroundDialog(
+            initialBackground = fullRecord!!.background,
+            onDismiss = { showEditBackgroundDialog = false },
+            onConfirm = { updatedBg ->
+                coroutineScope.launch {
+                    repository.updateBackground(updatedBg.copy(updatedBy = vetUserName))
+                        .onSuccess {
+                            showEditBackgroundDialog = false
+                            selectedPatient?.let { loadFullRecord(it.id) }
+                        }
+                }
+            }
+        )
+    }
 
     VetAppLayout(
         currentScreen = "Expedientes",
         onNavigate = onNavigate,
         onLogout = onLogout,
-        title = "Expedientes Clínicos",
+        title = "Expedientes Clínicos Digitales",
         userEmail = userEmail
     ) {
-        Column(Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)).background(Color.White).border(1.dp, BorderLight, RoundedCornerShape(12.dp)).padding(20.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // PANEL IZQUIERDO: Directorio de Pacientes por medical_id (0.32f)
+            Box(
+                modifier = Modifier
+                    .weight(0.32f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White)
+                    .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
+                    .padding(16.dp)
+            ) {
                 Column {
-                    Text("Consultas y registros de la clínica", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text("Información leída de clinical_consultations y medical_records según las políticas RLS vigentes.", fontSize = 12.sp, color = TextSecondary)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { coroutineScope.launch { loadRecords() } }, enabled = !isLoading) { Text("Actualizar") }
-                    Button(onClick = { showConsultationDialog = true }, enabled = tenantId != null && !isLoading, colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen)) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(5.dp)); Text("Nueva consulta")
-                    }
-                }
-            }
-            errorMessage?.let {
-                Spacer(Modifier.height(10.dp))
-                Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp, modifier = Modifier.fillMaxWidth().background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp)).padding(10.dp))
-            }
-            Spacer(Modifier.height(16.dp))
-            if (isLoading) Text("Cargando expedientes…", color = TextSecondary)
-            if (!isLoading && consultations.isEmpty() && medicalRecords.isEmpty() && errorMessage == null) Text("No hay registros clínicos visibles para esta clínica. La creación de consultas requiere acceso RLS válido a un expediente previo de la mascota.", color = TextSecondary, fontSize = 13.sp)
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
-                if (consultations.isNotEmpty()) item {
-                    Text("CONSULTAS CLÍNICAS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMuted)
-                }
-                items(consultations, key = { "consultation-${it.id}" }) { consultation ->
-                    Column(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(consultation.reason, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                            Text("${consultation.status} · ${consultation.occurredAt}", fontSize = 11.sp, color = TextMuted)
-                        }
-                        Text("Mascota ID: ${consultation.petId}", fontSize = 11.sp, color = TextSecondary)
-                        Text("Observaciones: ${consultation.observations}", fontSize = 12.sp, color = TextPrimary)
-                        if (consultation.diagnosis.isNotBlank()) Text("Diagnóstico: ${consultation.diagnosis}", fontSize = 12.sp, color = TextSecondary)
-                        if (consultation.plan.isNotBlank()) Text("Plan: ${consultation.plan}", fontSize = 12.sp, color = TextSecondary)
-                    }
-                }
-                if (medicalRecords.isNotEmpty()) item {
-                    Spacer(Modifier.height(4.dp))
-                    Text("EXPEDIENTES MÉDICOS EXISTENTES (SOLO LECTURA)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMuted)
-                }
-                items(medicalRecords, key = { "record-${it.id}" }) { record ->
-                    Column(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(record.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Text("Mascota ID: ${record.petId} · ${record.createdAt}", fontSize = 11.sp, color = TextMuted)
-                        Text(record.content, fontSize = 12.sp, color = TextSecondary)
-                    }
-                }
-            }
-        }
+                    Text(
+                        text = "Pacientes Registrados",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
 
-        if (showConsultationDialog) Dialog(onDismissRequest = { if (!isSaving) showConsultationDialog = false }) {
-            Card(Modifier.width(540.dp).wrapContentHeight(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Registrar consulta clínica", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        IconButton(onClick = { if (!isSaving) showConsultationDialog = false }) { Icon(Icons.Default.Close, contentDescription = "Cerrar") }
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // BOTÓN: VINCULAR / REGISTRAR PACIENTE POR MEDICAL_ID
+                    Button(
+                        onClick = { showLinkOrRegisterDialog = true },
+                        modifier = Modifier.fillMaxWidth().height(38.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("➕ Vincular por ID Médico (`medical_id`)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
-                    Text("Se guarda en clinical_consultations como borrador. Para respetar RLS, solo se permite continuar si la mascota ya tiene un expediente medical_records visible en esta clínica.", fontSize = 12.sp, color = TextSecondary)
-                    OutlinedTextField(petIdInput, { petIdInput = it }, label = { Text("ID de mascota (UUID)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(reason, { reason = it }, label = { Text("Motivo de consulta") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(observations, { observations = it }, label = { Text("Observaciones clínicas") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(diagnosis, { diagnosis = it }, label = { Text("Diagnóstico") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(plan, { plan = it }, label = { Text("Plan de tratamiento") }, modifier = Modifier.fillMaxWidth())
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedButton(onClick = { showConsultationDialog = false }, enabled = !isSaving, modifier = Modifier.weight(1f)) { Text("Cancelar") }
-                        Button(onClick = { coroutineScope.launch { createConsultation() } }, enabled = !isSaving, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)) { Text(if (isSaving) "Guardando…" else "Guardar borrador", color = Color.White) }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // BÚSQUEDA POR MEDICAL_ID O NOMBRE
+                    OutlinedTextField(
+                        value = searchMedicalIdQuery,
+                        onValueChange = { searchMedicalIdQuery = it },
+                        placeholder = { Text("Buscar por ID Médico (PM-XXXX) o Nombre", fontSize = 12.sp) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val filtered = patientsList.filter { p ->
+                        val mId = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
+                        val pName = p.nombre ?: p.name ?: ""
+                        searchMedicalIdQuery.isBlank() ||
+                            mId.contains(searchMedicalIdQuery, ignoreCase = true) ||
+                            pName.contains(searchMedicalIdQuery, ignoreCase = true) ||
+                            p.id.contains(searchMedicalIdQuery, ignoreCase = true)
+                    }
+
+                    if (isLoading) {
+                        Text("Cargando pacientes…", fontSize = 13.sp, color = TextSecondary, modifier = Modifier.padding(vertical = 12.dp))
+                    } else if (filtered.isEmpty()) {
+                        Text("No se encontraron expedientes.", fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(vertical = 12.dp))
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(filtered) { p ->
+                                val isSelected = selectedPatient?.id == p.id
+                                val medIdStr = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
+                                val nameStr = p.nombre ?: p.name ?: "Mascota"
+                                val speciesStr = p.especie ?: p.species ?: "Especie"
+                                val breedStr = p.raza ?: p.breed ?: "Mestizo"
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isSelected) SelectedBg else Color.White)
+                                        .border(
+                                            width = if (isSelected) 2.dp else 1.dp,
+                                            color = if (isSelected) EmeraldGreen else BorderLight,
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .clickable { selectedPatient = p }
+                                        .padding(10.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(EmeraldLightBg),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Pets,
+                                                contentDescription = null,
+                                                tint = ClinicalEmerald,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    text = nameStr,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = TextPrimary
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(ClinicalEmerald)
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = medIdStr,
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                text = "$speciesStr • $breedStr",
+                                                fontSize = 11.sp,
+                                                color = TextSecondary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // PANEL DERECHO: Expediente Clínico Completo (0.68f)
+            Box(
+                modifier = Modifier
+                    .weight(0.68f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White)
+                    .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
+                    .padding(20.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    val p = selectedPatient
+                    val rec = fullRecord
+
+                    if (p != null) {
+                        val medId = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
+                        val pName = p.nombre ?: p.name ?: "Mascota"
+                        val pSpecies = p.especie ?: p.species ?: "Especie"
+                        val pBreed = p.raza ?: p.breed ?: "Mestizo"
+                        val computedAge = calculateAgeFromIsoDate(p.dateOfBirth) ?: "Edad no especificada"
+                        val ownerNameStr = listOfNotNull(selectedOwner?.firstName, selectedOwner?.lastName).joinToString(" ").ifBlank {
+                            selectedOwner?.displayName ?: "Propietario Registrado"
+                        }
+
+                        // HEADER DEL EXPEDIENTE
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .clip(CircleShape)
+                                        .background(EmeraldLightBg)
+                                        .border(2.dp, ClinicalEmerald, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(pName.take(2).uppercase(), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SelectedText)
+                                }
+
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(pName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(ClinicalEmerald)
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("ID Médico: $medId", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+                                    }
+                                    Text("$pSpecies • $pBreed • Edad: $computedAge", fontSize = 13.sp, color = TextSecondary)
+                                    Text("Propietario: $ownerNameStr • Tel: ${selectedOwner?.phone ?: "N/A"}", fontSize = 12.sp, color = TextMuted)
+                                }
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = { showEditPetDialog = true },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Editar Paciente", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                }
+
+                                OutlinedButton(
+                                    onClick = { showEditBackgroundDialog = true },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Editar Antecedentes", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                }
+
+                                Button(
+                                    onClick = { onNavigate("Consultas") },
+                                    colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Ir a Consultas", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // PESTAÑAS DEL EXPEDIENTE
+                        val tabs = listOf(
+                            "Antecedentes Médicos",
+                            "Consultas (SOAP)",
+                            "TODAS las Recetas",
+                            "Examen Físico & 12 Sistemas",
+                            "Estudios & Adjuntos",
+                            "Bitácora Auditoría"
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            tabs.forEachIndexed { idx, title ->
+                                val isSel = selectedTab == idx
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSel) SelectedBg else Color.Transparent)
+                                        .border(1.dp, if (isSel) BorderLight else Color.Transparent, RoundedCornerShape(6.dp))
+                                        .clickable { selectedTab = idx }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = title,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSel) SelectedText else TextSecondary
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        if (isLoadingRecord) {
+                            Text("Cargando expediente de $pName…", fontSize = 13.sp, color = TextSecondary)
+                        } else if (rec != null) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                when (selectedTab) {
+                                    0 -> { // ANTECEDENTES
+                                        val bg = rec.background
+                                        Text("ANTECEDENTES CLÍNICOS", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                        Text("Alimentación: ${bg.diet.ifBlank { "Croquetas comerciales" }}", fontSize = 13.sp, color = TextPrimary)
+                                        Text("Alergias Conocidas: ${bg.allergies.ifBlank { p.allergies ?: "Ninguna reportada" }}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                        Text("Última Desparasitación: ${bg.lastDewormingDate ?: "No registrada"} (${bg.dewormingProduct})", fontSize = 13.sp, color = TextPrimary)
+                                        Text("Enfermedades Anteriores: ${bg.pastDiseases.ifBlank { "Ninguna" }}", fontSize = 13.sp, color = TextPrimary)
+                                        Text("Cirugías Anteriores: ${bg.pastSurgeries.ifBlank { "Ninguna" }}", fontSize = 13.sp, color = TextPrimary)
+                                        Text("Antecedentes Familiares: ${bg.familyHistory.ifBlank { "Sin datos" }}", fontSize = 13.sp, color = TextPrimary)
+                                        Text("Hábitat: ${bg.habitat.ifBlank { "Interior sin acceso a calle" }}", fontSize = 13.sp, color = TextPrimary)
+                                    }
+
+                                    1 -> { // CONSULTAS SOAP
+                                        Text("CONSULTAS CLÍNICAS (SOAP)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                        if (rec.consultations.isEmpty()) {
+                                            Text("Sin consultas clínicas registradas previamente.", fontSize = 13.sp, color = TextMuted)
+                                        } else {
+                                            rec.consultations.forEach { c ->
+                                                Column(modifier = Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                        Text("Fecha: ${c.occurredAt} • Vet: ${c.veterinarianName}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                                        Text("Estado: ${c.status}", fontSize = 11.sp, color = TextMuted)
+                                                    }
+                                                    HorizontalDivider(color = BorderLight, modifier = Modifier.padding(vertical = 4.dp))
+                                                    Text("Motivo: ${c.reason}", fontSize = 13.sp, color = TextPrimary)
+                                                    if (c.anamnesis.isNotBlank()) Text("Anamnesis: ${c.anamnesis}", fontSize = 12.sp, color = TextSecondary)
+                                                    if (c.definitiveDiagnosis.isNotBlank()) Text("Diagnóstico: ${c.definitiveDiagnosis}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                                    if (c.treatmentPlan.isNotBlank()) Text("Tratamiento: ${c.treatmentPlan}", fontSize = 12.sp, color = TextPrimary)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    2 -> { // TODAS LAS RECETAS
+                                        Text("RECETAS MÉDICAS Y FÁRMACOS (HISTORIAL COMPLETO)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                        if (rec.prescriptions.isEmpty()) {
+                                            Text("Sin recetas registradas para este paciente.", fontSize = 13.sp, color = TextMuted)
+                                        } else {
+                                            rec.prescriptions.forEach { pres ->
+                                                Column(modifier = Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(pres.drugName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(4.dp))
+                                                                .background(if (pres.isActive) Color(0xFFE6F4EA) else com.pawsmedic.desktop.veterinary.ui.theme.OffWhiteBg)
+                                                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = if (pres.isActive) "🟢 ACTIVA (Vence: ${pres.endDate ?: "N/A"})" else "⚪ VENCIDA (Venció: ${pres.endDate ?: "N/A"})",
+                                                                fontSize = 11.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (pres.isActive) EmeraldGreen else TextMuted
+                                                            )
+                                                        }
+                                                    }
+                                                    Text("Dosis: ${pres.dosage} ${pres.unit} • Vía: ${pres.route} • Frecuencia: ${pres.frequency} • Duración: ${pres.duration}", fontSize = 12.sp, color = TextSecondary)
+                                                    Text("Emita por: ${pres.prescribingVetName.ifBlank { "Dr. Veterinario" }}", fontSize = 11.sp, color = TextMuted)
+                                                    if (pres.notes.isNotBlank()) Text("Instrucciones: ${pres.notes}", fontSize = 12.sp, color = TextPrimary)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    3 -> { // EXAMEN FISICO
+                                        val latest = rec.consultations.firstOrNull()
+                                        if (latest == null) {
+                                            Text("Sin datos de examen físico recientes.", fontSize = 13.sp, color = TextMuted)
+                                        } else {
+                                            val v = latest.vitalSigns
+                                            val s = latest.systemsExploration
+                                            Text("CONSTANTES FISIOLÓGICAS RECIENTES", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                            Text("Temp: ${v.temperatureCelsius ?: 38.5} °C • FC: ${v.heartRateBpm ?: 120} bpm • FR: ${v.respiratoryRateRpm ?: 24} rpm • Peso: ${(v.weightGrams ?: 4200) / 1000.0} kg", fontSize = 13.sp, color = TextPrimary)
+                                            Text("TLLC: ${v.tllcSeconds} • Hidratación: ${v.hydrationStatus} • Condición: ${v.bodyConditionScore}", fontSize = 12.sp, color = TextSecondary)
+
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text("EXPLORACIÓN DE 12 SISTEMAS ORGÁNICOS", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                            Text("Mucosas: ${s.mucosas}", fontSize = 12.sp, color = TextPrimary)
+                                            Text("Ojos: ${s.ojos} • Oídos: ${s.oidos}", fontSize = 12.sp, color = TextPrimary)
+                                            Text("Piel y Anexos: ${s.pielAnexos}", fontSize = 12.sp, color = TextPrimary)
+                                            Text("Sistema Respiratorio: ${s.sistemaRespiratorio}", fontSize = 12.sp, color = TextPrimary)
+                                            Text("Sistema Digestivo: ${s.sistemaDigestivo}", fontSize = 12.sp, color = TextPrimary)
+                                        }
+                                    }
+
+                                    4 -> { // ESTUDIOS
+                                        Text("ESTUDIOS CLÍNICOS E IMÁGENES", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                        if (rec.studies.isEmpty()) {
+                                            Text("Sin estudios o imágenes adjuntas.", fontSize = 13.sp, color = TextMuted)
+                                        } else {
+                                            rec.studies.forEach { st ->
+                                                Text("Estudio: ${st.name} (${st.studyType}) - Fecha: ${st.requestedAt}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                                if (st.resultsNotes.isNotBlank()) Text("Resultados: ${st.resultsNotes}", fontSize = 12.sp, color = TextSecondary)
+                                            }
+                                        }
+                                    }
+
+                                    5 -> { // AUDITORIA
+                                        Text("BITÁCORA DE AUDITORÍA Y TRAZABILIDAD", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                        if (rec.auditLogs.isEmpty()) {
+                                            Text("Sin registros de auditoría para este expediente.", fontSize = 13.sp, color = TextMuted)
+                                        } else {
+                                            rec.auditLogs.forEach { log ->
+                                                Text("${log.timestamp} • ${log.action} por ${log.actorName} (${log.actorRole}): ${log.details}", fontSize = 12.sp, color = TextSecondary)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Selecciona un paciente a la izquierda para ver su expediente.", color = TextSecondary)
+                        }
                     }
                 }
             }

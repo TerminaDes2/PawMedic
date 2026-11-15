@@ -166,10 +166,16 @@ data class PrescriptionRecordDto(
     @SerialName("notes") val notes: String = "",
     @SerialName("created_at") val createdAt: String? = null
 ) {
-    fun toDomain(vetName: String = "Dr. Veterinario") = PrescriptionRecord(
+    fun toDomain(
+        vetName: String = "Dr. Veterinario",
+        petName: String = "",
+        clinicName: String = "Clínica Veterinaria"
+    ) = PrescriptionRecord(
         id = id ?: "",
         consultationId = consultationId,
         petId = petId,
+        petName = petName,
+        clinicName = clinicName,
         drugName = drugName,
         dosage = dosage,
         unit = unit,

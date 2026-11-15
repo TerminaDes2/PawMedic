@@ -306,4 +306,8 @@ class InMemoryMedicalRecordDataSource : MedicalRecordDataSource {
     override suspend fun getAuditLogs(petId: String): List<AuditLogEntry> {
         return auditLogs.filter { it.entityId == petId || consultations.any { c -> c.id == it.entityId && c.petId == petId } }
     }
+
+    override suspend fun getPrescriptionsForOwner(ownerId: String): List<PrescriptionRecord> {
+        return consultations.flatMap { it.administeredMedications + it.prescribedMedications }
+    }
 }

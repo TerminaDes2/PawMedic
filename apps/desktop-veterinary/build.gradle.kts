@@ -32,6 +32,7 @@ tasks.withType<Copy>().configureEach {
 dependencies {
     implementation(project(":shared:features:auth"))
     implementation(project(":shared:features:medical-records"))
+    implementation(project(":shared:core:common"))
     implementation(project(":shared:core:model"))
     implementation(project(":apps:desktop-admin"))
 

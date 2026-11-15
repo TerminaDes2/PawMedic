@@ -89,4 +89,11 @@ class DefaultMedicalRecordRepository(
     } catch (e: Exception) {
         Result.failure(e)
     }
+
+    override suspend fun getPrescriptionsForOwner(ownerId: String): Result<List<PrescriptionRecord>> = try {
+        val prescriptions = dataSource.getPrescriptionsForOwner(ownerId)
+        Result.success(prescriptions)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
 }
