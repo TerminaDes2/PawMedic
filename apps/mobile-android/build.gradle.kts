@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.compose)
 }
 
+apply(plugin = "com.google.gms.google-services")
+
 android {
     namespace = "com.pawsmedic.mobile"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -63,6 +65,7 @@ dependencies {
     implementation(project(":shared:core:network"))
     implementation(project(":shared:core:model"))
     implementation(libs.supabase.auth)
+    implementation(libs.supabase.postgrest)
     implementation(libs.ktor.client.cio)
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.core:core-splashscreen:1.0.1")
@@ -70,5 +73,8 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.8.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation("com.google.firebase:firebase-messaging:24.1.1")
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
     implementation(libs.koin.core)
 }

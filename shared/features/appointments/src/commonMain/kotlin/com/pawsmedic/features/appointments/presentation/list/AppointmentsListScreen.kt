@@ -39,6 +39,7 @@ import com.pawsmedic.features.appointments.domain.repository.AppointmentReposito
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -91,7 +92,7 @@ fun AppointmentsListScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -107,7 +108,7 @@ fun AppointmentsListScreen(
                 Text(
                     text = "Cargando tus citas…",
                     fontSize = 14.sp,
-                    color = PawMedicColors.Gray500,
+                    color = PawMedicSemanticColors.current.hint,
                     modifier = Modifier.padding(vertical = 32.dp)
                 )
             }
@@ -130,7 +131,7 @@ fun AppointmentsListScreen(
                 Text(
                     text = "No tienes citas agendadas.",
                     fontSize = 14.sp,
-                    color = PawMedicColors.Gray500
+                    color = PawMedicSemanticColors.current.hint
                 )
             }
             }
@@ -162,8 +163,8 @@ private fun AppointmentDetailCard(app: Appointment) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
+            .background(PawMedicSemanticColors.current.surface)
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(20.dp))
             .padding(18.dp)
     ) {
         Column {
@@ -177,13 +178,13 @@ private fun AppointmentDetailCard(app: Appointment) {
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(PawMedicColors.Teal50),
+                            .background(PawMedicSemanticColors.current.softAccent),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
                             contentDescription = null,
-                            tint = PawMedicColors.Teal600,
+                            tint = PawMedicSemanticColors.current.accent,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -193,12 +194,12 @@ private fun AppointmentDetailCard(app: Appointment) {
                             text = app.businessName,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
+                            color = PawMedicSemanticColors.current.text
                         )
                         Text(
                             text = app.serviceName,
                             fontSize = 13.sp,
-                            color = PawMedicColors.Gray500
+                            color = PawMedicSemanticColors.current.hint
                         )
                     }
                 }
@@ -210,7 +211,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                             when {
                                 isPending -> Color(0xFFFEF3C7)
                                 isConfirmed -> Color(0xFFE6F4EA)
-                                else -> PawMedicColors.Gray100
+                                else -> PawMedicSemanticColors.current.mutedSurface
                             }
                         )
                         .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -222,7 +223,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                         color = when {
                             isPending -> Color(0xFF92400E)
                             isConfirmed -> PawMedicColors.Teal600
-                            else -> PawMedicColors.Gray700
+                            else -> PawMedicSemanticColors.current.text
                         }
                     )
                 }
@@ -234,7 +235,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(PawMedicColors.Gray50)
+                    .background(PawMedicSemanticColors.current.subtleSurface)
                     .padding(12.dp)
             ) {
                 Column {
@@ -242,7 +243,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                         Icon(
                             imageVector = Icons.Default.Pets,
                             contentDescription = null,
-                            tint = PawMedicColors.Gray600,
+                            tint = PawMedicSemanticColors.current.secondaryText,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -250,7 +251,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                             text = "Mascota: ${app.petName}",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
-                            color = PawMedicColors.Gray800
+                            color = PawMedicSemanticColors.current.text
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
@@ -258,7 +259,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = PawMedicColors.Teal600,
+                            tint = PawMedicSemanticColors.current.accent,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -266,7 +267,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                             text = "Fecha: ${app.date} • ${app.time}",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Teal600
+                            color = PawMedicSemanticColors.current.accent
                         )
                     }
                 }

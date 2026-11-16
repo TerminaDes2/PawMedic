@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import kotlinx.coroutines.delay
 
 @Composable
@@ -49,7 +50,7 @@ fun RegistrationSuccessScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen),
+            .background(PawMedicSemanticColors.current.background),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -71,13 +72,13 @@ fun RegistrationSuccessScreen(
             Spacer(modifier = Modifier.height(28.dp))
             Text(
                 text = "¡Registro exitoso!",
-                color = PawMedicColors.Gray900,
+                color = PawMedicSemanticColors.current.text,
                 fontSize = 26.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Tu cuenta está lista para comenzar.",
-                color = PawMedicColors.Gray600,
+                color = PawMedicSemanticColors.current.secondaryText,
                 fontSize = 16.sp
             )
             Spacer(modifier = Modifier.height(32.dp))

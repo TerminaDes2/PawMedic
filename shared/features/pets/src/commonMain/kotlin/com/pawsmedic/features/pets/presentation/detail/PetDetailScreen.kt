@@ -45,6 +45,7 @@ import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun PetDetailScreen(
@@ -76,7 +77,7 @@ fun PetDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text(text = "Cancelar", color = PawMedicColors.Gray700)
+                    Text(text = "Cancelar", color = PawMedicSemanticColors.current.text)
                 }
             }
         )
@@ -85,7 +86,7 @@ fun PetDetailScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -123,7 +124,7 @@ fun PetDetailScreen(
                     text = pet.name,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
+                    color = PawMedicSemanticColors.current.text
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -131,7 +132,7 @@ fun PetDetailScreen(
                 Text(
                     text = pet.breed ?: "Raza no registrada",
                     fontSize = 13.sp,
-                    color = PawMedicColors.Gray500
+                    color = PawMedicSemanticColors.current.hint
                 )
             }
 
@@ -181,7 +182,7 @@ fun PetDetailScreen(
                     text = "Historial Clínico",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
+                    color = PawMedicSemanticColors.current.text
                 )
             }
 
@@ -190,7 +191,7 @@ fun PetDetailScreen(
             Text(
                 text = "Aún no hay registros clínicos vinculados a esta mascota.",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray500,
+                color = PawMedicSemanticColors.current.hint,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -225,14 +226,14 @@ fun PetDetailScreen(
                         .height(50.dp),
                     shape = RoundedCornerShape(12.dp),
                     border = ButtonDefaults.outlinedButtonBorder.copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(PawMedicColors.Gray300)
+                        brush = androidx.compose.ui.graphics.SolidColor(PawMedicSemanticColors.current.border)
                     )
                 ) {
                     Text(
                         text = "Editar información",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = PawMedicColors.Gray800
+                        color = PawMedicSemanticColors.current.text
                     )
                 }
 
@@ -272,10 +273,10 @@ private fun StatCard(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isHighlight) Color(0xFFFEF9C3) else PawMedicColors.White)
+            .background(if (isHighlight) PawMedicSemanticColors.current.warningSurface else PawMedicSemanticColors.current.surface)
             .border(
                 width = 1.dp,
-                color = if (isHighlight) Color(0xFFFDE047) else PawMedicColors.Gray200,
+                color = if (isHighlight) Color(0xFFFDE047) else PawMedicSemanticColors.current.separator,
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(14.dp)
@@ -284,14 +285,14 @@ private fun StatCard(
             Text(
                 text = title,
                 fontSize = 12.sp,
-                color = PawMedicColors.Gray500
+                color = PawMedicSemanticColors.current.hint
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = value,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
+                color = PawMedicSemanticColors.current.text
             )
         }
     }

@@ -39,6 +39,7 @@ import com.pawsmedic.features.auth.presentation.register.RegisterViewModel
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun OtpVerificationScreen(
@@ -58,7 +59,7 @@ fun OtpVerificationScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.SpaceBetween
@@ -76,7 +77,7 @@ fun OtpVerificationScreen(
                 text = "Código de confirmación",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = PawMedicColors.Gray800,
+                color = PawMedicSemanticColors.current.text,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
@@ -100,10 +101,10 @@ fun OtpVerificationScreen(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(PawMedicColors.White)
+                                    .background(PawMedicSemanticColors.current.surface)
                                     .border(
                                         width = if (isFocused) 2.dp else 1.dp,
-                                        color = if (isFocused) PawMedicColors.Teal600 else PawMedicColors.Gray300,
+                                        color = if (isFocused) PawMedicColors.Teal600 else PawMedicSemanticColors.current.border,
                                         shape = RoundedCornerShape(12.dp)
                                     ),
                                 contentAlignment = Alignment.Center
@@ -112,7 +113,7 @@ fun OtpVerificationScreen(
                                     text = char,
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = PawMedicColors.Gray900,
+                                    color = PawMedicSemanticColors.current.text,
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -136,7 +137,7 @@ fun OtpVerificationScreen(
                 Text(
                     text = uiState.resendSuccessMessage!!,
                     fontSize = 13.sp,
-                    color = PawMedicColors.Teal600,
+                    color = PawMedicSemanticColors.current.accent,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -162,13 +163,13 @@ fun OtpVerificationScreen(
             Text(
                 text = "¿No recibiste el código? ",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600
+                color = PawMedicSemanticColors.current.secondaryText
             )
             Text(
                 text = "Reenviar",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Teal600,
+                color = PawMedicSemanticColors.current.accent,
                 modifier = Modifier.clickable { viewModel.resendOtp() }
             )
         }

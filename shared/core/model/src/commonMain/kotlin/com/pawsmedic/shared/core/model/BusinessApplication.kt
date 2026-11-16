@@ -40,14 +40,10 @@ data class BusinessApplication(
     @SerialName("address") val domicilio: String = "",
     @SerialName("city") val municipio: String = "",
     @SerialName("status") val estado: ApplicationStatus = ApplicationStatus.PENDING,
-<<<<<<< HEAD
-    @SerialName("created_at") val createdAt: String? = null
-=======
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("tax_id") val taxId: String = "",
     @SerialName("contact_phone") val contactPhone: String = "",
     @SerialName("veterinarian_name") val veterinarianName: String = "",
     @SerialName("professional_license") val professionalLicense: String = "",
     @SerialName("contact_email") val contactEmail: String = ""
->>>>>>> BapoGod
 )

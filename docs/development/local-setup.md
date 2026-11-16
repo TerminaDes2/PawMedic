@@ -44,6 +44,39 @@ ID in `.env` as `GOOGLE_WEB_CLIENT_ID`. The Google client secret must never be
 added to `.env` or the Android app. The phone must have Google Play Services
 and a Google account available.
 
+The Android `google-services.json` file is required for every Android build,
+local and ignored by Git. Obtain it from the Firebase project associated with
+the target environment and place it in `apps/mobile-android`; never add the
+service-account private key to the app. Appointment notifications are available
+in Android settings without a build flag, but each user must opt in and grant
+the Android notification permission. Firebase configuration alone does not
+enable delivery: each target Supabase environment also requires the database
+objects, dispatcher, scheduler and server-side secrets. Applying the outbox draft installs a
+trigger on appointment inserts and changes to status, time or pet, so use an
+isolated project when possible; on a shared development project, coordinate
+downtime and recovery first. The dispatcher needs
+a protected server-side Firebase service account and a separate scheduler
+secret; never put either credential in the Android app or Git. Delivery can
+be delayed or missed due to Android, network or Firebase restrictions, and
+retries may produce duplicates.
+
+The scheduler draft requires `pg_cron`, `pg_net` and Vault. Its invocation
+uses a dedicated dispatch secret instead of a project service key; the Edge
+gateway must permit that request while the function validates the secret.
+Supabase warns that database login roles can read request headers while
+`pg_net` queues them, so Vault does not by itself protect that dispatch
+secret from database users. Review database access and rotate the secret if
+exposed. A per-minute scheduler can also incur Edge Function and database
+usage even when there are no notifications.
+
+The notification SQL can be exercised against an isolated embedded PostgreSQL
+instance with `npm install --prefix supabase/tests` followed by
+`npm test --prefix supabase/tests`. The dispatcher mock tests use Deno:
+`deno test --allow-env=NOTIFICATION_DISPATCH_SECRET,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,FIREBASE_SERVICE_ACCOUNT supabase/tests/notification-dispatch.test.ts`.
+
+The Android appearance setting supports light, dark and system themes and is
+stored locally on the device.
+
 The mobile app requires `SUPABASE_URL` and `SUPABASE_ANON_KEY` at build time.
 Google sign-in also requires `GOOGLE_WEB_CLIENT_ID`; email/password
 authentication does not. Desktop apps read the same Supabase URL and anon key

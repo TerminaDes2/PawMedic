@@ -48,6 +48,7 @@ import com.pawsmedic.features.medical_records.presentation.dialog.EditBackground
 import com.pawsmedic.features.medical_records.presentation.dialog.NewConsultationDialog
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun MedicalRecordDetailScreen(
@@ -83,7 +84,7 @@ fun MedicalRecordDetailScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
     ) {
         PawMedicTopBar(
             title = "Expediente Médico Digital",
@@ -101,7 +102,7 @@ fun MedicalRecordDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isVet) Color(0xFFE6F4EA) else Color(0xFFEFF6FF))
+                    .background(if (isVet) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.blueSurface)
                     .border(1.dp, if (isVet) PawMedicColors.Teal600 else Color(0xFF3B82F6), RoundedCornerShape(12.dp))
                     .padding(12.dp)
             ) {
@@ -121,12 +122,12 @@ fun MedicalRecordDetailScreen(
                                 text = if (isVet) "Modo Médico Veterinario (Lectura y Escritura)" else "Modo Propietario (Exclusivo Lectura)",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isVet) PawMedicColors.Teal600 else Color(0xFF1D4ED8)
+                                color = PawMedicSemanticColors.current.text
                             )
                             Text(
                                 text = if (isVet) "Puede registrar consultas, recetas, diagnósticos y estudios" else "Puede consultar antecedentes, consultas, recetas y estudios de su mascota",
                                 fontSize = 11.sp,
-                                color = PawMedicColors.Gray600
+                                color = PawMedicSemanticColors.current.secondaryText
                             )
                         }
                     }
@@ -178,7 +179,7 @@ fun MedicalRecordDetailScreen(
                                     text = title,
                                     fontSize = 12.sp,
                                     fontWeight = if (uiState.selectedTabIndex == idx) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (uiState.selectedTabIndex == idx) PawMedicColors.Teal600 else PawMedicColors.Gray600
+                                    color = if (uiState.selectedTabIndex == idx) PawMedicColors.Teal600 else PawMedicSemanticColors.current.secondaryText
                                 )
                             }
                         )
@@ -202,7 +203,7 @@ fun MedicalRecordDetailScreen(
                     modifier = Modifier.fillMaxWidth().height(200.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "Cargando expediente médico...", color = PawMedicColors.Gray500)
+                    Text(text = "Cargando expediente médico...", color = PawMedicSemanticColors.current.hint)
                 }
             }
         }
@@ -215,8 +216,8 @@ private fun PetSummaryCard(record: PetMedicalRecord) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
+            .background(PawMedicSemanticColors.current.surface)
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Column {
@@ -230,7 +231,7 @@ private fun PetSummaryCard(record: PetMedicalRecord) {
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
-                            .background(PawMedicColors.Teal50)
+                            .background(PawMedicSemanticColors.current.softAccent)
                             .border(2.dp, PawMedicColors.Teal600, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
@@ -247,17 +248,17 @@ private fun PetSummaryCard(record: PetMedicalRecord) {
                             text = record.petName.ifBlank { "Mascota" },
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
+                            color = PawMedicSemanticColors.current.text
                         )
                         Text(
                             text = "${record.petSpecies} • ${record.petBreed} • ${record.petSex}",
                             fontSize = 13.sp,
-                            color = PawMedicColors.Gray600
+                            color = PawMedicSemanticColors.current.secondaryText
                         )
                         Text(
                             text = "Edad: ${record.petAgeCalculated} • Peso: ${(record.petWeightGrams ?: 4200) / 1000.0} kg",
                             fontSize = 12.sp,
-                            color = PawMedicColors.Gray500
+                            color = PawMedicSemanticColors.current.hint
                         )
                     }
                 }
@@ -265,28 +266,28 @@ private fun PetSummaryCard(record: PetMedicalRecord) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(PawMedicColors.Teal50)
+                        .background(PawMedicSemanticColors.current.softAccent)
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = record.recordNumber,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
+                        color = PawMedicSemanticColors.current.accent
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = PawMedicColors.Gray200)
+            HorizontalDivider(color = PawMedicSemanticColors.current.separator)
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Propietario: ${record.ownerName}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PawMedicColors.Gray800)
-                Text(text = "Estado: ${record.petReproductiveStatus}", fontSize = 12.sp, color = PawMedicColors.Gray600)
+                Text(text = "Propietario: ${record.ownerName}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PawMedicSemanticColors.current.text)
+                Text(text = "Estado: ${record.petReproductiveStatus}", fontSize = 12.sp, color = PawMedicSemanticColors.current.secondaryText)
             }
         }
     }
@@ -343,14 +344,14 @@ private fun BackgroundTab(
                     onClick = onEditBackground,
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("✏️ Editar Antecedentes Médicos", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+                    Text("✏️ Editar Antecedentes Médicos", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
                 }
             }
         }
 
         DetailSectionCard(title = "💉 Historial de Vacunación") {
             if (record.vaccinations.isEmpty()) {
-                Text("Sin registros de vacunación.", fontSize = 13.sp, color = PawMedicColors.Gray500)
+                Text("Sin registros de vacunación.", fontSize = 13.sp, color = PawMedicSemanticColors.current.hint)
             } else {
                 record.vaccinations.forEach { vac ->
                     Row(
@@ -358,12 +359,12 @@ private fun BackgroundTab(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text(vac.vaccineName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
-                            Text("Aplicada por: ${vac.appliedByName} • Lote: ${vac.batchNumber.ifBlank { "N/A" }}", fontSize = 11.sp, color = PawMedicColors.Gray500)
+                            Text(vac.vaccineName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
+                            Text("Aplicada por: ${vac.appliedByName} • Lote: ${vac.batchNumber.ifBlank { "N/A" }}", fontSize = 11.sp, color = PawMedicSemanticColors.current.hint)
                         }
-                        Text(vac.appliedDate, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+                        Text(vac.appliedDate, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
                     }
-                    HorizontalDivider(color = PawMedicColors.Gray100)
+                    HorizontalDivider(color = PawMedicSemanticColors.current.mutedSurface)
                 }
             }
         }
@@ -398,7 +399,7 @@ private fun ConsultationsTab(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (isVet) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Historial de Consultas (${record.consultations.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
+                Text("Historial de Consultas (${record.consultations.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 Button(
                     onClick = onNewConsultation,
                     colors = ButtonDefaults.buttonColors(containerColor = PawMedicColors.Teal600)
@@ -410,7 +411,7 @@ private fun ConsultationsTab(
 
         if (record.consultations.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                Text("No hay consultas clínicas registradas.", color = PawMedicColors.Gray500)
+                Text("No hay consultas clínicas registradas.", color = PawMedicSemanticColors.current.hint)
             }
         } else {
             record.consultations.forEach { c ->
@@ -426,8 +427,8 @@ private fun ConsultationCardItem(consultation: ClinicalConsultation) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
+            .background(PawMedicSemanticColors.current.surface)
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Column {
@@ -440,49 +441,49 @@ private fun ConsultationCardItem(consultation: ClinicalConsultation) {
                     text = "📅 ${consultation.occurredAt}",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Teal600
+                    color = PawMedicSemanticColors.current.accent
                 )
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFFE6F4EA))
+                        .background(PawMedicSemanticColors.current.softAccent)
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = consultation.clinicName.ifBlank { "Clinipet Central" },
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
+                        color = PawMedicSemanticColors.current.accent
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "Médico: ${consultation.veterinarianName}", fontSize = 12.sp, color = PawMedicColors.Gray600)
+            Text(text = "Médico: ${consultation.veterinarianName}", fontSize = 12.sp, color = PawMedicSemanticColors.current.secondaryText)
 
             Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = PawMedicColors.Gray100)
+            HorizontalDivider(color = PawMedicSemanticColors.current.mutedSurface)
             Spacer(modifier = Modifier.height(10.dp))
 
-            Text("MOTIVO DE CONSULTA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray400)
-            Text(consultation.reason, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = PawMedicColors.Gray800)
+            Text("MOTIVO DE CONSULTA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+            Text(consultation.reason, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = PawMedicSemanticColors.current.text)
 
             if (consultation.anamnesis.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("ANAMNESIS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray400)
-                Text(consultation.anamnesis, fontSize = 13.sp, color = PawMedicColors.Gray700)
+                Text("ANAMNESIS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                Text(consultation.anamnesis, fontSize = 13.sp, color = PawMedicSemanticColors.current.text)
             }
 
             if (consultation.definitiveDiagnosis.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("DIAGNÓSTICO DEFINITIVO", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
-                Text(consultation.definitiveDiagnosis, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
+                Text("DIAGNÓSTICO DEFINITIVO", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
+                Text(consultation.definitiveDiagnosis, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
             }
 
             if (consultation.treatmentPlan.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("PLAN DE TRATAMIENTO", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray400)
-                Text(consultation.treatmentPlan, fontSize = 13.sp, color = PawMedicColors.Gray700)
+                Text("PLAN DE TRATAMIENTO", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                Text(consultation.treatmentPlan, fontSize = 13.sp, color = PawMedicSemanticColors.current.text)
             }
         }
     }
@@ -495,7 +496,7 @@ private fun PhysicalExamTab(record: PetMedicalRecord) {
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (latest == null) {
-            Text("No se cuenta con registro de examen físico.", color = PawMedicColors.Gray500)
+            Text("No se cuenta con registro de examen físico.", color = PawMedicSemanticColors.current.hint)
         } else {
             val v = latest.vitalSigns
             val s = latest.systemsExploration
@@ -545,7 +546,7 @@ private fun DiagnosesAndStudiesTab(record: PetMedicalRecord) {
 
         DetailSectionCard(title = "🔬 Estudios de Laboratorio e Imágenes") {
             if (record.studies.isEmpty()) {
-                Text("Sin estudios o imágenes adjuntas.", fontSize = 13.sp, color = PawMedicColors.Gray500)
+                Text("Sin estudios o imágenes adjuntas.", fontSize = 13.sp, color = PawMedicSemanticColors.current.hint)
             } else {
                 record.studies.forEach { st ->
                     Row(
@@ -554,18 +555,18 @@ private fun DiagnosesAndStudiesTab(record: PetMedicalRecord) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(st.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
-                            Text("Tipo: ${st.studyType} • Fecha: ${st.requestedAt}", fontSize = 12.sp, color = PawMedicColors.Gray600)
+                            Text(st.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
+                            Text("Tipo: ${st.studyType} • Fecha: ${st.requestedAt}", fontSize = 12.sp, color = PawMedicSemanticColors.current.secondaryText)
                             if (st.resultsNotes.isNotBlank()) {
-                                Text("Resultados: ${st.resultsNotes}", fontSize = 12.sp, color = PawMedicColors.Gray700)
+                                Text("Resultados: ${st.resultsNotes}", fontSize = 12.sp, color = PawMedicSemanticColors.current.text)
                             }
                         }
 
                         if (st.attachmentUrls.isNotEmpty()) {
-                            Text("📎 Ver Adjunto", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+                            Text("📎 Ver Adjunto", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
                         }
                     }
-                    HorizontalDivider(color = PawMedicColors.Gray100)
+                    HorizontalDivider(color = PawMedicSemanticColors.current.mutedSurface)
                 }
             }
         }
@@ -581,7 +582,7 @@ private fun PrescriptionsTab(record: PetMedicalRecord) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         DetailSectionCard(title = "💉 Medicamentos Administrados en Consulta") {
             if (administered.isEmpty()) {
-                Text("Sin medicamentos administrados en consulta.", fontSize = 13.sp, color = PawMedicColors.Gray500)
+                Text("Sin medicamentos administrados en consulta.", fontSize = 13.sp, color = PawMedicSemanticColors.current.hint)
             } else {
                 administered.forEach { p ->
                     PrescriptionRowItem(p)
@@ -591,7 +592,7 @@ private fun PrescriptionsTab(record: PetMedicalRecord) {
 
         DetailSectionCard(title = "💊 Medicamentos Recetados para Administración en Casa") {
             if (prescribed.isEmpty()) {
-                Text("Sin recetas para casa.", fontSize = 13.sp, color = PawMedicColors.Gray500)
+                Text("Sin recetas para casa.", fontSize = 13.sp, color = PawMedicSemanticColors.current.hint)
             } else {
                 prescribed.forEach { p ->
                     PrescriptionRowItem(p)
@@ -605,14 +606,14 @@ private fun PrescriptionsTab(record: PetMedicalRecord) {
 private fun PrescriptionRowItem(p: PrescriptionRecord) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(p.drugName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
-            Text("${p.dosage} ${p.unit}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+            Text(p.drugName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
+            Text("${p.dosage} ${p.unit}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
         }
-        Text("Vía: ${p.route} • Frecuencia: ${p.frequency} • Duración: ${p.duration}", fontSize = 12.sp, color = PawMedicColors.Gray600)
+        Text("Vía: ${p.route} • Frecuencia: ${p.frequency} • Duración: ${p.duration}", fontSize = 12.sp, color = PawMedicSemanticColors.current.secondaryText)
         if (p.notes.isNotBlank()) {
-            Text("Instrucciones: ${p.notes}", fontSize = 12.sp, color = PawMedicColors.Gray700)
+            Text("Instrucciones: ${p.notes}", fontSize = 12.sp, color = PawMedicSemanticColors.current.text)
         }
-        HorizontalDivider(color = PawMedicColors.Gray100, modifier = Modifier.padding(top = 4.dp))
+        HorizontalDivider(color = PawMedicSemanticColors.current.mutedSurface, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -622,16 +623,16 @@ private fun AuditTrailTab(record: PetMedicalRecord) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         DetailSectionCard(title = "📜 Bitácora de Auditoría y Trazabilidad") {
             if (record.auditLogs.isEmpty()) {
-                Text("Sin registros de auditoría.", fontSize = 13.sp, color = PawMedicColors.Gray500)
+                Text("Sin registros de auditoría.", fontSize = 13.sp, color = PawMedicSemanticColors.current.hint)
             } else {
                 record.auditLogs.forEach { log ->
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${log.action} por ${log.actorName} (${log.actorRole})", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
-                            Text(log.timestamp, fontSize = 11.sp, color = PawMedicColors.Gray500)
+                            Text("${log.action} por ${log.actorName} (${log.actorRole})", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
+                            Text(log.timestamp, fontSize = 11.sp, color = PawMedicSemanticColors.current.hint)
                         }
-                        Text(log.details, fontSize = 12.sp, color = PawMedicColors.Gray700)
-                        HorizontalDivider(color = PawMedicColors.Gray100, modifier = Modifier.padding(top = 4.dp))
+                        Text(log.details, fontSize = 12.sp, color = PawMedicSemanticColors.current.text)
+                        HorizontalDivider(color = PawMedicSemanticColors.current.mutedSurface, modifier = Modifier.padding(top = 4.dp))
                     }
                 }
             }
@@ -646,14 +647,14 @@ private fun DetailSectionCard(title: String, content: @Composable () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
+            .background(PawMedicSemanticColors.current.surface)
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Column {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
             Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = PawMedicColors.Gray100)
+            HorizontalDivider(color = PawMedicSemanticColors.current.mutedSurface)
             Spacer(modifier = Modifier.height(10.dp))
             content()
         }
@@ -667,12 +668,12 @@ private fun InfoRow(label: String, value: String, isHighlight: Boolean = false, 
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, fontSize = 13.sp, color = PawMedicColors.Gray600)
+        Text(label, fontSize = 13.sp, color = PawMedicSemanticColors.current.secondaryText)
         Text(
             text = value,
             fontSize = 13.sp,
             fontWeight = if (isHighlight || isAlert) FontWeight.Bold else FontWeight.Medium,
-            color = if (isAlert) Color(0xFFDC2626) else if (isHighlight) PawMedicColors.Teal600 else PawMedicColors.Gray900
+            color = if (isAlert) Color(0xFFDC2626) else if (isHighlight) PawMedicColors.Teal600 else PawMedicSemanticColors.current.text
         )
     }
 }

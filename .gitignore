@@ -11,3 +11,5 @@ supabase/.branches/
 *.jks
 *.keystore
 *.env
+apps/mobile-android/google-services.json
+**/node_modules/

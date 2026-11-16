@@ -54,6 +54,7 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import io.github.jan.supabase.SupabaseClient
 
 @Composable
@@ -81,7 +82,7 @@ fun PetFormScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -221,7 +222,7 @@ private fun PhotoPickerCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(PawMedicColors.Teal50)
+            .background(PawMedicSemanticColors.current.softAccent)
             .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 20.dp, horizontal = 16.dp),
@@ -242,7 +243,7 @@ private fun PhotoPickerCard(
                 },
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Teal600,
+                color = PawMedicSemanticColors.current.accent,
                 textAlign = TextAlign.Center
             )
             if (photo_url.isBlank() && !isEditMode) {
@@ -250,7 +251,7 @@ private fun PhotoPickerCard(
                 Text(
                     text = "Formatos aceptados: JPG, PNG (Max 5MB)",
                     fontSize = 12.sp,
-                    color = PawMedicColors.Gray400,
+                    color = PawMedicSemanticColors.current.hint,
                     textAlign = TextAlign.Center
                 )
             }
@@ -268,14 +269,14 @@ private fun GenderSelector(
             text = "Sexo de la mascota",
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = PawMedicColors.Gray800,
+            color = PawMedicSemanticColors.current.text,
             modifier = Modifier.padding(bottom = 6.dp)
         )
         Row(modifier = Modifier.fillMaxWidth()) {
             GenderChip(
                 text = "Macho",
                 isSelected = selectedGender == "Macho",
-                selectedColor = Color(0xFFE0F2FE),
+                selectedColor = PawMedicSemanticColors.current.blueSurface,
                 selectedBorderColor = Color(0xFF7DD3FC),
                 onClick = { onGenderSelected("Macho") },
                 modifier = Modifier.weight(1f)
@@ -284,7 +285,7 @@ private fun GenderSelector(
             GenderChip(
                 text = "Hembra",
                 isSelected = selectedGender == "Hembra",
-                selectedColor = Color(0xFFFCE7F3),
+                selectedColor = PawMedicSemanticColors.current.pinkSurface,
                 selectedBorderColor = Color(0xFFF9A8D4),
                 onClick = { onGenderSelected("Hembra") },
                 modifier = Modifier.weight(1f)
@@ -306,10 +307,10 @@ private fun GenderChip(
         modifier = modifier
             .height(46.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(if (isSelected) selectedColor else PawMedicColors.White)
+            .background(if (isSelected) selectedColor else PawMedicSemanticColors.current.surface)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) selectedBorderColor else PawMedicColors.Gray300,
+                color = if (isSelected) selectedBorderColor else PawMedicSemanticColors.current.border,
                 shape = RoundedCornerShape(10.dp)
             )
             .clickable(onClick = onClick),
@@ -319,7 +320,7 @@ private fun GenderChip(
             text = text,
             fontSize = 14.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = PawMedicColors.Gray700
+            color = PawMedicSemanticColors.current.text
         )
     }
 }
@@ -351,7 +352,7 @@ private fun AgeInputSection(
             text = "Edad de la mascota",
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = PawMedicColors.Gray800,
+            color = PawMedicSemanticColors.current.text,
             modifier = Modifier.padding(bottom = 6.dp)
         )
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -409,13 +410,13 @@ private fun AgeInputSection(
                             text = uiState.ageUnit,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Teal600
+                            color = PawMedicSemanticColors.current.accent
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "▼",
                             fontSize = 11.sp,
-                            color = PawMedicColors.Teal600
+                            color = PawMedicSemanticColors.current.accent
                         )
                     }
 
@@ -441,7 +442,7 @@ private fun AgeInputSection(
                     text = "Fecha de nacimiento",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = PawMedicColors.Gray800,
+                    color = PawMedicSemanticColors.current.text,
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
 
@@ -457,7 +458,7 @@ private fun AgeInputSection(
                         placeholder = {
                             Text(
                                 text = "Selecciona en el calendario (dd-MM-yy)",
-                                color = PawMedicColors.Gray400,
+                                color = PawMedicSemanticColors.current.hint,
                                 fontSize = 14.sp
                             )
                         },
@@ -472,11 +473,11 @@ private fun AgeInputSection(
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = PawMedicColors.Teal600,
-                            unfocusedBorderColor = PawMedicColors.Gray300,
-                            focusedContainerColor = PawMedicColors.White,
-                            unfocusedContainerColor = PawMedicColors.White,
-                            focusedTextColor = PawMedicColors.Gray900,
-                            unfocusedTextColor = PawMedicColors.Gray900
+                            unfocusedBorderColor = PawMedicSemanticColors.current.border,
+                            focusedContainerColor = PawMedicSemanticColors.current.surface,
+                            unfocusedContainerColor = PawMedicSemanticColors.current.surface,
+                            focusedTextColor = PawMedicSemanticColors.current.text,
+                            unfocusedTextColor = PawMedicSemanticColors.current.text
                         )
                     )
                     Box(
@@ -491,7 +492,7 @@ private fun AgeInputSection(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(PawMedicColors.Teal50)
+                            .background(PawMedicSemanticColors.current.softAccent)
                             .border(1.dp, PawMedicColors.Teal200, RoundedCornerShape(8.dp))
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
@@ -499,7 +500,7 @@ private fun AgeInputSection(
                             text = "Edad calculada: ${uiState.ageNumber} ${uiState.ageUnit}",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Teal600
+                            color = PawMedicSemanticColors.current.accent
                         )
                     }
                 }
@@ -530,7 +531,7 @@ private fun FormDropdownField(
             text = label,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = PawMedicColors.Gray800,
+            color = PawMedicSemanticColors.current.text,
             modifier = Modifier.padding(bottom = 6.dp)
         )
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -543,21 +544,21 @@ private fun FormDropdownField(
                     Text(
                         text = "▼",
                         fontSize = 12.sp,
-                        color = if (enabled) PawMedicColors.Gray600 else PawMedicColors.Gray400
+                        color = if (enabled) PawMedicSemanticColors.current.secondaryText else PawMedicSemanticColors.current.hint
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PawMedicColors.Teal600,
-                    unfocusedBorderColor = PawMedicColors.Gray300,
-                    focusedContainerColor = PawMedicColors.White,
-                    unfocusedContainerColor = PawMedicColors.White,
-                    disabledBorderColor = PawMedicColors.Gray200,
-                    disabledContainerColor = Color(0xFFF9FAFB),
-                    disabledTextColor = PawMedicColors.Gray400,
-                    focusedTextColor = if (selectedValue.isBlank()) PawMedicColors.Gray400 else PawMedicColors.Gray900,
-                    unfocusedTextColor = if (selectedValue.isBlank()) PawMedicColors.Gray400 else PawMedicColors.Gray900
+                    unfocusedBorderColor = PawMedicSemanticColors.current.border,
+                    focusedContainerColor = PawMedicSemanticColors.current.surface,
+                    unfocusedContainerColor = PawMedicSemanticColors.current.surface,
+                    disabledBorderColor = PawMedicSemanticColors.current.separator,
+                    disabledContainerColor = PawMedicSemanticColors.current.subtleSurface,
+                    disabledTextColor = PawMedicSemanticColors.current.hint,
+                    focusedTextColor = if (selectedValue.isBlank()) PawMedicSemanticColors.current.hint else PawMedicSemanticColors.current.text,
+                    unfocusedTextColor = if (selectedValue.isBlank()) PawMedicSemanticColors.current.hint else PawMedicSemanticColors.current.text
                 )
             )
             if (enabled) {
@@ -597,10 +598,10 @@ private fun AgeModeChip(
         modifier = modifier
             .height(42.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(if (isSelected) PawMedicColors.Teal50 else PawMedicColors.White)
+            .background(if (isSelected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray300,
+                color = if (isSelected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.border,
                 shape = RoundedCornerShape(10.dp)
             )
             .clickable { onClick() },
@@ -610,7 +611,7 @@ private fun AgeModeChip(
             text = text,
             fontSize = 13.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray700
+            color = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.text
         )
     }
 }

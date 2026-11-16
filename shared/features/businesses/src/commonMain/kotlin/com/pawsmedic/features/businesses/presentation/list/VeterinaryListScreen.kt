@@ -40,6 +40,7 @@ import com.pawsmedic.features.businesses.presentation.VeterinaryListViewModel
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun VeterinaryListScreen(
@@ -52,7 +53,7 @@ fun VeterinaryListScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -60,7 +61,7 @@ fun VeterinaryListScreen(
             text = "Veterinarias Disponibles",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray900,
+            color = PawMedicSemanticColors.current.text,
             modifier = Modifier.padding(vertical = 12.dp)
         )
 
@@ -71,7 +72,7 @@ fun VeterinaryListScreen(
             placeholder = {
                 Text(
                     text = "Buscar veterinarias o especialistas...",
-                    color = PawMedicColors.Gray400,
+                    color = PawMedicSemanticColors.current.hint,
                     fontSize = 14.sp
                 )
             },
@@ -79,7 +80,7 @@ fun VeterinaryListScreen(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Buscar",
-                    tint = PawMedicColors.Gray400,
+                    tint = PawMedicSemanticColors.current.hint,
                     modifier = Modifier.size(20.dp)
                 )
             },
@@ -88,9 +89,9 @@ fun VeterinaryListScreen(
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PawMedicColors.Teal600,
-                unfocusedBorderColor = PawMedicColors.Gray300,
-                focusedContainerColor = PawMedicColors.White,
-                unfocusedContainerColor = PawMedicColors.White
+                unfocusedBorderColor = PawMedicSemanticColors.current.border,
+                focusedContainerColor = PawMedicSemanticColors.current.surface,
+                unfocusedContainerColor = PawMedicSemanticColors.current.surface
             )
         )
 
@@ -106,10 +107,10 @@ fun VeterinaryListScreen(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(if (isSelected) Color(0xFFE6F4EA) else PawMedicColors.White)
+                        .background(if (isSelected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
                         .border(
                             width = 1.dp,
-                            color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray300,
+                            color = if (isSelected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.border,
                             shape = RoundedCornerShape(20.dp)
                         )
                         .clickable { viewModel.onFilterSelected(filter) }
@@ -119,7 +120,7 @@ fun VeterinaryListScreen(
                         text = filter,
                         fontSize = 13.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray700
+                        color = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.text
                     )
                 }
             }
@@ -132,7 +133,7 @@ fun VeterinaryListScreen(
             Text(
                 text = "Cargando clínicas activas…",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600
+                color = PawMedicSemanticColors.current.secondaryText
             )
         }
         uiState.errorMessage?.let { message ->
@@ -148,7 +149,7 @@ fun VeterinaryListScreen(
             Text(
                 text = "No hay clínicas activas disponibles en este momento.",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600
+                color = PawMedicSemanticColors.current.secondaryText
             )
         }
         if (!uiState.isLoading && uiState.errorMessage == null) {
@@ -172,8 +173,8 @@ private fun VeterinaryCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
+            .background(PawMedicSemanticColors.current.surface)
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
         Column {
@@ -183,13 +184,13 @@ private fun VeterinaryCard(
                     .fillMaxWidth()
                     .height(140.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicColors.Teal50),
+                    .background(PawMedicSemanticColors.current.softAccent),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.LocalHospital,
                     contentDescription = null,
-                    tint = PawMedicColors.Teal600,
+                    tint = PawMedicSemanticColors.current.accent,
                     modifier = Modifier.size(56.dp)
                 )
             }
@@ -206,7 +207,7 @@ private fun VeterinaryCard(
                     text = clinic.name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
+                    color = PawMedicSemanticColors.current.text
                 )
                 if (clinic.rating > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -220,7 +221,7 @@ private fun VeterinaryCard(
                             text = clinic.rating.toString(),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900,
+                            color = PawMedicSemanticColors.current.text,
                             modifier = Modifier.padding(start = 4.dp)
                         )
                     }
@@ -232,7 +233,7 @@ private fun VeterinaryCard(
             Text(
                 text = clinic.address?.takeIf(String::isNotBlank) ?: "Dirección no registrada",
                 fontSize = 13.sp,
-                color = PawMedicColors.Gray500
+                color = PawMedicSemanticColors.current.hint
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -245,14 +246,14 @@ private fun VeterinaryCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFE6F4EA))
+                            .background(PawMedicSemanticColors.current.softAccent)
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = spec,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Teal600
+                            color = PawMedicSemanticColors.current.accent
                         )
                     }
                 }
@@ -260,7 +261,7 @@ private fun VeterinaryCard(
                     Text(
                         text = "Especialidades no registradas",
                         fontSize = 12.sp,
-                        color = PawMedicColors.Gray500
+                        color = PawMedicSemanticColors.current.hint
                     )
                 }
             }

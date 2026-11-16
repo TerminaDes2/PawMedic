@@ -42,6 +42,9 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.theme.LocalThemePreference
+import com.pawsmedic.shared.core.designsystem.theme.ThemePreference
 
 @Composable
 fun SettingsScreen(
@@ -49,16 +52,15 @@ fun SettingsScreen(
     onDeleteAccount: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var appointmentReminder by remember { mutableStateOf("Push") }
-    var healthAlertsEnabled by remember { mutableStateOf(true) }
-    var visualTheme by remember { mutableStateOf("Predeterminado del sistema") }
     var language by remember { mutableStateOf("Español") }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    val themeControl = LocalThemePreference.current
+    val notificationControl = LocalNotificationSettings.current
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .windowInsetsPadding(WindowInsets.statusBars)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .verticalScroll(rememberScrollState())
@@ -70,22 +72,38 @@ fun SettingsScreen(
 
         SettingsSectionTitle("Notificaciones y Recordatorios")
         SettingsIconRow(Icons.Default.NotificationsActive, "Recordatorios de citas",
-            "Elige cómo recibir avisos de tus consultas programadas.")
-        listOf("Push", "SMS", "Correo electrónico").forEach { option ->
-            ChoiceRow(option, appointmentReminder == option) { appointmentReminder = option }
+            if (notificationControl == null) "En desarrollo: los avisos aún no están disponibles."
+            else "Recibe avisos de cambios de estado y recordatorios 24 horas y 1 hora antes.")
+        if (notificationControl != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 36.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Notificaciones de citas", color = PawMedicSemanticColors.current.text)
+                Switch(
+                    checked = notificationControl.enabled,
+                    onCheckedChange = notificationControl.onChange,
+                    enabled = !notificationControl.busy
+                )
+            }
+            notificationControl.error?.let { Text(it, color = PawMedicColors.Error) }
         }
         SettingsIconRow(Icons.Default.HealthAndSafety, "Alertas de salud",
-            "Vacunas, desparasitaciones, antipulgas y chequeos anuales.")
-        SwitchRow("Avisos automáticos de salud", healthAlertsEnabled) {
-            healthAlertsEnabled = it
-        }
+            "En desarrollo: las alertas automáticas aún no están disponibles.")
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
         SettingsSectionTitle("Preferencias de la Aplicación")
         SettingsIconRow(Icons.Default.Palette, "Tema visual",
-            "Compatible con los componentes de Material Design.")
-        listOf("Tema Claro", "Tema Oscuro", "Predeterminado del sistema").forEach { option ->
-            ChoiceRow(option, visualTheme == option) { visualTheme = option }
+            if (themeControl == null) "No disponible en esta plataforma." else "Elige la apariencia de la aplicación.")
+        if (themeControl != null) {
+            listOf(
+                ThemePreference.LIGHT to "Tema claro",
+                ThemePreference.DARK to "Tema oscuro",
+                ThemePreference.SYSTEM to "Predeterminado del sistema"
+            ).forEach { (option, label) ->
+                ChoiceRow(label, themeControl.selected == option) { themeControl.onChange(option) }
+            }
         }
         SettingsIconRow(Icons.Default.Language, "Idioma de la interfaz",
             "Selecciona el idioma que prefieras para la aplicación.")
@@ -123,7 +141,7 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsSectionTitle(text: String) {
-    Text(text, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
+    Text(text, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
 }
 
 @Composable
@@ -132,10 +150,10 @@ private fun SettingsIconRow(icon: ImageVector, title: String, description: Strin
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = PawMedicColors.Teal600)
+        Icon(icon, contentDescription = null, tint = PawMedicSemanticColors.current.accent)
         Column(modifier = Modifier.padding(start = 12.dp)) {
-            Text(title, fontWeight = FontWeight.SemiBold, color = PawMedicColors.Gray900)
-            Text(description, fontSize = 13.sp, color = PawMedicColors.Gray600)
+            Text(title, fontWeight = FontWeight.SemiBold, color = PawMedicSemanticColors.current.text)
+            Text(description, fontSize = 13.sp, color = PawMedicSemanticColors.current.secondaryText)
         }
     }
 }
@@ -147,18 +165,6 @@ private fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected = selected, onClick = onClick)
-        Text(label, color = PawMedicColors.Gray800)
-    }
-}
-
-@Composable
-private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 36.dp, end = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, color = PawMedicColors.Gray800)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Text(label, color = PawMedicSemanticColors.current.text)
     }
 }

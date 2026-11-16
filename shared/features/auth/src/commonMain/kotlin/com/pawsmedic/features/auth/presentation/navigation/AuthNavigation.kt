@@ -45,6 +45,8 @@ fun AuthNavHost(
     supabaseClient: SupabaseClient,
     onGoogleLoginClick: (() -> Unit)? = null,
     onGoogleRegisterClick: (() -> Unit)? = null,
+    beforeSignOut: suspend () -> Unit = {},
+    afterAccountDeletion: suspend () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var currentScreen by remember { mutableStateOf<AuthScreenState>(AuthScreenState.Splash) }
@@ -135,6 +137,8 @@ fun AuthNavHost(
                     userId = screen.userId,
                     email = screen.email,
                     supabaseClient = supabaseClient,
+                    beforeSignOut = beforeSignOut,
+                    afterAccountDeletion = afterAccountDeletion,
                     onSignOut = {
                         loginViewModel.resetAfterSignOut()
                         registerViewModel.resetAfterSignOut()
@@ -152,6 +156,8 @@ fun AuthenticatedHomeScreen(
     email: String?,
     supabaseClient: SupabaseClient,
     onSignOut: () -> Unit,
+    beforeSignOut: suspend () -> Unit = {},
+    afterAccountDeletion: suspend () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val petRepository = remember(supabaseClient) {
@@ -164,7 +170,13 @@ fun AuthenticatedHomeScreen(
         userName = email?.substringBefore("@")?.takeIf(String::isNotBlank) ?: "usuario",
         supabaseClient = supabaseClient,
         onSignOut = {
+            beforeSignOut()
             supabaseClient.auth.signOut()
+            onSignOut()
+        },
+        onAccountDeleted = {
+            afterAccountDeletion()
+            supabaseClient.auth.clearSession()
             onSignOut()
         },
         modifier = modifier

@@ -40,6 +40,7 @@ import com.pawsmedic.features.medical_records.domain.model.PrescriptionRecord
 import com.pawsmedic.features.medical_records.domain.model.SystemsExploration
 import com.pawsmedic.features.medical_records.domain.model.VitalSigns
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun NewConsultationDialog(
@@ -189,7 +190,7 @@ fun NewConsultationDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = PawMedicColors.Gray700)
+                Text("Cancelar", color = PawMedicSemanticColors.current.text)
             }
         },
         title = {
@@ -197,7 +198,7 @@ fun NewConsultationDialog(
                 text = "Nueva Consulta Clínica Veterinario",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
+                color = PawMedicSemanticColors.current.text
             )
         },
         text = {
@@ -217,7 +218,7 @@ fun NewConsultationDialog(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSel) PawMedicColors.Teal600 else PawMedicColors.Gray100)
+                                .background(if (isSel) PawMedicColors.Teal600 else PawMedicSemanticColors.current.mutedSurface)
                                 .clickable { formSection = idx }
                                 .padding(vertical = 8.dp),
                             contentAlignment = Alignment.Center
@@ -226,7 +227,7 @@ fun NewConsultationDialog(
                                 text = label,
                                 fontSize = 11.sp,
                                 fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSel) Color.White else PawMedicColors.Gray700
+                                color = if (isSel) Color.White else PawMedicSemanticColors.current.text
                             )
                         }
                     }
@@ -236,7 +237,7 @@ fun NewConsultationDialog(
 
                 when (formSection) {
                     0 -> { // ANAMNESIS & MOTIVO
-                        Text("Motivo de Consulta (*Requerido)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+                        Text("Motivo de Consulta (*Requerido)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
                         OutlinedTextField(
                             value = reason,
                             onValueChange = { reason = it },
@@ -247,7 +248,7 @@ fun NewConsultationDialog(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        Text("Anamnesis / Historia Clínica", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                        Text("Anamnesis / Historia Clínica", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                         OutlinedTextField(
                             value = anamnesis,
                             onValueChange = { anamnesis = it },
@@ -258,7 +259,7 @@ fun NewConsultationDialog(
                     }
 
                     1 -> { // CONSTANTES FISIOLOGICAS & 12 SISTEMAS
-                        Text("CONSTANTES FISIOLÓGICAS", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+                        Text("CONSTANTES FISIOLÓGICAS", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -297,7 +298,7 @@ fun NewConsultationDialog(
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
-                        Text("EXPLORACIÓN POR SISTEMAS (12 APARTADOS)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+                        Text("EXPLORACIÓN POR SISTEMAS (12 APARTADOS)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
                         Spacer(modifier = Modifier.height(6.dp))
 
                         val systemsList = listOf(
@@ -339,7 +340,7 @@ fun NewConsultationDialog(
                     }
 
                     2 -> { // DIAGNOSTICOS
-                        Text("Lista de Problemas (separados por coma)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                        Text("Lista de Problemas (separados por coma)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                         OutlinedTextField(
                             value = problemListText,
                             onValueChange = { problemListText = it },
@@ -349,28 +350,28 @@ fun NewConsultationDialog(
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Diagnósticos Diferenciales", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                        Text("Diagnósticos Diferenciales", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                         OutlinedTextField(value = diffDiag, onValueChange = { diffDiag = it }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp))
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Diagnóstico Definitivo", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+                        Text("Diagnóstico Definitivo", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
                         OutlinedTextField(value = defDiag, onValueChange = { defDiag = it }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp))
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Plan Diagnóstico y Tratamiento", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                        Text("Plan Diagnóstico y Tratamiento", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                         OutlinedTextField(value = treatPlan, onValueChange = { treatPlan = it }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp))
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Observaciones Generales", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                        Text("Observaciones Generales", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                         OutlinedTextField(value = observations, onValueChange = { observations = it }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp))
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Próxima Cita / Seguimiento", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                        Text("Próxima Cita / Seguimiento", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                         OutlinedTextField(value = nextDate, onValueChange = { nextDate = it }, placeholder = { Text("AAAA-MM-DD") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp))
                     }
 
                     3 -> { // MEDICAMENTOS & ESTUDIOS
-                        Text("MEDICAMENTO Y RECETA", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+                        Text("MEDICAMENTO Y RECETA", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
                         Spacer(modifier = Modifier.height(6.dp))
 
                         OutlinedTextField(value = drugName, onValueChange = { drugName = it }, label = { Text("Nombre del Medicamento") }, modifier = Modifier.fillMaxWidth())
@@ -399,7 +400,7 @@ fun NewConsultationDialog(
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
-                        Text("SOLICITUD DE ESTUDIO CLÍNICO", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Teal600)
+                        Text("SOLICITUD DE ESTUDIO CLÍNICO", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.accent)
                         Spacer(modifier = Modifier.height(6.dp))
 
                         OutlinedTextField(value = studyName, onValueChange = { studyName = it }, label = { Text("Nombre del Estudio (ej. Hemograma, Ecografía)") }, modifier = Modifier.fillMaxWidth())

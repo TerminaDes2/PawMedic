@@ -32,6 +32,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +47,7 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun RegisterScreen(
@@ -69,7 +73,7 @@ fun RegisterScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
@@ -81,7 +85,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Paso ${uiState.step} de 3",
-            color = PawMedicColors.Teal600,
+            color = PawMedicSemanticColors.current.accent,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -90,7 +94,7 @@ fun RegisterScreen(
             repeat(3) { index ->
                 HorizontalDivider(
                     modifier = Modifier.weight(1f),
-                    color = if (index < uiState.step) PawMedicColors.Teal600 else PawMedicColors.Gray300,
+                    color = if (index < uiState.step) PawMedicColors.Teal600 else PawMedicSemanticColors.current.border,
                     thickness = 3.dp
                 )
             }
@@ -107,9 +111,9 @@ fun RegisterScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = PawMedicColors.Gray300)
-                        Text("  o regístrate con correo  ", fontSize = 12.sp, color = PawMedicColors.Gray500)
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = PawMedicColors.Gray300)
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = PawMedicSemanticColors.current.border)
+                        Text("  o regístrate con correo  ", fontSize = 12.sp, color = PawMedicSemanticColors.current.hint)
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = PawMedicSemanticColors.current.border)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
@@ -119,7 +123,7 @@ fun RegisterScreen(
                     label = "Nombres",
                     placeholder = "Ej. Juan Carlos",
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 PawMedicTextField(
@@ -128,7 +132,7 @@ fun RegisterScreen(
                     label = "Apellidos",
                     placeholder = "Ej. Pérez López",
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
                 )
                 StepError(uiState.errorMessage)
                 Spacer(modifier = Modifier.height(24.dp))
@@ -145,7 +149,7 @@ fun RegisterScreen(
                     label = "Nombre de usuario",
                     placeholder = "juansito",
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 PawMedicTextField(
@@ -153,8 +157,9 @@ fun RegisterScreen(
                     onValueChange = viewModel::onEmailChanged,
                     label = "Correo electrónico",
                     placeholder = "juanperez@correo.com",
+                    inputModifier = Modifier.semantics { contentType = ContentType.EmailAddress },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                    leadingIcon = { Icon(Icons.Default.Email, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                    leadingIcon = { Icon(Icons.Default.Email, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 PawMedicTextField(
@@ -163,7 +168,7 @@ fun RegisterScreen(
                     label = "Teléfono",
                     placeholder = "111-222-3333",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
-                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) }
+                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
                 )
                 StepError(uiState.errorMessage)
                 Spacer(modifier = Modifier.height(24.dp))
@@ -179,14 +184,15 @@ fun RegisterScreen(
                     onValueChange = viewModel::onPasswordChanged,
                     label = "Contraseña",
                     placeholder = "Mínimo 6 caracteres",
+                    inputModifier = Modifier.semantics { contentType = ContentType.NewPassword },
                     visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = PawMedicColors.Teal600, modifier = Modifier.size(20.dp)) },
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) },
                     trailingIcon = {
                         Icon(
                             imageVector = if (uiState.isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = if (uiState.isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
-                            tint = PawMedicColors.Gray500,
+                            tint = PawMedicSemanticColors.current.hint,
                             modifier = Modifier.size(20.dp).clickable { viewModel.togglePasswordVisibility() }
                         )
                     }
@@ -199,12 +205,12 @@ fun RegisterScreen(
                     Checkbox(
                         checked = uiState.termsAccepted,
                         onCheckedChange = { viewModel.toggleTermsAccepted() },
-                        colors = CheckboxDefaults.colors(checkedColor = PawMedicColors.Teal600, uncheckedColor = PawMedicColors.Gray400)
+                        colors = CheckboxDefaults.colors(checkedColor = PawMedicColors.Teal600, uncheckedColor = PawMedicSemanticColors.current.hint)
                     )
                     Text(
                         text = "Acepto los Términos y Condiciones y la Política de Privacidad",
                         fontSize = 13.sp,
-                        color = PawMedicColors.Gray700,
+                        color = PawMedicSemanticColors.current.text,
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 }
@@ -224,12 +230,12 @@ fun RegisterScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("¿Ya tienes una cuenta? ", fontSize = 14.sp, color = PawMedicColors.Gray600)
+            Text("¿Ya tienes una cuenta? ", fontSize = 14.sp, color = PawMedicSemanticColors.current.secondaryText)
             Text(
                 "Iniciar sesión",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Teal600,
+                color = PawMedicSemanticColors.current.accent,
                 modifier = Modifier.clickable { onNavigateToLogin() }
             )
         }

@@ -24,6 +24,7 @@ import com.pawsmedic.features.auth.presentation.components.AuthLogo
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun WelcomeScreen(
@@ -34,7 +35,7 @@ fun WelcomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .systemBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 32.dp),
@@ -58,7 +59,7 @@ fun WelcomeScreen(
                 text = "PawsMedic",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Teal600
+                color = PawMedicSemanticColors.current.accent
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -68,7 +69,7 @@ fun WelcomeScreen(
                 text = "Cuidamos a quienes más amas",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900,
+                color = PawMedicSemanticColors.current.text,
                 textAlign = TextAlign.Center,
                 lineHeight = 34.sp
             )
@@ -79,7 +80,7 @@ fun WelcomeScreen(
                 text = "Encuentra veterinarias, gestiona citas y lleva el historial médico de tus mascotas en un solo lugar.",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
-                color = PawMedicColors.Gray600,
+                color = PawMedicSemanticColors.current.secondaryText,
                 textAlign = TextAlign.Center,
                 lineHeight = 22.sp,
                 modifier = Modifier.padding(horizontal = 12.dp)
@@ -110,7 +111,7 @@ fun WelcomeScreen(
             Text(
                 text = "Al continuar, aceptas nuestros Términos y Políticas de Privacidad",
                 fontSize = 12.sp,
-                color = PawMedicColors.Gray400,
+                color = PawMedicSemanticColors.current.hint,
                 textAlign = TextAlign.Center
             )
         }

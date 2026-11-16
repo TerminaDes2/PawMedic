@@ -43,6 +43,7 @@ import com.pawsmedic.features.pets.presentation.PetListViewModel
 import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun PetListScreen(
@@ -56,7 +57,7 @@ fun PetListScreen(
         ?.let { selected -> uiState.pets.firstOrNull { it.id == selected.id } }
         ?: uiState.pets.firstOrNull()
 
-    Box(modifier = modifier.fillMaxSize().background(PawMedicColors.BackgroundScreen)) {
+    Box(modifier = modifier.fillMaxSize().background(PawMedicSemanticColors.current.background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -84,7 +85,7 @@ fun PetListScreen(
                     Text(
                         text = "Aún no tienes mascotas registradas. Agrega una para comenzar.",
                         fontSize = 15.sp,
-                        color = PawMedicColors.Gray600,
+                        color = PawMedicSemanticColors.current.secondaryText,
                         modifier = Modifier.padding(vertical = 24.dp)
                     )
                 }
@@ -106,7 +107,7 @@ fun PetListScreen(
                                     .clip(CircleShape)
                                     .border(
                                         width = if (isSelected) 3.dp else 1.dp,
-                                        color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray300,
+                                        color = if (isSelected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.border,
                                         shape = CircleShape
                                     )
                             ) {
@@ -123,7 +124,7 @@ fun PetListScreen(
                                 text = pet.name,
                                 fontSize = 13.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = PawMedicColors.Gray900
+                                color = PawMedicSemanticColors.current.text
                             )
                         }
                     }
@@ -137,7 +138,7 @@ fun PetListScreen(
                                 modifier = Modifier
                                     .size(64.dp)
                                     .clip(CircleShape)
-                                    .background(PawMedicColors.White)
+                                    .background(PawMedicSemanticColors.current.surface)
                                     .border(2.dp, PawMedicColors.Teal600, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -145,7 +146,7 @@ fun PetListScreen(
                                     text = "Agregar",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = PawMedicColors.Teal600,
+                                    color = PawMedicSemanticColors.current.accent,
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -163,8 +164,8 @@ fun PetListScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(20.dp))
-                            .background(PawMedicColors.White)
-                            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
+                            .background(PawMedicSemanticColors.current.surface)
+                            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(20.dp))
                             .padding(16.dp)
                     ) {
                         Column {
@@ -174,7 +175,7 @@ fun PetListScreen(
                                     .fillMaxWidth()
                                     .height(180.dp)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(PawMedicColors.Teal50),
+                                    .background(PawMedicSemanticColors.current.softAccent),
                                 contentAlignment = Alignment.Center
                             ) {
                                 key(selectedPet.id, selectedPet.photo_url) {
@@ -197,7 +198,7 @@ fun PetListScreen(
                                     text = "${selectedPet.name} ${if (selectedPet.name.contains("(")) "" else "(Mascota)"}",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = PawMedicColors.Gray900
+                                    color = PawMedicSemanticColors.current.text
                                 )
 
                             }
@@ -269,8 +270,8 @@ private fun InfoGridChip(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(PawMedicColors.Gray50)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(12.dp))
+            .background(PawMedicSemanticColors.current.subtleSurface)
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(12.dp))
             .padding(vertical = 10.dp, horizontal = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -280,7 +281,7 @@ private fun InfoGridChip(
                 text = text,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color = PawMedicColors.Gray800
+                color = PawMedicSemanticColors.current.text
             )
         }
     }

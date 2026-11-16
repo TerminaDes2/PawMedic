@@ -53,6 +53,7 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun BookingFlowScreen(
@@ -124,7 +125,7 @@ private fun SelectServiceStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -138,19 +139,19 @@ private fun SelectServiceStep(
         Text(
             text = "Selecciona el tipo de servicio que requiere tu mascota en ${uiState.selectedClinicName}:",
             fontSize = 14.sp,
-            color = PawMedicColors.Gray600,
+            color = PawMedicSemanticColors.current.secondaryText,
             lineHeight = 20.sp
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
         if (uiState.isLoadingServices) {
-            Text("Cargando servicios activos…", fontSize = 14.sp, color = PawMedicColors.Gray600)
+            Text("Cargando servicios activos…", fontSize = 14.sp, color = PawMedicSemanticColors.current.secondaryText)
         } else if (uiState.services.isEmpty()) {
             Text(
                 text = "Todavía no hay servicios disponibles para esta clínica.",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600,
+                color = PawMedicSemanticColors.current.secondaryText,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -162,10 +163,10 @@ private fun SelectServiceStep(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSelected) PawMedicColors.Teal50 else PawMedicColors.White)
+                    .background(if (isSelected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
                     .border(
                         width = if (isSelected) 2.dp else 1.dp,
-                        color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray200,
+                        color = if (isSelected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.separator,
                         shape = RoundedCornerShape(16.dp)
                     )
                     .clickable { onServiceSelected(service) }
@@ -184,13 +185,13 @@ private fun SelectServiceStep(
                             modifier = Modifier
                                 .size(54.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(PawMedicColors.Teal100),
+                                .background(PawMedicSemanticColors.current.mediumAccent),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MedicalServices,
                                 contentDescription = null,
-                                tint = PawMedicColors.Teal600,
+                                tint = PawMedicSemanticColors.current.accent,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -202,13 +203,13 @@ private fun SelectServiceStep(
                                 text = service.title,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PawMedicColors.Gray900
+                                color = PawMedicSemanticColors.current.text
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = service.description,
                                 fontSize = 12.sp,
-                                color = PawMedicColors.Gray500,
+                                color = PawMedicSemanticColors.current.hint,
                                 lineHeight = 16.sp
                             )
                             Spacer(modifier = Modifier.height(6.dp))
@@ -216,7 +217,7 @@ private fun SelectServiceStep(
                                 text = "⏱ Duración: ${service.durationMinutes} minutos",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PawMedicColors.Teal600
+                                color = PawMedicSemanticColors.current.accent
                             )
                         }
                     }
@@ -225,7 +226,7 @@ private fun SelectServiceStep(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray200)
+                            .background(if (isSelected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.separator)
                     )
                 }
             }
@@ -262,7 +263,7 @@ private fun SelectPetStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -276,19 +277,19 @@ private fun SelectPetStep(
         Text(
             text = "¿Para cuál de tus mascotas deseas agendar el servicio médico?",
             fontSize = 14.sp,
-            color = PawMedicColors.Gray600,
+            color = PawMedicSemanticColors.current.secondaryText,
             lineHeight = 20.sp
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
         if (uiState.isLoadingPets) {
-            Text("Cargando tus mascotas…", fontSize = 14.sp, color = PawMedicColors.Gray600)
+            Text("Cargando tus mascotas…", fontSize = 14.sp, color = PawMedicSemanticColors.current.secondaryText)
         } else if (uiState.userPets.isEmpty()) {
             Text(
                 text = "No tienes mascotas registradas para reservar una cita.",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600,
+                color = PawMedicSemanticColors.current.secondaryText,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -300,10 +301,10 @@ private fun SelectPetStep(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSelected) PawMedicColors.Teal50 else PawMedicColors.White)
+                    .background(if (isSelected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
                     .border(
                         width = if (isSelected) 2.dp else 1.dp,
-                        color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray200,
+                        color = if (isSelected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.separator,
                         shape = RoundedCornerShape(16.dp)
                     )
                     .clickable { onPetSelected(pet) }
@@ -328,20 +329,20 @@ private fun SelectPetStep(
                                 text = pet.name,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PawMedicColors.Gray900
+                                color = PawMedicSemanticColors.current.text
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "${pet.species} • ${pet.breed ?: "Mestizo"}",
                                 fontSize = 13.sp,
-                                color = PawMedicColors.Gray500
+                                color = PawMedicSemanticColors.current.hint
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = pet.age ?: "Edad no registrada",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PawMedicColors.Teal600
+                                color = PawMedicSemanticColors.current.accent
                             )
                         }
                     }
@@ -409,7 +410,7 @@ private fun BookingPetAvatar(
             modifier = Modifier
                 .size(size)
                 .clip(CircleShape)
-                .background(PawMedicColors.Teal100),
+                .background(PawMedicSemanticColors.current.mediumAccent),
             contentAlignment = Alignment.Center
         ) {
             Text(text = emoji, fontSize = (size.value * 0.45f).sp)
@@ -459,7 +460,7 @@ private fun SelectDateTimeStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -475,7 +476,7 @@ private fun SelectDateTimeStep(
             text = "Fecha de la cita (desde mañana y hasta dentro de dos años)",
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray800,
+            color = PawMedicSemanticColors.current.text,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -483,7 +484,7 @@ private fun SelectDateTimeStep(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(PawMedicColors.White)
+                .background(PawMedicSemanticColors.current.surface)
                 .border(1.dp, PawMedicColors.Teal600, RoundedCornerShape(16.dp))
                 .clickable { showDatePickerModal = true }
                 .padding(16.dp)
@@ -497,7 +498,7 @@ private fun SelectDateTimeStep(
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
-                        tint = PawMedicColors.Teal600,
+                        tint = PawMedicSemanticColors.current.accent,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -506,16 +507,16 @@ private fun SelectDateTimeStep(
                             text = uiState.selectedDateLabel.ifBlank { "Seleccionar fecha" },
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Teal600
+                            color = PawMedicSemanticColors.current.accent
                         )
                         Text(
                             text = "Toca para elegir fecha en el calendario (1 mes disponible)",
                             fontSize = 12.sp,
-                            color = PawMedicColors.Gray500
+                            color = PawMedicSemanticColors.current.hint
                         )
                     }
                 }
-                Text(text = "▼", fontSize = 12.sp, color = PawMedicColors.Teal600)
+                Text(text = "▼", fontSize = 12.sp, color = PawMedicSemanticColors.current.accent)
             }
         }
 
@@ -526,7 +527,7 @@ private fun SelectDateTimeStep(
             text = "Horarios disponibles",
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray800,
+            color = PawMedicSemanticColors.current.text,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -534,17 +535,17 @@ private fun SelectDateTimeStep(
             uiState.isLoadingSlots -> Text(
                 text = "Consultando horarios de la clínica…",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600
+                color = PawMedicSemanticColors.current.secondaryText
             )
             uiState.selectedDate.isBlank() -> Text(
                 text = "Selecciona una fecha para consultar los horarios disponibles.",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600
+                color = PawMedicSemanticColors.current.secondaryText
             )
             uiState.availableTimeSlots.isEmpty() -> Text(
                 text = "No hay horarios disponibles para esta fecha.",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600
+                color = PawMedicSemanticColors.current.secondaryText
             )
             else -> uiState.availableTimeSlots.forEach { slot ->
                 val selected = slot.startsAt == uiState.selectedSlot?.startsAt
@@ -553,10 +554,10 @@ private fun SelectDateTimeStep(
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (selected) PawMedicColors.Teal50 else PawMedicColors.White)
+                        .background(if (selected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
                         .border(
                             width = if (selected) 2.dp else 1.dp,
-                            color = if (selected) PawMedicColors.Teal600 else PawMedicColors.Gray200,
+                            color = if (selected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.separator,
                             shape = RoundedCornerShape(12.dp)
                         )
                         .clickable { onTimeSlotSelected(slot) }
@@ -566,7 +567,7 @@ private fun SelectDateTimeStep(
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = PawMedicColors.Teal600,
+                            tint = PawMedicSemanticColors.current.accent,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -574,7 +575,7 @@ private fun SelectDateTimeStep(
                             text = slot.label,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
+                            color = PawMedicSemanticColors.current.text
                         )
                     }
                 }
@@ -612,7 +613,7 @@ private fun ConfirmBookingStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -626,7 +627,7 @@ private fun ConfirmBookingStep(
         Text(
             text = "Revisa los detalles de tu solicitud antes de enviarla a la veterinaria.",
             fontSize = 14.sp,
-            color = PawMedicColors.Gray600,
+            color = PawMedicSemanticColors.current.secondaryText,
             lineHeight = 20.sp
         )
 
@@ -637,8 +638,8 @@ private fun ConfirmBookingStep(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .background(PawMedicColors.White)
-                .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
+                .background(PawMedicSemanticColors.current.surface)
+                .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(20.dp))
                 .padding(18.dp)
         ) {
             Column {
@@ -689,7 +690,7 @@ private fun ConfirmBookingStep(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "La cita debe ser solicitada primero. Estará sujeta a la aprobación de la clínica. Te notificaremos si es confirmada o rechazada.",
+                    text = "La cita debe ser solicitada primero. Estará sujeta a la aprobación de la clínica. Podrás consultar su estado en tus citas.",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF92400E),
@@ -737,7 +738,7 @@ private fun SummaryItem(
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(PawMedicColors.Teal50),
+                .background(PawMedicSemanticColors.current.softAccent),
             contentAlignment = Alignment.Center
         ) {
             Text(text = icon, fontSize = 20.sp)
@@ -747,13 +748,13 @@ private fun SummaryItem(
             Text(
                 text = label,
                 fontSize = 12.sp,
-                color = PawMedicColors.Gray400
+                color = PawMedicSemanticColors.current.hint
             )
             Text(
                 text = value,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
+                color = PawMedicSemanticColors.current.text
             )
         }
     }
@@ -767,7 +768,7 @@ private fun BookingSuccessStep(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -783,7 +784,7 @@ private fun BookingSuccessStep(
                 text = "¡Solicitud Enviada!",
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
+                color = PawMedicSemanticColors.current.text
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -791,7 +792,7 @@ private fun BookingSuccessStep(
             Text(
                 text = "Tu cita ha sido solicitada correctamente. La clínica revisará la disponibilidad y te notificará pronto.",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600,
+                color = PawMedicSemanticColors.current.secondaryText,
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp
             )

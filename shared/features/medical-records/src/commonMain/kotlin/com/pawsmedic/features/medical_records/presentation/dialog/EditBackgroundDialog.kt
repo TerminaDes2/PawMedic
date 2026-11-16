@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.medical_records.domain.model.PetBackground
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun EditBackgroundDialog(
@@ -75,7 +76,7 @@ fun EditBackgroundDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = PawMedicColors.Gray700)
+                Text("Cancelar", color = PawMedicSemanticColors.current.text)
             }
         },
         title = {
@@ -83,7 +84,7 @@ fun EditBackgroundDialog(
                 text = "Actualizar Antecedentes Médicos",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
+                color = PawMedicSemanticColors.current.text
             )
         },
         text = {
@@ -94,7 +95,7 @@ fun EditBackgroundDialog(
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Alimentación Actual", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                Text("Alimentación Actual", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 OutlinedTextField(
                     value = diet,
                     onValueChange = { diet = it },
@@ -103,7 +104,7 @@ fun EditBackgroundDialog(
                     shape = RoundedCornerShape(10.dp)
                 )
 
-                Text("Alergias Conocidas", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                Text("Alergias Conocidas", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 OutlinedTextField(
                     value = allergies,
                     onValueChange = { allergies = it },
@@ -114,7 +115,7 @@ fun EditBackgroundDialog(
 
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Última Desparasitación", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                        Text("Última Desparasitación", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                         OutlinedTextField(
                             value = dewormingDate,
                             onValueChange = { dewormingDate = it },
@@ -125,7 +126,7 @@ fun EditBackgroundDialog(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Producto Antiparasitario", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                        Text("Producto Antiparasitario", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                         OutlinedTextField(
                             value = dewormingProduct,
                             onValueChange = { dewormingProduct = it },
@@ -136,7 +137,7 @@ fun EditBackgroundDialog(
                     }
                 }
 
-                Text("Enfermedades Anteriores", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                Text("Enfermedades Anteriores", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 OutlinedTextField(
                     value = pastDiseases,
                     onValueChange = { pastDiseases = it },
@@ -145,7 +146,7 @@ fun EditBackgroundDialog(
                     shape = RoundedCornerShape(10.dp)
                 )
 
-                Text("Cirugías Anteriores", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                Text("Cirugías Anteriores", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 OutlinedTextField(
                     value = pastSurgeries,
                     onValueChange = { pastSurgeries = it },
@@ -154,7 +155,7 @@ fun EditBackgroundDialog(
                     shape = RoundedCornerShape(10.dp)
                 )
 
-                Text("Antecedentes Familiares", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                Text("Antecedentes Familiares", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 OutlinedTextField(
                     value = familyHistory,
                     onValueChange = { familyHistory = it },
@@ -163,7 +164,7 @@ fun EditBackgroundDialog(
                     shape = RoundedCornerShape(10.dp)
                 )
 
-                Text("Estado Reproductivo", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                Text("Estado Reproductivo", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 OutlinedTextField(
                     value = reproductiveStatus,
                     onValueChange = { reproductiveStatus = it },
@@ -172,7 +173,7 @@ fun EditBackgroundDialog(
                     shape = RoundedCornerShape(10.dp)
                 )
 
-                Text("Hábitat y Condiciones de Vida", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray700)
+                Text("Hábitat y Condiciones de Vida", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 OutlinedTextField(
                     value = habitat,
                     onValueChange = { habitat = it },

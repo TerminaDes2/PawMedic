@@ -29,6 +29,7 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
@@ -98,7 +99,7 @@ fun PasswordRecoveryScreen(
     RecoveryBackHandler(onBack = ::leave)
 
     Column(
-        modifier = Modifier.fillMaxSize().background(PawMedicColors.BackgroundScreen)
+        modifier = Modifier.fillMaxSize().background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState()).padding(24.dp)
     ) {
         PawMedicTopBar(title = "Recuperar contraseña", onBackClick = ::leave)

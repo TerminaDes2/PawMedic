@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.medical_records.domain.model.MedicalRecord
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun MedicalHistoryScreen(
@@ -52,7 +53,7 @@ fun MedicalHistoryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -69,8 +70,8 @@ fun MedicalHistoryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicColors.White)
-                    .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
+                    .background(PawMedicSemanticColors.current.surface)
+                    .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(16.dp))
                     .clickable { dropdownExpanded = true }
                     .padding(14.dp)
             ) {
@@ -84,7 +85,7 @@ fun MedicalHistoryScreen(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(PawMedicColors.Teal50),
+                                .background(PawMedicSemanticColors.current.softAccent),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(text = "🐱", fontSize = 20.sp)
@@ -94,10 +95,10 @@ fun MedicalHistoryScreen(
                             text = "Mostrando historial de: ${uiState.selectedPetName}",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
+                            color = PawMedicSemanticColors.current.text
                         )
                     }
-                    Text(text = "▼", fontSize = 14.sp, color = PawMedicColors.Gray500)
+                    Text(text = "▼", fontSize = 14.sp, color = PawMedicSemanticColors.current.hint)
                 }
             }
 
@@ -127,21 +128,21 @@ fun MedicalHistoryScreen(
             placeholder = {
                 Text(
                     text = "Buscar vacunas, diagnósticos, doctores...",
-                    color = PawMedicColors.Gray400,
+                    color = PawMedicSemanticColors.current.hint,
                     fontSize = 14.sp
                 )
             },
             leadingIcon = {
-                Text(text = "🔍", fontSize = 16.sp, color = PawMedicColors.Gray400)
+                Text(text = "🔍", fontSize = 16.sp, color = PawMedicSemanticColors.current.hint)
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PawMedicColors.Teal600,
-                unfocusedBorderColor = PawMedicColors.Gray300,
-                focusedContainerColor = PawMedicColors.White,
-                unfocusedContainerColor = PawMedicColors.White
+                unfocusedBorderColor = PawMedicSemanticColors.current.border,
+                focusedContainerColor = PawMedicSemanticColors.current.surface,
+                unfocusedContainerColor = PawMedicSemanticColors.current.surface
             )
         )
 
@@ -158,7 +159,7 @@ fun MedicalHistoryScreen(
                 Text(
                     text = "No se encontraron registros médicos.",
                     fontSize = 14.sp,
-                    color = PawMedicColors.Gray500
+                    color = PawMedicSemanticColors.current.hint
                 )
             }
         } else {
@@ -176,8 +177,8 @@ private fun MedicalRecordCard(record: MedicalRecord) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
+            .background(PawMedicSemanticColors.current.surface)
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(20.dp))
             .padding(18.dp)
     ) {
         Column {
@@ -191,20 +192,20 @@ private fun MedicalRecordCard(record: MedicalRecord) {
                     text = record.date,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Teal600
+                    color = PawMedicSemanticColors.current.accent
                 )
 
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFE6F4EA))
+                        .background(PawMedicSemanticColors.current.softAccent)
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = record.clinicName,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
+                        color = PawMedicSemanticColors.current.accent
                     )
                 }
             }
@@ -215,7 +216,7 @@ private fun MedicalRecordCard(record: MedicalRecord) {
                 text = record.title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
+                color = PawMedicSemanticColors.current.text
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -223,7 +224,7 @@ private fun MedicalRecordCard(record: MedicalRecord) {
             Text(
                 text = "Atendido por: ${record.doctorName}",
                 fontSize = 13.sp,
-                color = PawMedicColors.Gray500
+                color = PawMedicSemanticColors.current.hint
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -233,14 +234,14 @@ private fun MedicalRecordCard(record: MedicalRecord) {
                 text = "DIAGNÓSTICO",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray400,
+                color = PawMedicSemanticColors.current.hint,
                 letterSpacing = 0.5.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = record.diagnosis,
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray700,
+                color = PawMedicSemanticColors.current.text,
                 lineHeight = 20.sp
             )
 
@@ -251,14 +252,14 @@ private fun MedicalRecordCard(record: MedicalRecord) {
                 text = "TRATAMIENTO",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray400,
+                color = PawMedicSemanticColors.current.hint,
                 letterSpacing = 0.5.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = record.treatment,
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray700,
+                color = PawMedicSemanticColors.current.text,
                 lineHeight = 20.sp
             )
 
@@ -270,7 +271,7 @@ private fun MedicalRecordCard(record: MedicalRecord) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFECFDF5))
+                        .background(PawMedicSemanticColors.current.softAccent)
                         .padding(12.dp)
                 ) {
                     Column {
@@ -278,14 +279,14 @@ private fun MedicalRecordCard(record: MedicalRecord) {
                             text = "NOTAS DEL VETERINARIO",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Teal600,
+                            color = PawMedicSemanticColors.current.accent,
                             letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = record.vetNotes,
                             fontSize = 13.sp,
-                            color = PawMedicColors.Gray800,
+                            color = PawMedicSemanticColors.current.text,
                             lineHeight = 18.sp
                         )
                     }

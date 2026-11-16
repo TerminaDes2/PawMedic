@@ -30,6 +30,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -43,6 +46,7 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun LoginScreen(
@@ -65,7 +69,7 @@ fun LoginScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.SpaceBetween
@@ -94,16 +98,16 @@ fun LoginScreen(
                 ) {
                     HorizontalDivider(
                         modifier = Modifier.weight(1f),
-                        color = PawMedicColors.Gray300
+                        color = PawMedicSemanticColors.current.border
                     )
                     Text(
                         text = "  o continúa con correo  ",
                         fontSize = 12.sp,
-                        color = PawMedicColors.Gray500
+                        color = PawMedicSemanticColors.current.hint
                     )
                     HorizontalDivider(
                         modifier = Modifier.weight(1f),
-                        color = PawMedicColors.Gray300
+                        color = PawMedicSemanticColors.current.border
                     )
                 }
 
@@ -115,6 +119,7 @@ fun LoginScreen(
                 onValueChange = viewModel::onEmailChanged,
                 label = "Correo electrónico",
                 placeholder = "tu@email.com",
+                inputModifier = Modifier.semantics { contentType = ContentType.EmailAddress },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
@@ -123,7 +128,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Default.Email,
                         contentDescription = null,
-                        tint = PawMedicColors.Teal600,
+                        tint = PawMedicSemanticColors.current.accent,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -136,6 +141,7 @@ fun LoginScreen(
                 onValueChange = viewModel::onPasswordChanged,
                 label = "Contraseña",
                 placeholder = "••••••••",
+                inputModifier = Modifier.semantics { contentType = ContentType.Password },
                 visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
@@ -146,7 +152,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = null,
-                        tint = PawMedicColors.Teal600,
+                        tint = PawMedicSemanticColors.current.accent,
                         modifier = Modifier.size(20.dp)
                     )
                 },
@@ -154,7 +160,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = if (uiState.isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                         contentDescription = if (uiState.isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
-                        tint = PawMedicColors.Gray500,
+                        tint = PawMedicSemanticColors.current.hint,
                         modifier = Modifier
                             .size(20.dp)
                             .clickable { viewModel.togglePasswordVisibility() }
@@ -170,7 +176,7 @@ fun LoginScreen(
             ) {
                 Text(
                     text = "¿Olvidaste tu contraseña?",
-                    color = PawMedicColors.Teal600,
+                    color = PawMedicSemanticColors.current.accent,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.End,
@@ -209,13 +215,13 @@ fun LoginScreen(
             Text(
                 text = "¿No tienes una cuenta? ",
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600
+                color = PawMedicSemanticColors.current.secondaryText
             )
             Text(
                 text = "Registrarse",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Teal600,
+                color = PawMedicSemanticColors.current.accent,
                 modifier = Modifier.clickable { onNavigateToRegister() }
             )
         }

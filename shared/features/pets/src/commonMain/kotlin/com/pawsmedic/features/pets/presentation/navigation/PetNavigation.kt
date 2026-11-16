@@ -79,8 +79,10 @@ import com.pawsmedic.features.pets.presentation.profile.ProfileScreen
 import com.pawsmedic.features.pets.presentation.profile.ProfileViewModel
 import com.pawsmedic.features.pets.presentation.settings.SettingsScreen
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 sealed interface PetTabScreen {
@@ -105,6 +107,7 @@ fun PetNavHost(
     userName: String,
     supabaseClient: SupabaseClient,
     onSignOut: suspend () -> Unit,
+    onAccountDeleted: suspend () -> Unit = onSignOut,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(initialPage = 0) { 4 }
@@ -119,6 +122,20 @@ fun PetNavHost(
     var showNotifications by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var accountDeleteError by remember { mutableStateOf<String?>(null) }
+
+    suspend fun performSignOut() {
+        isSigningOut = true
+        signOutError = null
+        try {
+            onSignOut()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            signOutError = e.message ?: "Inténtalo nuevamente."
+        } finally {
+            isSigningOut = false
+        }
+    }
 
     // Repositories & DataSources
     val medicalRecordRepository = remember(supabaseClient, ownerId) {
@@ -166,15 +183,15 @@ fun PetNavHost(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFFFEF3C7), RoundedCornerShape(12.dp))
+                                    .background(PawMedicSemanticColors.current.warningSurface, RoundedCornerShape(12.dp))
                                     .padding(12.dp)
                             ) {
-                                Text(appointment.serviceName, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
+                                Text(appointment.serviceName, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                                 Text("${appointment.businessName} • ${appointment.petName}")
                                 Text(
                                     "Fecha: ${appointment.date} • ${appointment.time}",
                                     fontWeight = FontWeight.Bold,
-                                    color = PawMedicColors.Teal600
+                                    color = PawMedicSemanticColors.current.text
                                 )
                             }
                             Spacer(Modifier.height(8.dp))
@@ -209,10 +226,7 @@ fun PetNavHost(
                     onClick = {
                         signOutError = null
                         coroutineScope.launch {
-                            isSigningOut = true
-                            runCatching { onSignOut() }
-                                .onFailure { signOutError = it.message ?: "Inténtalo nuevamente." }
-                            isSigningOut = false
+                            performSignOut()
                         }
                     }
                 ) {
@@ -235,7 +249,7 @@ fun PetNavHost(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(PawMedicColors.White)
+                        .background(PawMedicSemanticColors.current.surface)
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .padding(vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceAround,
@@ -289,7 +303,7 @@ fun PetNavHost(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(PawMedicColors.BackgroundScreen)
+                .background(PawMedicSemanticColors.current.background)
                 .padding(innerPadding)
         ) {
             HorizontalPager(
@@ -526,7 +540,7 @@ fun PetNavHost(
                                     modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("Cargando el historial clínico…", color = PawMedicColors.Gray600)
+                                    Text("Cargando el historial clínico…", color = PawMedicSemanticColors.current.secondaryText)
                                 }
                             }
                             historyState.errorMessage != null -> {
@@ -580,13 +594,7 @@ fun PetNavHost(
                         },
                         onSignOut = {
                             showProfile = false
-                            coroutineScope.launch {
-                                isSigningOut = true
-                                signOutError = null
-                                runCatching { onSignOut() }
-                                    .onFailure { signOutError = it.message ?: "Inténtalo nuevamente." }
-                                isSigningOut = false
-                            }
+                            coroutineScope.launch { performSignOut() }
                         },
                         drawerOnly = true,
                         modifier = Modifier.width(300.dp)
@@ -619,7 +627,7 @@ fun PetNavHost(
                     },
                     onSignOut = {
                         showProfilePage = false
-                        coroutineScope.launch { onSignOut() }
+                        coroutineScope.launch { performSignOut() }
                     },
                     showSidebar = false,
                     modifier = Modifier.fillMaxSize().zIndex(2f)
@@ -633,11 +641,13 @@ fun PetNavHost(
                     },
                     onDeleteAccount = {
                         coroutineScope.launch {
-                            runCatching {
+                            try {
                                 supabaseClient.postgrest.rpc("delete_my_account")
-                                onSignOut()
-                            }.onFailure {
-                                accountDeleteError = it.message
+                                onAccountDeleted()
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                accountDeleteError = e.message
                                     ?: "No se pudo eliminar la cuenta. Inténtalo nuevamente."
                             }
                         }
@@ -664,7 +674,7 @@ private fun BottomNavItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray500,
+            tint = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.hint,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
@@ -672,7 +682,7 @@ private fun BottomNavItem(
             text = label,
             fontSize = 12.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray500
+            color = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.hint
         )
     }
 }
