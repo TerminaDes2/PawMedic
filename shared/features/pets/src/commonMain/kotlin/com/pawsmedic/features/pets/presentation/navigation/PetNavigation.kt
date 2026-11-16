@@ -461,6 +461,7 @@ fun PetNavHost(
                                     }
                                     VeterinaryDetailScreen(
                                         viewModel = detailVm,
+                                        supabaseClient = supabaseClient,
                                         onBackClick = { citasTabScreen = CitasTabScreen.List },
                                         onStartBooking = { clinicId ->
                                             citasTabScreen = CitasTabScreen.Booking(

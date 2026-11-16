@@ -26,7 +26,8 @@ data class VeterinaryService(
     val title: String,
     val description: String,
     val durationMinutes: Int,
-    val priceCents: Int? = null
+    val priceCents: Int? = null,
+    val category: String = "otros"
 )
 
 data class AvailableAppointmentSlot(

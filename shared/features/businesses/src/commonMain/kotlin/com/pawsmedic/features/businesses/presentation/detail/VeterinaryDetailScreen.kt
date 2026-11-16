@@ -46,11 +46,13 @@ import com.pawsmedic.features.products.domain.repository.ProductRepository
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import io.github.jan.supabase.SupabaseClient
 
 @Composable
 fun VeterinaryDetailScreen(
     viewModel: VeterinaryDetailViewModel,
     productRepository: ProductRepository? = null,
+    supabaseClient: SupabaseClient? = null,
     onBackClick: () -> Unit,
 
     onStartBooking: (String) -> Unit,
@@ -286,9 +288,9 @@ fun VeterinaryDetailScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- ESPECIALIDADES DISPONIBLES ---
+            // --- SERVICIOS DISPONIBLES ---
             Text(
-                text = "Especialidades Disponibles",
+                text = "Servicios disponibles",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicColors.Gray900
@@ -296,33 +298,16 @@ fun VeterinaryDetailScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                clinic.specialties.take(6).chunked(3).forEach { rowSpecs ->
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        rowSpecs.forEach { spec ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(PawMedicColors.White)
-                                    .border(1.dp, PawMedicColors.Gray300, RoundedCornerShape(20.dp))
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = spec,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = PawMedicColors.Gray800
-                                )
-                            }
-                            if (clinic.specialties.isEmpty()) {
-                                Text("Especialidades no registradas.", color = PawMedicColors.Gray600)
-                            }
-                        }
-                    }
-                }
+            if (supabaseClient != null) {
+                ShowServices(
+                    tenantId = clinic.id,
+                    supabaseClient = supabaseClient
+                )
+            } else {
+                Text(
+                    text = "No se pudo conectar con el catálogo de servicios.",
+                    color = PawMedicColors.Gray600
+                )
             }
 
             Spacer(modifier = Modifier.height(28.dp))

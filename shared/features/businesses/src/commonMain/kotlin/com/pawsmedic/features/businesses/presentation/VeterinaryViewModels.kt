@@ -1,4 +1,4 @@
-package com.pawsmedic.features.businesses.presentation
+    package com.pawsmedic.features.businesses.presentation
 
 import com.pawsmedic.features.businesses.domain.model.Business
 import com.pawsmedic.features.businesses.domain.repository.BusinessRepository
@@ -44,20 +44,23 @@ class VeterinaryListViewModel(
     }
 
     fun onSearchQueryChanged(q: String) {
+        val normalizedQuery = q.trim().replace(Regex("\\s+"), " ")
+        if (normalizedQuery == _uiState.value.searchQuery && !_uiState.value.isLoading) return
+
         _uiState.update { curr ->
-            curr.copy(searchQuery = q, isLoading = true, errorMessage = null)
+            curr.copy(searchQuery = normalizedQuery, isLoading = true, errorMessage = null)
         }
         scope.launch {
-            repository.searchBusinesses(q)
+            repository.searchBusinesses(normalizedQuery)
                 .onSuccess { list ->
                     _uiState.update { curr ->
-                        if (curr.searchQuery == q) curr.copy(clinics = list, isLoading = false)
+                        if (curr.searchQuery == normalizedQuery) curr.copy(clinics = list, isLoading = false)
                         else curr
                     }
                 }
                 .onFailure { error ->
                     _uiState.update { curr ->
-                        if (curr.searchQuery == q) {
+                        if (curr.searchQuery == normalizedQuery) {
                             curr.copy(isLoading = false, errorMessage = error.message)
                         } else {
                             curr

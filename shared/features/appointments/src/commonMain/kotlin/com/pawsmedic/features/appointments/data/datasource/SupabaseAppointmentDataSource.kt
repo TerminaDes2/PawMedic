@@ -52,7 +52,8 @@ class SupabaseAppointmentDataSource(
                     title = service.name,
                     description = service.description,
                     durationMinutes = service.durationMinutes,
-                    priceCents = service.priceCents
+                    priceCents = service.priceCents,
+                    category = service.category
                 )
             }
 
@@ -140,7 +141,8 @@ private data class ServiceRecord(
     val name: String,
     val description: String = "",
     @SerialName("duration_minutes") val durationMinutes: Int,
-    @SerialName("price_cents") val priceCents: Int = 0
+    @SerialName("price_cents") val priceCents: Int = 0,
+    val category: String = "otros"
 )
 
 private fun String.toDisplayStatus(): String = when (uppercase()) {
