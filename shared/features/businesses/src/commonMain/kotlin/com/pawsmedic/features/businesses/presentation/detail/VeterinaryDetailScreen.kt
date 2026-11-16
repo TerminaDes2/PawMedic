@@ -40,9 +40,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.businesses.presentation.VeterinaryDetailViewModel
-import com.pawsmedic.features.products.domain.model.Product
-import com.pawsmedic.features.products.domain.model.formattedPrice
-import com.pawsmedic.features.products.domain.repository.ProductRepository
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
@@ -51,41 +48,14 @@ import io.github.jan.supabase.SupabaseClient
 @Composable
 fun VeterinaryDetailScreen(
     viewModel: VeterinaryDetailViewModel,
-    productRepository: ProductRepository? = null,
     supabaseClient: SupabaseClient? = null,
     onBackClick: () -> Unit,
-
     onStartBooking: (String) -> Unit,
+    onOpenProductCatalog: (String, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val clinic = uiState.clinic
-    var products by remember(clinic?.id) {
-        mutableStateOf<List<Product>>(emptyList())
-    }
-    var productsLoading by remember(clinic?.id) {
-        mutableStateOf(false)
-    }
-    var productsError by remember(clinic?.id) {
-        mutableStateOf<String?>(null)
-    }
-
-    LaunchedEffect(clinic?.id, productRepository) {
-        val tenantId = clinic?.id ?: return@LaunchedEffect
-        val repository = productRepository ?: return@LaunchedEffect
-        productsLoading = true
-        productsError = null
-        try {
-            products = repository.getProductsByTenant(tenantId)
-        } catch (error: kotlinx.coroutines.CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            productsError = error.message ?: "No se pudo cargar el catálogo."
-        } finally {
-            productsLoading = false
-        }
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -144,45 +114,6 @@ fun VeterinaryDetailScreen(
                 color = PawMedicColors.Teal600
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // --- RATING CARD ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicColors.White)
-                    .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
-                    .padding(14.dp)
-            ) {
-                Column {
-                    Text(
-                        text = "Calificación",
-                        fontSize = 12.sp,
-                        color = PawMedicColors.Gray400
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFF59E0B),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = if (clinic.rating > 0) {
-                                "${clinic.rating} (${clinic.reviewCount})"
-                            } else {
-                                clinic.reviewCount
-                            },
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900,
-                            modifier = Modifier.padding(start = 6.dp)
-                        )
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -241,50 +172,9 @@ fun VeterinaryDetailScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- HORARIOS DE ATENCION CARD ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFFEF9C3))
-                    .border(1.dp, Color(0xFFFDE047), RoundedCornerShape(16.dp))
-                    .padding(16.dp)
-            ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = Color(0xFF854D0E),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Horarios de Atención",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (clinic.hours.isEmpty()) {
-                        Text(
-                            text = "Horario no registrado.",
-                            fontSize = 13.sp,
-                            color = PawMedicColors.Gray800
-                        )
-                    } else {
-                        clinic.hours.forEach { hour ->
-                            Text(
-                                text = "• $hour",
-                                fontSize = 13.sp,
-                                color = PawMedicColors.Gray800,
-                                modifier = Modifier.padding(vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-            }
+            OpeningHoursCard(
+                schedules = clinic.schedules
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -312,69 +202,10 @@ fun VeterinaryDetailScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            Text(
-                text = "Productos disponibles",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
+            PawMedicPrimaryButton(
+                text = "Ver catálogo de productos",
+                onClick = { onOpenProductCatalog(clinic.id, clinic.name) }
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            when {
-                productsLoading -> Text(
-                    text = "Cargando catálogo...",
-                    color = PawMedicColors.Gray600
-                )
-                productsError != null -> Text(
-                    text = productsError.orEmpty(),
-                    color = Color(0xFFB91C1C)
-                )
-                products.isEmpty() -> Text(
-                    text = "No hay productos disponibles.",
-                    color = PawMedicColors.Gray600
-                )
-                else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    products.forEach { product ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(PawMedicColors.White)
-                                .border(
-                                    1.dp,
-                                    PawMedicColors.Gray200,
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .padding(14.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = product.name,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PawMedicColors.Gray900
-                                )
-                                if (!product.description.isNullOrBlank()) {
-                                    Text(
-                                        text = product.description.orEmpty(),
-                                        fontSize = 13.sp,
-                                        color = PawMedicColors.Gray600,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    )
-                                }
-                                Text(
-                                    text = product.formattedPrice(),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PawMedicColors.Teal600,
-                                    modifier = Modifier.padding(top = 8.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(32.dp))
 

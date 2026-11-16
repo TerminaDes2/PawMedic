@@ -49,6 +49,7 @@ import com.pawsmedic.features.appointments.data.datasource.SupabaseAppointmentDa
 import com.pawsmedic.features.appointments.data.repository.DefaultAppointmentRepository
 import com.pawsmedic.features.appointments.presentation.booking.BookingFlowScreen
 import com.pawsmedic.features.appointments.presentation.booking.BookingViewModel
+import com.pawsmedic.features.appointments.presentation.detail.AppointmentDetailScreen
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListScreen
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListViewModel
 import com.pawsmedic.features.businesses.data.datasource.SupabaseBusinessDataSource
@@ -56,7 +57,10 @@ import com.pawsmedic.features.businesses.data.repository.DefaultBusinessReposito
 import com.pawsmedic.features.businesses.presentation.VeterinaryDetailViewModel
 import com.pawsmedic.features.businesses.presentation.VeterinaryListViewModel
 import com.pawsmedic.features.businesses.presentation.detail.VeterinaryDetailScreen
+import com.pawsmedic.features.businesses.presentation.catalog.ProductCatalogScreen
 import com.pawsmedic.features.businesses.presentation.list.VeterinaryListScreen
+import com.pawsmedic.features.products.data.datasource.SupabaseProductDataSource
+import com.pawsmedic.features.products.data.repository.DefaultProductRepository
 import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryScreen
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryViewModel
@@ -94,8 +98,10 @@ sealed interface PetTabScreen {
 sealed interface CitasTabScreen {
     data object List : CitasTabScreen
     data class Detail(val clinicId: String) : CitasTabScreen
+    data class ProductCatalog(val clinicId: String, val clinicName: String) : CitasTabScreen
     data class Booking(val clinicId: String, val clinicName: String) : CitasTabScreen
     data object Appointments : CitasTabScreen
+    data class AppointmentDetail(val appointmentId: String) : CitasTabScreen
 }
 
 @Composable
@@ -131,6 +137,9 @@ fun PetNavHost(
     }
     val appointmentRepository = remember(supabaseClient, ownerId) {
         DefaultAppointmentRepository(SupabaseAppointmentDataSource(supabaseClient, ownerId))
+    }
+    val productRepository = remember(supabaseClient) {
+        DefaultProductRepository(SupabaseProductDataSource(supabaseClient))
     }
 
     // Pet Use Cases & ViewModels
@@ -463,11 +472,25 @@ fun PetNavHost(
                                         viewModel = detailVm,
                                         supabaseClient = supabaseClient,
                                         onBackClick = { citasTabScreen = CitasTabScreen.List },
+                                        onOpenProductCatalog = { clinicId, clinicName ->
+                                            citasTabScreen = CitasTabScreen.ProductCatalog(clinicId, clinicName)
+                                        },
                                         onStartBooking = { clinicId ->
                                             citasTabScreen = CitasTabScreen.Booking(
                                                 clinicId = clinicId,
                                                 clinicName = detailVm.uiState.value.clinic?.name.orEmpty()
                                             )
+                                        }
+                                    )
+                                }
+
+                                is CitasTabScreen.ProductCatalog -> {
+                                    ProductCatalogScreen(
+                                        clinicName = screen.clinicName,
+                                        tenantId = screen.clinicId,
+                                        productRepository = productRepository,
+                                        onBackClick = {
+                                            citasTabScreen = CitasTabScreen.Detail(screen.clinicId)
                                         }
                                     )
                                 }
@@ -508,11 +531,34 @@ fun PetNavHost(
                                 CitasTabScreen.Appointments -> {
                                     AppointmentsListScreen(
                                         viewModel = appointmentsListViewModel,
+                                        onAppointmentClick = { appointment ->
+                                            citasTabScreen = CitasTabScreen.AppointmentDetail(appointment.id)
+                                        },
                                         onStartBooking = {
                                             veterinaryListViewModel.loadClinics()
                                             citasTabScreen = CitasTabScreen.List
                                         }
                                     )
+                                }
+
+                                is CitasTabScreen.AppointmentDetail -> {
+                                    val appointment = appointmentsState.appointments
+                                        .firstOrNull { it.id == screen.appointmentId }
+                                    if (appointment == null) {
+                                        citasTabScreen = CitasTabScreen.Appointments
+                                    } else {
+                                        AppointmentDetailScreen(
+                                            appointment = appointment,
+                                            viewModel = appointmentsListViewModel,
+                                            onBackClick = {
+                                                citasTabScreen = CitasTabScreen.Appointments
+                                            },
+                                            onCancelled = {
+                                                appointmentsListViewModel.loadAppointments()
+                                                citasTabScreen = CitasTabScreen.Appointments
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }

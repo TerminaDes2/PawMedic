@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
@@ -46,7 +47,6 @@ import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.appointments.domain.model.Appointment
 import com.pawsmedic.features.appointments.domain.repository.AppointmentRepository
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
-import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -79,10 +79,61 @@ class AppointmentsListViewModel(
             _uiState.update { curr -> curr.copy(isLoading = true, errorMessage = null) }
             repository.getAppointments()
                 .onSuccess { list ->
-                    _uiState.update { curr -> curr.copy(appointments = list, isLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        appointments = list.filterNot { appointment ->
+                            appointment.status.equals("Completada", ignoreCase = true) ||
+                                appointment.status.equals("Cancelada", ignoreCase = true)
+                        },
+                        isLoading = false
+                    )
+                }
                 }
                 .onFailure { err ->
                     _uiState.update { curr -> curr.copy(isLoading = false, errorMessage = friendlyErrorMessage(err)) }
+                }
+        }
+    }
+
+    fun cancelAppointment(appointment: Appointment, onSuccess: () -> Unit = {}) {
+        if (!appointment.isPending()) return
+        scope.launch {
+            repository.cancelAppointment(appointment.id)
+                .onSuccess {
+                    loadAppointments()
+                    onSuccess()
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(errorMessage = friendlyErrorMessage(error)) }
+                }
+        }
+    }
+
+    fun editAppointment(appointment: Appointment, date: String, time: String, onSuccess: () -> Unit) {
+        if (!appointment.isPending()) return
+        scope.launch {
+            repository.editAppointment(appointment.id, date.trim(), time.trim())
+                .onSuccess {
+                    loadAppointments()
+                    onSuccess()
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(errorMessage = friendlyErrorMessage(error)) }
+                }
+        }
+    }
+
+    fun loadAvailableSlots(
+        appointment: Appointment,
+        date: String,
+        onResult: (List<com.pawsmedic.features.appointments.domain.model.AvailableAppointmentSlot>) -> Unit
+    ) {
+        scope.launch {
+            repository.getAvailableSlots(appointment.businessId, appointment.serviceId, date)
+                .onSuccess(onResult)
+                .onFailure { error ->
+                    _uiState.update { it.copy(errorMessage = friendlyErrorMessage(error)) }
+                    onResult(emptyList())
                 }
         }
     }
@@ -101,7 +152,13 @@ private enum class StatusFilter(val label: String) {
 }
 
 private fun Appointment.isPending() = status.contains("Pendiente", ignoreCase = true)
-private fun Appointment.isAccepted() = status.equals("Confirmada", ignoreCase = true)
+private fun Appointment.isAccepted(): Boolean {
+    val normalizedStatus = status.trim()
+    return normalizedStatus.equals("Confirmada", ignoreCase = true) ||
+        normalizedStatus.equals("Aceptada", ignoreCase = true) ||
+        normalizedStatus.equals("Confirmed", ignoreCase = true) ||
+        normalizedStatus.equals("Accepted", ignoreCase = true)
+}
 
 private fun categoryLabel(category: String): String = when (category) {
     ALL -> "Todas las categorías"
@@ -119,6 +176,7 @@ private fun categoryLabel(category: String): String = when (category) {
 fun AppointmentsListScreen(
     viewModel: AppointmentsListViewModel,
     onStartBooking: () -> Unit,
+    onAppointmentClick: (Appointment) -> Unit = {},
     onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -130,53 +188,71 @@ fun AppointmentsListScreen(
     var selectedStatusName by rememberSaveable { mutableStateOf(StatusFilter.ALL.name) }
     val selectedStatus = StatusFilter.valueOf(selectedStatusName)
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(PawMedicColors.BackgroundScreen)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
-        PawMedicTopBar(
-            title = "Mis Citas Médicas",
-            onBackClick = onBackClick
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        when {
-            uiState.isLoading -> {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 0.dp, top = 0.dp, end = 0.dp, bottom = 96.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(PawMedicColors.Teal600)
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = "Cargando tus citas…",
-                    fontSize = 14.sp,
-                    color = PawMedicColors.Gray500,
-                    modifier = Modifier.padding(vertical = 32.dp)
+                    text = "CITAS",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PawMedicColors.White,
+                    letterSpacing = 1.sp
                 )
             }
-            uiState.errorMessage != null -> {
-                Text(
-                    text = "${uiState.errorMessage}",
-                    fontSize = 14.sp,
-                    color = PawMedicColors.Error
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::loadAppointments)
-            }
-            uiState.appointments.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No tienes citas agendadas.",
-                        fontSize = 14.sp,
-                        color = PawMedicColors.Gray500
-                    )
-                }
-            }
-            else -> {
+
+            Column(
+                modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 20.dp)
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                when {
+                    uiState.isLoading -> {
+                        Text(
+                            text = "Cargando tus citas…",
+                            fontSize = 14.sp,
+                            color = PawMedicColors.Gray500,
+                            modifier = Modifier.padding(vertical = 32.dp)
+                        )
+                    }
+                    uiState.errorMessage != null -> {
+                        Text(
+                            text = "${uiState.errorMessage}",
+                            fontSize = 14.sp,
+                            color = PawMedicColors.Error
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::loadAppointments)
+                    }
+                    uiState.appointments.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No tienes citas agendadas.",
+                                fontSize = 14.sp,
+                                color = PawMedicColors.Gray500
+                            )
+                        }
+                    }
+                    else -> {
                 val all = uiState.appointments
 
                 // Opciones derivadas de las citas existentes
@@ -277,21 +353,29 @@ fun AppointmentsListScreen(
                     }
                 } else {
                     filtered.forEach { app ->
-                        AppointmentDetailCard(app = app)
+                        AppointmentDetailCard(app = app, onClick = { onAppointmentClick(app) })
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
+            }
+        }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        PawMedicPrimaryButton(
-            text = "Agendar nueva cita",
-            onClick = onStartBooking
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            color = PawMedicColors.White,
+            shadowElevation = 8.dp,
+            tonalElevation = 2.dp
+        ) {
+            PawMedicPrimaryButton(
+                text = "Agendar nueva cita",
+                onClick = onStartBooking,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+            )
+        }
     }
 }
 
@@ -359,13 +443,13 @@ private fun FilterDropdownChip(
 }
 
 @Composable
-private fun AppointmentDetailCard(app: Appointment) {
+private fun AppointmentDetailCard(app: Appointment, onClick: () -> Unit) {
     val isPending = app.isPending()
     val isConfirmed = app.isAccepted()
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .clip(RoundedCornerShape(20.dp))
             .background(PawMedicColors.White)
             .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
@@ -481,6 +565,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                         )
                     }
                 }
+
             }
         }
     }

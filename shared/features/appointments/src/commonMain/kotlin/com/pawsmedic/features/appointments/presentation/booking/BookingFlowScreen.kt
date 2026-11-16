@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -607,13 +608,17 @@ private fun SelectDateTimeStep(
         )
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(PawMedicColors.BackgroundScreen)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 96.dp)
+        ) {
         PawMedicTopBar(
             title = "Seleccionar Fecha y Hora",
             onBackClick = onBack
@@ -673,13 +678,24 @@ private fun SelectDateTimeStep(
         Spacer(modifier = Modifier.height(24.dp))
 
         // --- TIME SELECTION SECTION ---
-        Text(
-            text = "Horarios disponibles",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray800,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 8.dp)
-        )
+        ) {
+            Icon(
+                imageVector = Icons.Default.Schedule,
+                contentDescription = null,
+                tint = PawMedicColors.Teal600,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Horarios disponibles",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = PawMedicColors.Gray800
+            )
+        }
 
         when {
             uiState.isLoadingSlots -> Text(
@@ -697,36 +713,76 @@ private fun SelectDateTimeStep(
                 fontSize = 14.sp,
                 color = PawMedicColors.Gray600
             )
-            else -> uiState.availableTimeSlots.forEach { slot ->
-                val selected = slot.startsAt == uiState.selectedSlot?.startsAt
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (selected) PawMedicColors.Teal50 else PawMedicColors.White)
-                        .border(
-                            width = if (selected) 2.dp else 1.dp,
-                            color = if (selected) PawMedicColors.Teal600 else PawMedicColors.Gray200,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .clickable { onTimeSlotSelected(slot) }
-                        .padding(14.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = PawMedicColors.Teal600,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
+            else -> {
+                val groupedSlots = uiState.availableTimeSlots
+                    .sortedBy { it.label }
+                    .groupBy { slot ->
+                        val hour = slot.label.substringBefore(":").toIntOrNull() ?: 0
+                        when {
+                            hour < 12 -> "Mañana"
+                            hour < 17 -> "Mediodía"
+                            else -> "Tarde"
+                        }
+                    }
+                listOf("Mañana", "Mediodía", "Tarde").forEach { period ->
+                    val periodSlots = groupedSlots[period].orEmpty()
+                    if (periodSlots.isNotEmpty()) {
                         Text(
-                            text = slot.label,
-                            fontSize = 16.sp,
+                            text = period,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
+                            color = PawMedicColors.Gray600,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
                         )
+                        periodSlots.chunked(3).forEach { rowSlots ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowSlots.forEach { slot ->
+                                    val selected = slot.startsAt == uiState.selectedSlot?.startsAt
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (selected) PawMedicColors.Teal600
+                                                else PawMedicColors.White
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (selected) PawMedicColors.Teal600 else PawMedicColors.Gray300,
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable { onTimeSlotSelected(slot) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = slot.label,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (selected) PawMedicColors.White else PawMedicColors.Gray900
+                                            )
+                                            if (selected) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Seleccionado",
+                                                    tint = PawMedicColors.White,
+                                                    modifier = Modifier.size(15.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                repeat(3 - rowSlots.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                     }
                 }
             }
@@ -742,14 +798,30 @@ private fun SelectDateTimeStep(
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+        }
 
-        PawMedicPrimaryButton(
-            text = "Continuar",
-            onClick = onNext
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            color = PawMedicColors.White,
+            shadowElevation = 8.dp,
+            tonalElevation = 2.dp
+        ) {
+            PawMedicPrimaryButton(
+                text = if (uiState.selectedTimeSlot.isBlank()) {
+                    "Continuar"
+                } else {
+                    "Continuar · ${uiState.selectedTimeSlot}"
+                },
+                onClick = onNext,
+                enabled = uiState.selectedSlot != null,
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
+            )
+        }
     }
 }
 

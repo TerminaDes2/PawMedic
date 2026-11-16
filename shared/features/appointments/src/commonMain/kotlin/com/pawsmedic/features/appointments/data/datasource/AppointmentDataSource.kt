@@ -13,4 +13,6 @@ interface AppointmentDataSource {
         date: String
     ): List<AvailableAppointmentSlot>
     suspend fun requestAppointment(appointment: AppointmentDto): AppointmentDto
+    suspend fun cancelAppointment(appointmentId: String)
+    suspend fun editAppointment(appointmentId: String, date: String, time: String)
 }

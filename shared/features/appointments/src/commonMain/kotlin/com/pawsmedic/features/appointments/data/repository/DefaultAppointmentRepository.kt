@@ -38,4 +38,22 @@ class DefaultAppointmentRepository(
     } catch (error: Throwable) {
         Result.failure(error)
     }
+
+    override suspend fun cancelAppointment(appointmentId: String): Result<Unit> = try {
+        dataSource.cancelAppointment(appointmentId)
+        Result.success(Unit)
+    } catch (error: Throwable) {
+        Result.failure(error)
+    }
+
+    override suspend fun editAppointment(
+        appointmentId: String,
+        date: String,
+        time: String
+    ): Result<Unit> = try {
+        dataSource.editAppointment(appointmentId, date, time)
+        Result.success(Unit)
+    } catch (error: Throwable) {
+        Result.failure(error)
+    }
 }
