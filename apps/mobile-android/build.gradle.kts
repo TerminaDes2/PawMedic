@@ -20,22 +20,24 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         
-        // Leer el archivo .env desde la raíz del proyecto
         val properties = Properties()
         val localPropertiesFile = rootProject.file(".env")
         if (localPropertiesFile.exists()) {
             localPropertiesFile.inputStream().use(properties::load)
         }
+        val sharedProperties = Properties()
+        rootProject.file("config/client.properties").inputStream().use(sharedProperties::load)
 
-        val rawUrl = properties.getProperty("SUPABASE_URL") ?: System.getenv("SUPABASE_URL") ?: ""
-        val rawKey = properties.getProperty("SUPABASE_ANON_KEY") ?: System.getenv("SUPABASE_ANON_KEY") ?: ""
-        val googleClientId = properties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: System.getenv("GOOGLE_WEB_CLIENT_ID") ?: ""
+        fun clientConfig(name: String): String =
+            sequenceOf(properties.getProperty(name), System.getenv(name), sharedProperties.getProperty(name))
+                .mapNotNull { it?.trim()?.trim('"')?.takeIf(String::isNotBlank) }
+                .firstOrNull().orEmpty()
 
-        val cleanUrl = rawUrl.replace("\"", "").trim()
-        val cleanKey = rawKey.replace("\"", "").trim()
-        val cleanGoogleClientId = googleClientId.replace("\"", "").trim()
+        val cleanUrl = clientConfig("SUPABASE_URL")
+        val cleanKey = clientConfig("SUPABASE_ANON_KEY")
+        val cleanGoogleClientId = clientConfig("GOOGLE_WEB_CLIENT_ID")
         require(cleanUrl.isNotBlank() && cleanKey.isNotBlank()) {
-            "Configura SUPABASE_URL y SUPABASE_ANON_KEY en .env antes de compilar mobile-android."
+            "Configura SUPABASE_URL y SUPABASE_ANON_KEY en config/client.properties o .env antes de compilar mobile-android."
         }
         fun buildConfigString(value: String) =
             "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""

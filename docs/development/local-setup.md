@@ -3,23 +3,29 @@
 ## Prerequisites
 
 Install JDK 17+, Android SDK API 35 (for the Android target), Git, and the
-Supabase CLI. Docker Desktop must be running for `supabase start`. The first
-Gradle build needs network access to download plugins and dependencies.
+Supabase CLI only if you need a local backend. Docker Desktop must be running
+for `supabase start`. The first Gradle build needs network access to download
+plugins and dependencies.
 
 ## Configure the repository
 
 ```text
 git clone <repository-url>
 cd PawMedic
-copy .env.example .env        # Windows
-# cp .env.example .env        # macOS/Linux
 ```
 
-Do not commit `.env`. Run `supabase start`, then use `supabase status` to
-replace the local URL, anon key, and service-role placeholders. The anon key
-may be passed to a client adapter. The service-role key is for local Edge
-Function configuration only and must never enter Android, desktop, logs, or
-Git.
+The checked-in `config/client.properties` and Android `google-services.json`
+configure the clients for the shared development project. No `.env` is needed
+for that project. These client values are public, so RLS and server-side
+authorization must protect all data. To use a different backend, optionally
+create a root `.env` with `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and
+`GOOGLE_WEB_CLIENT_ID`. Nonempty `.env` values override environment variables,
+which override the shared defaults.
+
+Do not commit `.env`. For an isolated local backend, run `supabase start` and
+use `supabase status` to obtain its URL and anon key. The service-role key is
+for server-side Edge Function configuration only and must never enter Android,
+desktop, logs, or Git.
 
 For email registration in Android and Desktop, enable email confirmation in
 Supabase Auth and set the confirmation email template to display `{{ .Token }}`
@@ -38,16 +44,18 @@ temporary recovery session as the user's normal session.
 
 For Google on Android, create a Web OAuth client and an Android OAuth client
 for `com.pawsmedic.mobile` with the signing certificate SHA-1 used to install
-the app. Enable Google as an Auth provider in Supabase, put the Web client ID
-and secret in Supabase's provider settings, and put only that same Web client
-ID in `.env` as `GOOGLE_WEB_CLIENT_ID`. The Google client secret must never be
-added to `.env` or the Android app. The phone must have Google Play Services
-and a Google account available.
+the app. Google sign-in requires the SHA-1 of each developer's debug signing
+key to be registered with Firebase/Google; the checked-in client configuration
+does not authorize an unknown signing key automatically. Enable Google as an
+Auth provider in Supabase and keep the Google client secret in Supabase's
+provider settings, never in the Android app or Git. The phone must have Google
+Play Services and a Google account available.
 
-The Android `google-services.json` file is required for every Android build,
-local and ignored by Git. Obtain it from the Firebase project associated with
-the target environment and place it in `apps/mobile-android`; never add the
-service-account private key to the app. Appointment notifications are available
+The checked-in Android `google-services.json` is the public client configuration
+for the shared development Firebase project, not a service-account key.
+When targeting a different Firebase project, replace it locally with that
+project's Android client configuration; never add a service-account private key
+to the app or Git. Appointment notifications are available
 in Android settings without a build flag, but each user must opt in and grant
 the Android notification permission. Firebase configuration alone does not
 enable delivery: each target Supabase environment also requires the database
@@ -84,10 +92,9 @@ instance with `npm install --prefix supabase/tests` followed by
 The Android appearance setting supports light, dark and system themes and is
 stored locally on the device.
 
-The mobile app requires `SUPABASE_URL` and `SUPABASE_ANON_KEY` at build time.
-Google sign-in also requires `GOOGLE_WEB_CLIENT_ID`; email/password
-authentication does not. Desktop apps read the same Supabase URL and anon key
-from the root `.env` or environment variables.
+The mobile app reads its client settings at build time. Desktop apps include
+the shared public configuration as a resource and can also read overrides from
+the root `.env` or environment variables at runtime.
 
 After applying migrations, create the initial Superadmin account through
 Supabase Auth, confirm its email, then promote its profile from the trusted

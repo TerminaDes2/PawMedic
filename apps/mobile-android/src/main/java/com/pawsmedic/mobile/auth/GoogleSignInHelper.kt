@@ -31,9 +31,9 @@ class GoogleSignInHelper(
 
     suspend fun signIn(language: AppLanguage): Result<GoogleSignInCredentials> {
         if (serverClientId.isBlank()) {
-            Log.e(TAG, "GOOGLE_WEB_CLIENT_ID está vacío en .env")
+            Log.e(TAG, "GOOGLE_WEB_CLIENT_ID no está configurado")
             return Result.failure(
-                IllegalArgumentException(language.text("Configura GOOGLE_WEB_CLIENT_ID en tu archivo .env", "Configure GOOGLE_WEB_CLIENT_ID in your .env file")),
+                IllegalArgumentException(language.text("Configura GOOGLE_WEB_CLIENT_ID en config/client.properties o .env", "Configure GOOGLE_WEB_CLIENT_ID in config/client.properties or .env")),
             )
         }
 
@@ -101,4 +101,3 @@ class GoogleSignInHelper(
         }
     }
 }
-

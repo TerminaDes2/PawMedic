@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "39666544681",
+    "project_id": "indigo-altar-514320-t7",
+    "storage_bucket": "indigo-altar-514320-t7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:39666544681:android:c3f5d1d162e5a3a3eaec38",
+        "android_client_info": {
+          "package_name": "com.pawsmedic.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "39666544681-cokb1ahvi1380gmcpgc3j9o4hel9kai9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7z-KX_1hJad177ULbcfMP9C3Jkw7qX9Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "39666544681-cokb1ahvi1380gmcpgc3j9o4hel9kai9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
