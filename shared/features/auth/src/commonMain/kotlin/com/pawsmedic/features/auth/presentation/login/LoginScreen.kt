@@ -47,6 +47,9 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.features.auth.presentation.localizeAuthMessage
 
 @Composable
 fun LoginScreen(
@@ -58,6 +61,7 @@ fun LoginScreen(
     onForgotPasswordClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSuccess) {
@@ -76,8 +80,8 @@ fun LoginScreen(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             PawMedicTopBar(
-                title = "Iniciar sesión",
-                subtitle = "Bienvenido de nuevo a PawsMedic",
+                title = language.text("Iniciar sesión", "Sign in"),
+                subtitle = language.text("Bienvenido de nuevo a PawsMedic", "Welcome back to PawsMedic"),
                 onBackClick = onBackClick
             )
 
@@ -85,7 +89,7 @@ fun LoginScreen(
 
             if (onGoogleSignInClick != null) {
                 GoogleSocialButton(
-                    text = "Iniciar sesión con Google",
+                    text = language.text("Iniciar sesión con Google", "Sign in with Google"),
                     onClick = onGoogleSignInClick,
                     isLoading = uiState.isLoading
                 )
@@ -101,7 +105,7 @@ fun LoginScreen(
                         color = PawMedicSemanticColors.current.border
                     )
                     Text(
-                        text = "  o continúa con correo  ",
+                        text = language.text("  o continúa con correo  ", "  or continue with email  "),
                         fontSize = 12.sp,
                         color = PawMedicSemanticColors.current.hint
                     )
@@ -117,7 +121,7 @@ fun LoginScreen(
             PawMedicTextField(
                 value = uiState.email,
                 onValueChange = viewModel::onEmailChanged,
-                label = "Correo electrónico",
+                label = language.text("Correo electrónico", "Email address"),
                 placeholder = "tu@email.com",
                 inputModifier = Modifier.semantics { contentType = ContentType.EmailAddress },
                 keyboardOptions = KeyboardOptions(
@@ -139,7 +143,7 @@ fun LoginScreen(
             PawMedicTextField(
                 value = uiState.password,
                 onValueChange = viewModel::onPasswordChanged,
-                label = "Contraseña",
+                label = language.text("Contraseña", "Password"),
                 placeholder = "••••••••",
                 inputModifier = Modifier.semantics { contentType = ContentType.Password },
                 visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -159,7 +163,7 @@ fun LoginScreen(
                 trailingIcon = {
                     Icon(
                         imageVector = if (uiState.isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (uiState.isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                        contentDescription = if (uiState.isPasswordVisible) language.text("Ocultar contraseña", "Hide password") else language.text("Mostrar contraseña", "Show password"),
                         tint = PawMedicSemanticColors.current.hint,
                         modifier = Modifier
                             .size(20.dp)
@@ -175,7 +179,7 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "¿Olvidaste tu contraseña?",
+                    text = language.text("¿Olvidaste tu contraseña?", "Forgot your password?"),
                     color = PawMedicSemanticColors.current.accent,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -189,7 +193,7 @@ fun LoginScreen(
             if (uiState.errorMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = uiState.errorMessage!!,
+                    text = localizeAuthMessage(uiState.errorMessage!!, language),
                     fontSize = 13.sp,
                     color = PawMedicColors.Error,
                     modifier = Modifier.fillMaxWidth()
@@ -199,7 +203,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             PawMedicPrimaryButton(
-                text = "Iniciar sesión",
+                text = language.text("Iniciar sesión", "Sign in"),
                 onClick = viewModel::login,
                 isLoading = uiState.isLoading
             )
@@ -213,12 +217,12 @@ fun LoginScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "¿No tienes una cuenta? ",
+                text = language.text("¿No tienes una cuenta? ", "Don't have an account? "),
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText
             )
             Text(
-                text = "Registrarse",
+                text = language.text("Registrarse", "Sign up"),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicSemanticColors.current.accent,

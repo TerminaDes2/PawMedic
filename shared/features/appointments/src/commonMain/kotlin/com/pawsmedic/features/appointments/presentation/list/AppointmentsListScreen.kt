@@ -2,6 +2,8 @@ package com.pawsmedic.features.appointments.presentation.list
 
 import androidx.compose.foundation.background
 import com.pawsmedic.features.appointments.presentation.friendlyErrorMessage
+import com.pawsmedic.features.appointments.presentation.localizeAppointmentError
+import com.pawsmedic.shared.core.designsystem.language.appointmentStatusLabel
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +42,8 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -87,6 +91,7 @@ fun AppointmentsListScreen(
     onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
@@ -97,7 +102,7 @@ fun AppointmentsListScreen(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = "Mis Citas Médicas",
+            title = language.text("Mis Citas Médicas", "My appointments"),
             onBackClick = onBackClick
         )
 
@@ -106,7 +111,7 @@ fun AppointmentsListScreen(
         when {
             uiState.isLoading -> {
                 Text(
-                    text = "Cargando tus citas…",
+                    text = language.text("Cargando tus citas…", "Loading your appointments…"),
                     fontSize = 14.sp,
                     color = PawMedicSemanticColors.current.hint,
                     modifier = Modifier.padding(vertical = 32.dp)
@@ -114,12 +119,12 @@ fun AppointmentsListScreen(
             }
             uiState.errorMessage != null -> {
                 Text(
-                    text = "${uiState.errorMessage}",
+                    text = localizeAppointmentError(uiState.errorMessage.orEmpty(), language),
                     fontSize = 14.sp,
                     color = PawMedicColors.Error
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::loadAppointments)
+                PawMedicPrimaryButton(text = language.text("Reintentar", "Retry"), onClick = viewModel::loadAppointments)
             }
             uiState.appointments.isEmpty() -> {
             Box(
@@ -129,7 +134,7 @@ fun AppointmentsListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No tienes citas agendadas.",
+                    text = language.text("No tienes citas agendadas.", "You have no appointments scheduled."),
                     fontSize = 14.sp,
                     color = PawMedicSemanticColors.current.hint
                 )
@@ -146,7 +151,7 @@ fun AppointmentsListScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         PawMedicPrimaryButton(
-            text = "Agendar nueva cita",
+            text = language.text("Agendar nueva cita", "Book an appointment"),
             onClick = onStartBooking
         )
 
@@ -156,6 +161,7 @@ fun AppointmentsListScreen(
 
 @Composable
 private fun AppointmentDetailCard(app: Appointment) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val isPending = app.status.contains("Pendiente", ignoreCase = true)
     val isConfirmed = app.status.equals("Confirmada", ignoreCase = true)
 
@@ -217,7 +223,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = app.status,
+                        text = appointmentStatusLabel(app.status, language),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = when {
@@ -248,7 +254,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Mascota: ${app.petName}",
+                            text = language.text("Mascota: ${app.petName}", "Pet: ${app.petName}"),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
                             color = PawMedicSemanticColors.current.text
@@ -264,7 +270,7 @@ private fun AppointmentDetailCard(app: Appointment) {
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Fecha: ${app.date} • ${app.time}",
+                            text = language.text("Fecha: ${app.date} • ${app.time}", "Date: ${app.date} • ${app.time}"),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicSemanticColors.current.accent

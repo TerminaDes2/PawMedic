@@ -48,6 +48,9 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.features.auth.presentation.localizeAuthMessage
 
 @Composable
 fun RegisterScreen(
@@ -58,6 +61,7 @@ fun RegisterScreen(
     onGoogleSignInClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSuccess, uiState.userId) {
@@ -78,13 +82,13 @@ fun RegisterScreen(
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         PawMedicTopBar(
-            title = "Crear cuenta",
-            subtitle = "Regístrate para comenzar con PawMedic",
+            title = language.text("Crear cuenta", "Create account"),
+            subtitle = language.text("Regístrate para comenzar con PawMedic", "Sign up to get started with PawMedic"),
             onBackClick = if (uiState.step == 1) onBackClick else viewModel::backToIdentity
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Paso ${uiState.step} de 3",
+            text = language.text("Paso ${uiState.step} de 3", "Step ${uiState.step} of 3"),
             color = PawMedicSemanticColors.current.accent,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold
@@ -107,12 +111,12 @@ fun RegisterScreen(
                     GoogleSocialButton(
                         onClick = onGoogleSignInClick,
                         isLoading = uiState.isLoading,
-                        text = "Registrarse con Google"
+                        text = language.text("Registrarse con Google", "Sign up with Google")
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         HorizontalDivider(modifier = Modifier.weight(1f), color = PawMedicSemanticColors.current.border)
-                        Text("  o regístrate con correo  ", fontSize = 12.sp, color = PawMedicSemanticColors.current.hint)
+                        Text(language.text("  o regístrate con correo  ", "  or sign up with email  "), fontSize = 12.sp, color = PawMedicSemanticColors.current.hint)
                         HorizontalDivider(modifier = Modifier.weight(1f), color = PawMedicSemanticColors.current.border)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -120,8 +124,8 @@ fun RegisterScreen(
                 PawMedicTextField(
                     value = uiState.firstName,
                     onValueChange = viewModel::onFirstNameChanged,
-                    label = "Nombres",
-                    placeholder = "Ej. Juan Carlos",
+                    label = language.text("Nombres", "First names"),
+                    placeholder = language.text("Ej. Juan Carlos", "E.g. John"),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
                 )
@@ -129,15 +133,15 @@ fun RegisterScreen(
                 PawMedicTextField(
                     value = uiState.lastName,
                     onValueChange = viewModel::onLastNameChanged,
-                    label = "Apellidos",
-                    placeholder = "Ej. Pérez López",
+                    label = language.text("Apellidos", "Last names"),
+                    placeholder = language.text("Ej. Pérez López", "E.g. Smith"),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
                 )
-                StepError(uiState.errorMessage)
+                StepError(uiState.errorMessage?.let { localizeAuthMessage(it, language) })
                 Spacer(modifier = Modifier.height(24.dp))
                 PawMedicPrimaryButton(
-                    text = "Continuar",
+                    text = language.text("Continuar", "Continue"),
                     onClick = viewModel::continueToAccount,
                     enabled = stepOneValid
                 )
@@ -146,7 +150,7 @@ fun RegisterScreen(
                 PawMedicTextField(
                     value = uiState.username,
                     onValueChange = viewModel::onUsernameChanged,
-                    label = "Nombre de usuario",
+                    label = language.text("Nombre de usuario", "Username"),
                     placeholder = "juansito",
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
@@ -155,7 +159,7 @@ fun RegisterScreen(
                 PawMedicTextField(
                     value = uiState.email,
                     onValueChange = viewModel::onEmailChanged,
-                    label = "Correo electrónico",
+                    label = language.text("Correo electrónico", "Email address"),
                     placeholder = "juanperez@correo.com",
                     inputModifier = Modifier.semantics { contentType = ContentType.EmailAddress },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
@@ -165,15 +169,15 @@ fun RegisterScreen(
                 PawMedicTextField(
                     value = uiState.phone,
                     onValueChange = viewModel::onPhoneChanged,
-                    label = "Teléfono",
+                    label = language.text("Teléfono", "Phone number"),
                     placeholder = "111-222-3333",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
                     leadingIcon = { Icon(Icons.Default.Phone, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
                 )
-                StepError(uiState.errorMessage)
+                StepError(uiState.errorMessage?.let { localizeAuthMessage(it, language) })
                 Spacer(modifier = Modifier.height(24.dp))
                 PawMedicPrimaryButton(
-                    text = "Continuar",
+                    text = language.text("Continuar", "Continue"),
                     onClick = viewModel::continueToSecurity,
                     enabled = stepTwoValid
                 )
@@ -182,8 +186,8 @@ fun RegisterScreen(
                 PawMedicTextField(
                     value = uiState.password,
                     onValueChange = viewModel::onPasswordChanged,
-                    label = "Contraseña",
-                    placeholder = "Mínimo 6 caracteres",
+                    label = language.text("Contraseña", "Password"),
+                    placeholder = language.text("Mínimo 6 caracteres", "At least 6 characters"),
                     inputModifier = Modifier.semantics { contentType = ContentType.NewPassword },
                     visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
@@ -191,7 +195,7 @@ fun RegisterScreen(
                     trailingIcon = {
                         Icon(
                             imageVector = if (uiState.isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (uiState.isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                            contentDescription = if (uiState.isPasswordVisible) language.text("Ocultar contraseña", "Hide password") else language.text("Mostrar contraseña", "Show password"),
                             tint = PawMedicSemanticColors.current.hint,
                             modifier = Modifier.size(20.dp).clickable { viewModel.togglePasswordVisibility() }
                         )
@@ -208,16 +212,16 @@ fun RegisterScreen(
                         colors = CheckboxDefaults.colors(checkedColor = PawMedicColors.Teal600, uncheckedColor = PawMedicSemanticColors.current.hint)
                     )
                     Text(
-                        text = "Acepto los Términos y Condiciones y la Política de Privacidad",
+                        text = language.text("Acepto los Términos y Condiciones y la Política de Privacidad", "I accept the Terms and Conditions and Privacy Policy"),
                         fontSize = 13.sp,
                         color = PawMedicSemanticColors.current.text,
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 }
-                StepError(uiState.errorMessage)
+                StepError(uiState.errorMessage?.let { localizeAuthMessage(it, language) })
                 Spacer(modifier = Modifier.height(24.dp))
                 PawMedicPrimaryButton(
-                    text = "Crear cuenta",
+                    text = language.text("Crear cuenta", "Create account"),
                     onClick = viewModel::register,
                     enabled = securityValid,
                     isLoading = uiState.isLoading
@@ -230,9 +234,9 @@ fun RegisterScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("¿Ya tienes una cuenta? ", fontSize = 14.sp, color = PawMedicSemanticColors.current.secondaryText)
+            Text(language.text("¿Ya tienes una cuenta? ", "Already have an account? "), fontSize = 14.sp, color = PawMedicSemanticColors.current.secondaryText)
             Text(
-                "Iniciar sesión",
+                language.text("Iniciar sesión", "Sign in"),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicSemanticColors.current.accent,

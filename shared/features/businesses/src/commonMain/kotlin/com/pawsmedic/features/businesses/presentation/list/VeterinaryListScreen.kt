@@ -41,6 +41,8 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 
 @Composable
 fun VeterinaryListScreen(
@@ -48,6 +50,7 @@ fun VeterinaryListScreen(
     onNavigateToDetail: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
@@ -58,7 +61,7 @@ fun VeterinaryListScreen(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Text(
-            text = "Veterinarias Disponibles",
+            text = language.text("Veterinarias Disponibles", "Available veterinary clinics"),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = PawMedicSemanticColors.current.text,
@@ -71,7 +74,7 @@ fun VeterinaryListScreen(
             onValueChange = viewModel::onSearchQueryChanged,
             placeholder = {
                 Text(
-                    text = "Buscar veterinarias o especialistas...",
+                    text = language.text("Buscar veterinarias o especialistas...", "Search clinics or specialists..."),
                     color = PawMedicSemanticColors.current.hint,
                     fontSize = 14.sp
                 )
@@ -79,7 +82,7 @@ fun VeterinaryListScreen(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "Buscar",
+                    contentDescription = language.text("Buscar", "Search"),
                     tint = PawMedicSemanticColors.current.hint,
                     modifier = Modifier.size(20.dp)
                 )
@@ -117,7 +120,12 @@ fun VeterinaryListScreen(
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     Text(
-                        text = filter,
+                        text = language.text(filter, when (filter) {
+                            "Cerca de mí" -> "Near me"
+                            "Abierto 24h" -> "Open 24h"
+                            "Urgencias" -> "Emergency"
+                            else -> filter
+                        }),
                         fontSize = 13.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         color = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.text
@@ -131,23 +139,23 @@ fun VeterinaryListScreen(
         // --- CLINICS CARDS LIST ---
         if (uiState.isLoading) {
             Text(
-                text = "Cargando clínicas activas…",
+                text = language.text("Cargando clínicas activas…", "Loading active clinics…"),
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText
             )
         }
         uiState.errorMessage?.let { message ->
             Text(
-                text = "No se pudo cargar el directorio. Verifica tu conexión e inténtalo de nuevo.",
+                text = language.text("No se pudo cargar el directorio. Verifica tu conexión e inténtalo de nuevo.", "Could not load the directory. Check your connection and try again."),
                 fontSize = 14.sp,
                 color = PawMedicColors.Error
             )
             Spacer(modifier = Modifier.height(8.dp))
-            PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::retrySearch)
+            PawMedicPrimaryButton(text = language.text("Reintentar", "Retry"), onClick = viewModel::retrySearch)
         }
         if (!uiState.isLoading && uiState.errorMessage == null && uiState.clinics.isEmpty()) {
             Text(
-                text = "No hay clínicas activas disponibles en este momento.",
+                text = language.text("No hay clínicas activas disponibles en este momento.", "There are no active clinics available at the moment."),
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText
             )
@@ -169,6 +177,7 @@ private fun VeterinaryCard(
     clinic: Business,
     onDetailClick: () -> Unit
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -231,7 +240,7 @@ private fun VeterinaryCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = clinic.address?.takeIf(String::isNotBlank) ?: "Dirección no registrada",
+                text = clinic.address?.takeIf(String::isNotBlank) ?: language.text("Dirección no registrada", "Address not recorded"),
                 fontSize = 13.sp,
                 color = PawMedicSemanticColors.current.hint
             )
@@ -259,7 +268,7 @@ private fun VeterinaryCard(
                 }
                 if (clinic.specialties.isEmpty()) {
                     Text(
-                        text = "Especialidades no registradas",
+                        text = language.text("Especialidades no registradas", "No specialties recorded"),
                         fontSize = 12.sp,
                         color = PawMedicSemanticColors.current.hint
                     )
@@ -269,7 +278,7 @@ private fun VeterinaryCard(
             Spacer(modifier = Modifier.height(16.dp))
 
             PawMedicSecondaryButton(
-                text = "Ver detalles",
+                text = language.text("Ver detalles", "View details"),
                 onClick = onDetailClick
             )
         }

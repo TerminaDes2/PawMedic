@@ -9,6 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +29,19 @@ fun DatePickerModal(
     yearRange: IntRange,
     selectableDates: SelectableDates
 ) {
+    LocalizedDatePickerContent {
+        DatePickerModalContent(onDateSelected, onDismiss, yearRange, selectableDates)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePickerModalContent(
+    onDateSelected: (Long?) -> Unit,
+    onDismiss: () -> Unit,
+    yearRange: IntRange,
+    selectableDates: SelectableDates
+) {
     val datePickerState = rememberDatePickerState(yearRange = yearRange, selectableDates = selectableDates)
 
     DatePickerDialog(
@@ -36,15 +51,20 @@ fun DatePickerModal(
                 onDateSelected(datePickerState.selectedDateMillis)
                 onDismiss()
             }) {
-                Text("Aceptar")
+                Text((LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH).text("Aceptar", "OK"))
             }
+
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text((LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH).text("Cancelar", "Cancel"))
             }
+
         }
     ) {
         DatePicker(state = datePickerState)
     }
 }
+
+@Composable
+internal expect fun LocalizedDatePickerContent(content: @Composable () -> Unit)

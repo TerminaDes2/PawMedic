@@ -44,6 +44,9 @@ import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.petCatalogLabel
 
 @Composable
 fun PetListScreen(
@@ -52,6 +55,7 @@ fun PetListScreen(
     onNavigateToPetDetail: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
     val selectedPet = uiState.selectedPet
         ?.let { selected -> uiState.pets.firstOrNull { it.id == selected.id } }
@@ -72,7 +76,7 @@ fun PetListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "MASCOTAS",
+                    text = language.text("MASCOTAS", "PETS"),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = PawMedicColors.White,
@@ -83,7 +87,7 @@ fun PetListScreen(
             Column(modifier = Modifier.padding(16.dp)) {
                 if (uiState.pets.isEmpty() && !uiState.isLoading) {
                     Text(
-                        text = "Aún no tienes mascotas registradas. Agrega una para comenzar.",
+                        text = language.text("Aún no tienes mascotas registradas. Agrega una para comenzar.", "You have no pets registered yet. Add one to get started."),
                         fontSize = 15.sp,
                         color = PawMedicSemanticColors.current.secondaryText,
                         modifier = Modifier.padding(vertical = 24.dp)
@@ -143,7 +147,7 @@ fun PetListScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "Agregar",
+                                    text = language.text("Agregar", "Add"),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PawMedicSemanticColors.current.accent,
@@ -195,7 +199,7 @@ fun PetListScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "${selectedPet.name} ${if (selectedPet.name.contains("(")) "" else "(Mascota)"}",
+                                    text = "${selectedPet.name} ${if (selectedPet.name.contains("(")) "" else language.text("(Mascota)", "(Pet)")}",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PawMedicSemanticColors.current.text
@@ -209,13 +213,13 @@ fun PetListScreen(
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 InfoGridChip(
                                     icon = "🎂",
-                                    text = selectedPet.dateOfBirth ?: "Nacimiento no registrado",
+                                    text = selectedPet.dateOfBirth ?: language.text("Nacimiento no registrado", "Birth date not recorded"),
                                     modifier = Modifier.weight(1f)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 InfoGridChip(
                                     icon = "⚖️",
-                                    text = selectedPet.weight ?: "Peso no registrado",
+                                    text = selectedPet.weight ?: language.text("Peso no registrado", "Weight not recorded"),
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -224,14 +228,14 @@ fun PetListScreen(
 
                             InfoGridChip(
                                 icon = "🐾",
-                                text = selectedPet.breed ?: "Raza no registrada",
+                                text = selectedPet.breed?.let { petCatalogLabel(it, language) } ?: language.text("Raza no registrada", "Breed not recorded"),
                                 modifier = Modifier.fillMaxWidth()
                             )
 
                             Spacer(modifier = Modifier.height(20.dp))
 
                             PawMedicSecondaryButton(
-                                text = "Ver perfil completo",
+                                text = language.text("Ver perfil completo", "View full profile"),
                                 onClick = { onNavigateToPetDetail(selectedPet.id) }
                             )
                         }
@@ -254,7 +258,7 @@ fun PetListScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Agregar mascota",
+                contentDescription = language.text("Agregar mascota", "Add pet"),
                 tint = PawMedicColors.White
             )
         }

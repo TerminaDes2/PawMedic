@@ -40,6 +40,9 @@ import com.pawsmedic.shared.core.designsystem.theme.PawMedicTheme
 import com.pawsmedic.shared.core.designsystem.theme.LocalThemePreference
 import com.pawsmedic.shared.core.designsystem.theme.ThemePreference
 import com.pawsmedic.shared.core.designsystem.theme.ThemePreferenceControl
+import com.pawsmedic.shared.core.designsystem.language.LanguagePreferenceControl
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.languageFromPreference
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.content.ContextCompat
@@ -155,6 +158,15 @@ class MainActivity : ComponentActivity() {
                     .collect { if (it != null) NotificationDeviceSync.schedule(this@MainActivity) }
             }
             val preferences = remember { getSharedPreferences("appearance", MODE_PRIVATE) }
+            var language by remember {
+                mutableStateOf(languageFromPreference(preferences.getString("language", null)))
+            }
+            val languageControl = remember(language) {
+                LanguagePreferenceControl(language) { selected ->
+                    preferences.edit().putString("language", selected.name).apply()
+                    language = selected
+                }
+            }
             var themePreference by remember {
                 mutableStateOf(
                     ThemePreference.entries.firstOrNull {
@@ -200,7 +212,7 @@ class MainActivity : ComponentActivity() {
 
             val onGoogleLoginClick = {
                 scope.launch {
-                    val result = googleSignInHelper.signIn("Inicio de sesión")
+                    val result = googleSignInHelper.signIn(language)
                     result.onSuccess { credentials ->
                         loginViewModel.loginWithGoogle(credentials.idToken, credentials.rawNonce)
                     }.onFailure { error ->
@@ -213,7 +225,7 @@ class MainActivity : ComponentActivity() {
             }
             val onGoogleRegisterClick = {
                 scope.launch {
-                    val result = googleSignInHelper.signIn("Registro")
+                    val result = googleSignInHelper.signIn(language)
                     result.onSuccess { credentials ->
                         registerViewModel.registerWithGoogle(credentials.idToken, credentials.rawNonce)
                     }.onFailure { error ->
@@ -227,6 +239,7 @@ class MainActivity : ComponentActivity() {
 
             CompositionLocalProvider(
                 LocalThemePreference provides themeControl,
+                LocalLanguagePreference provides languageControl,
                 LocalNotificationSettings provides notificationControl
             ) {
                 PawMedicTheme(darkTheme = darkTheme) {

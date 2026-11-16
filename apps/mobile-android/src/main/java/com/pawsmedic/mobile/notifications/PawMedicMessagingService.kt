@@ -16,6 +16,7 @@ import com.google.firebase.messaging.RemoteMessage
 import com.pawsmedic.mobile.MainActivity
 import com.pawsmedic.mobile.PawMedicApplication
 import com.pawsmedic.mobile.R
+import com.pawsmedic.shared.core.designsystem.language.languageFromPreference
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -63,18 +64,19 @@ class PawMedicMessagingService : FirebaseMessagingService() {
         }
 
         val channelId = "appointments"
+        val language = languageFromPreference(getSharedPreferences("appearance", MODE_PRIVATE).getString("language", null))
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(channelId, "Citas", NotificationManager.IMPORTANCE_DEFAULT)
+            NotificationChannel(channelId, language.text("Citas", "Appointments"), NotificationManager.IMPORTANCE_DEFAULT)
         )
         val intent = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val text = when (message.data["type"]) {
-            "appointment_reminder_24h" -> "Recordatorio de 24 horas: consulta los detalles de tu cita."
-            "appointment_reminder_1h" -> "Recordatorio de 1 hora: consulta los detalles de tu cita."
-            else -> "Una de tus citas cambió de estado. Abre PawMedic para consultar los detalles."
+            "appointment_reminder_24h" -> language.text("Recordatorio de 24 horas: consulta los detalles de tu cita.", "24-hour reminder: check your appointment details.")
+            "appointment_reminder_1h" -> language.text("Recordatorio de 1 hora: consulta los detalles de tu cita.", "1-hour reminder: check your appointment details.")
+            else -> language.text("Una de tus citas cambió de estado. Abre PawMedic para consultar los detalles.", "An appointment status has changed. Open PawMedic for details.")
         }
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_notification)

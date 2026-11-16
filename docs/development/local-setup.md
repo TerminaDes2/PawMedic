@@ -60,6 +60,13 @@ secret; never put either credential in the Android app or Git. Delivery can
 be delayed or missed due to Android, network or Firebase restrictions, and
 retries may produce duplicates.
 
+Android settings store the selected Spanish or English language on the device.
+The selection applies to the mobile interface, its date picker and appointment
+notifications, including messages received while the app is closed. Names and
+other content entered by users or provided by clinics, server errors, and emails
+from the shared Supabase templates are not automatically translated. Known pet
+catalog values are translated for display without changing stored values.
+
 The scheduler draft requires `pg_cron`, `pg_net` and Vault. Its invocation
 uses a dedicated dispatch secret instead of a project service key; the Edge
 gateway must permit that request while the function validates the secret.

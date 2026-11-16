@@ -50,6 +50,10 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicTheme
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.appointmentStatusLabel
+import com.pawsmedic.shared.core.designsystem.language.petCatalogLabel
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -99,6 +103,7 @@ fun PetDashboardContent(
     modifier: Modifier = Modifier
 ) {
 
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val selectedPet = petState.selectedPet
         ?.let { selected -> petState.pets.firstOrNull { it.id == selected.id } }
         ?: petState.pets.firstOrNull()
@@ -145,13 +150,13 @@ fun PetDashboardContent(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.clickable(onClick = onNavigateToProfile)) {
                     Text(
-                        text = "Hola, $userName 👋",
+                        text = language.text("Hola, $userName 👋", "Hello, $userName 👋"),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = PawMedicSemanticColors.current.text
                     )
                     Text(
-                        text = "¡Tu mascota te lo agradecerá hoy!",
+                        text = language.text("¡Tu mascota te lo agradecerá hoy!", "Your pet will thank you today!"),
                         fontSize = 13.sp,
                         color = PawMedicSemanticColors.current.hint
                     )
@@ -195,7 +200,7 @@ fun PetDashboardContent(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${selectedPet.species} • ${selectedPet.breed ?: "Raza no registrada"} • ${selectedPet.dateOfBirth ?: "Nacimiento no registrado"}",
+                                text = "${petCatalogLabel(selectedPet.species, language)} • ${selectedPet.breed?.let { petCatalogLabel(it, language) } ?: language.text("Raza no registrada", "Breed not recorded")} • ${selectedPet.dateOfBirth ?: language.text("Nacimiento no registrado", "Birth date not recorded")}",
                                 fontSize = 13.sp,
                                 color = PawMedicSemanticColors.current.secondaryText
                             )
@@ -214,20 +219,20 @@ fun PetDashboardContent(
             ) {
                 Column {
                     Text(
-                        text = "Todavía no tienes mascotas registradas",
+                        text = language.text("Todavía no tienes mascotas registradas", "You haven't registered any pets yet"),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = PawMedicSemanticColors.current.text
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Registra a tu mascota para consultar y actualizar sus datos.",
+                        text = language.text("Registra a tu mascota para consultar y actualizar sus datos.", "Register your pet to view and update their details."),
                         fontSize = 14.sp,
                         color = PawMedicSemanticColors.current.secondaryText
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     PawMedicPrimaryButton(
-                        text = "Agregar mascota",
+                        text = language.text("Agregar mascota", "Add pet"),
                         onClick = onNavigateToAddPet
                     )
                 }
@@ -238,7 +243,7 @@ fun PetDashboardContent(
 
         // --- QUICK ACCESS SECTION ---
         Text(
-            text = "Acceso Rápido",
+            text = language.text("Acceso Rápido", "Quick access"),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = PawMedicSemanticColors.current.text
@@ -252,7 +257,7 @@ fun PetDashboardContent(
         ) {
             QuickAccessCard(
                 icon = Icons.Default.Pets,
-                title = "Mis mascotas",
+                title = language.text("Mis mascotas", "My pets"),
                 backgroundColor = PawMedicSemanticColors.current.softAccent,
                 onClick = onNavigateToPetsList,
                 modifier = Modifier.weight(1f)
@@ -260,7 +265,7 @@ fun PetDashboardContent(
             Spacer(modifier = Modifier.width(10.dp))
             QuickAccessCard(
                 icon = Icons.Default.CalendarMonth,
-                title = "Mis citas",
+                title = language.text("Mis citas", "My appointments"),
                 backgroundColor = PawMedicSemanticColors.current.warningSurface,
                 onClick = onNavigateToAppointments,
                 modifier = Modifier.weight(1f)
@@ -268,7 +273,7 @@ fun PetDashboardContent(
             Spacer(modifier = Modifier.width(10.dp))
             QuickAccessCard(
                 icon = Icons.Default.FolderShared,
-                title = "Historial",
+                title = language.text("Historial", "Records"),
                 backgroundColor = PawMedicSemanticColors.current.violetSurface,
                 onClick = onNavigateToMedicalHistory,
                 modifier = Modifier.weight(1f)
@@ -284,13 +289,13 @@ fun PetDashboardContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Próximas Citas (${appointments.size})",
+                text = language.text("Próximas Citas (${appointments.size})", "Upcoming appointments (${appointments.size})"),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicSemanticColors.current.text
             )
             Text(
-                text = "Ver todas",
+                text = language.text("Ver todas", "View all"),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicSemanticColors.current.accent,
@@ -311,7 +316,7 @@ fun PetDashboardContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "La agenda todavía no está conectada.",
+                    text = language.text("La agenda todavía no está conectada.", "The calendar is not connected yet."),
                     fontSize = 13.sp,
                     color = PawMedicSemanticColors.current.hint
                 )
@@ -372,7 +377,9 @@ private fun AppointmentCard(
     status: String,
     isHighlight: Boolean
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val isPending = status.contains("Pendiente", ignoreCase = true)
+    val isConfirmed = status.equals("Confirmada", ignoreCase = true)
 
     Box(
         modifier = Modifier
@@ -431,14 +438,14 @@ private fun AppointmentCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (isPending) Color(0xFFFEF3C7) else Color(0xFFE6F4EA))
+                    .background(if (isPending) Color(0xFFFEF3C7) else if (isConfirmed) Color(0xFFE6F4EA) else PawMedicSemanticColors.current.mutedSurface)
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = if (isPending) "Pendiente" else "Confirmada",
+                    text = appointmentStatusLabel(status, language),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isPending) Color(0xFF92400E) else PawMedicColors.Teal600
+                    color = if (isPending) Color(0xFF92400E) else if (isConfirmed) PawMedicColors.Teal600 else PawMedicSemanticColors.current.text
                 )
             }
         }

@@ -10,6 +10,7 @@ import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
 import java.security.MessageDigest
 import java.util.UUID
 
@@ -28,11 +29,11 @@ class GoogleSignInHelper(
         private const val TAG = "GoogleSignInHelper"
     }
 
-    suspend fun signIn(action: String): Result<GoogleSignInCredentials> {
+    suspend fun signIn(language: AppLanguage): Result<GoogleSignInCredentials> {
         if (serverClientId.isBlank()) {
             Log.e(TAG, "GOOGLE_WEB_CLIENT_ID está vacío en .env")
             return Result.failure(
-                IllegalArgumentException("Configura GOOGLE_WEB_CLIENT_ID en tu archivo .env"),
+                IllegalArgumentException(language.text("Configura GOOGLE_WEB_CLIENT_ID en tu archivo .env", "Configure GOOGLE_WEB_CLIENT_ID in your .env file")),
             )
         }
 
@@ -70,13 +71,13 @@ class GoogleSignInHelper(
             val msg = e.message ?: ""
             val message = when {
                 msg.contains("reauth failed", ignoreCase = true) || msg.contains("16") -> {
-                    "Google no pudo autenticar la cuenta seleccionada (error 16). Verifica que la cuenta esté activa en el teléfono o intenta con otra cuenta Google."
+                    language.text("Google no pudo autenticar la cuenta seleccionada (error 16). Verifica que la cuenta esté activa en el teléfono o intenta con otra cuenta Google.", "Google could not authenticate the selected account (error 16). Check that the account is active on the phone or try another Google account.")
                 }
                 msg.contains("developer", ignoreCase = true) || msg.contains("10") -> {
-                    "Error de configuración de Google OAuth (error 10). Verifica la huella SHA-1 y el Client ID en Google Cloud Console / Supabase."
+                    language.text("Error de configuración de Google OAuth (error 10). Verifica la huella SHA-1 y el Client ID en Google Cloud Console / Supabase.", "Google OAuth configuration error (error 10). Check the SHA-1 fingerprint and client ID in Google Cloud Console / Supabase.")
                 }
                 else -> {
-                    "$action con Google cancelado. Puedes intentarlo de nuevo."
+                    language.text("Operación con Google cancelada. Puedes intentarlo de nuevo.", "Google sign-in was cancelled. You can try again.")
                 }
             }
             Result.failure(IllegalStateException(message, e))
@@ -84,21 +85,20 @@ class GoogleSignInHelper(
             Log.e(TAG, "NoCredentialException al solicitar inicio de sesión con Google: ${e.message}", e)
             return Result.failure(
                 IllegalStateException(
-                    "No se encontró una cuenta de Google disponible en el teléfono. Agrega una cuenta Google en Ajustes y verifica que Google Play Services esté actualizado.",
+                    language.text("No se encontró una cuenta de Google disponible en el teléfono. Agrega una cuenta Google en Ajustes y verifica que Google Play Services esté actualizado.", "No Google account is available on the phone. Add one in Settings and make sure Google Play Services is up to date."),
                     e,
                 ),
             )
         } catch (e: GoogleIdTokenParsingException) {
             Log.e(TAG, "GoogleIdTokenParsingException: ${e.message}", e)
-            Result.failure(IllegalStateException("Google devolvió una credencial no válida", e))
+            Result.failure(IllegalStateException(language.text("Google devolvió una credencial no válida", "Google returned an invalid credential"), e))
         } catch (e: GetCredentialException) {
             Log.e(TAG, "GetCredentialException (${e.type}): ${e.message}", e)
-            Result.failure(IllegalStateException("Error en Google Sign-In (${e.type}): ${e.message}", e))
+            Result.failure(IllegalStateException(language.text("Error en Google Sign-In (${e.type}): ${e.message}", "Google sign-in error (${e.type}): ${e.message}"), e))
         } catch (e: Exception) {
             Log.e(TAG, "Error inesperado en Google Sign-In: ${e.message}", e)
-            Result.failure(IllegalStateException("Error inesperado en Google Sign-In: ${e.message}", e))
+            Result.failure(IllegalStateException(language.text("Error inesperado en Google Sign-In: ${e.message}", "Unexpected Google sign-in error: ${e.message}"), e))
         }
     }
 }
-
 

@@ -47,6 +47,8 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 
 @Composable
 fun VeterinaryDetailScreen(
@@ -57,6 +59,7 @@ fun VeterinaryDetailScreen(
     onStartBooking: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
     val clinic = uiState.clinic
     var products by remember(clinic?.id) {
@@ -93,26 +96,26 @@ fun VeterinaryDetailScreen(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = "Perfil Veterinaria",
+            title = language.text("Perfil Veterinaria", "Clinic profile"),
             onBackClick = onBackClick
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         if (uiState.isLoading) {
-            Text("Cargando perfil de la clínica…", color = PawMedicSemanticColors.current.secondaryText)
+            Text(language.text("Cargando perfil de la clínica…", "Loading clinic profile…"), color = PawMedicSemanticColors.current.secondaryText)
         }
         uiState.errorMessage?.let { message ->
             Text(
-                text = "No se pudo cargar el perfil: $message",
+                text = language.text("No se pudo cargar el perfil: $message", "Could not load profile: $message"),
                 fontSize = 14.sp,
                 color = PawMedicColors.Error
             )
             Spacer(modifier = Modifier.height(8.dp))
-            PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::loadClinic)
+            PawMedicPrimaryButton(text = language.text("Reintentar", "Retry"), onClick = viewModel::loadClinic)
         }
         if (clinic == null && !uiState.isLoading && uiState.errorMessage == null) {
-            Text("La clínica no está disponible en el directorio activo.", color = PawMedicSemanticColors.current.secondaryText)
+            Text(language.text("La clínica no está disponible en el directorio activo.", "This clinic is not available in the active directory."), color = PawMedicSemanticColors.current.secondaryText)
         }
 
         if (clinic != null) {
@@ -156,7 +159,7 @@ fun VeterinaryDetailScreen(
             ) {
                 Column {
                     Text(
-                        text = "Calificación",
+                        text = language.text("Calificación", "Rating"),
                         fontSize = 12.sp,
                         color = PawMedicSemanticColors.current.hint
                     )
@@ -187,7 +190,7 @@ fun VeterinaryDetailScreen(
 
             // --- INFORMACION GENERAL ---
             Text(
-                text = "Información General",
+                text = language.text("Información General", "General information"),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicSemanticColors.current.text
@@ -204,7 +207,7 @@ fun VeterinaryDetailScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = clinic.address?.takeIf(String::isNotBlank) ?: "Dirección no registrada",
+                    text = clinic.address?.takeIf(String::isNotBlank) ?: language.text("Dirección no registrada", "Address not recorded"),
                     fontSize = 14.sp,
                     color = PawMedicSemanticColors.current.text
                 )
@@ -221,7 +224,7 @@ fun VeterinaryDetailScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = clinic.phone?.takeIf(String::isNotBlank) ?: "Teléfono no registrado",
+                    text = clinic.phone?.takeIf(String::isNotBlank) ?: language.text("Teléfono no registrado", "Phone number not recorded"),
                     fontSize = 14.sp,
                     color = PawMedicSemanticColors.current.text
                 )
@@ -259,7 +262,7 @@ fun VeterinaryDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Horarios de Atención",
+                            text = language.text("Horarios de Atención", "Opening hours"),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicSemanticColors.current.text
@@ -268,7 +271,7 @@ fun VeterinaryDetailScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     if (clinic.hours.isEmpty()) {
                         Text(
-                            text = "Horario no registrado.",
+                            text = language.text("Horario no registrado.", "Opening hours not recorded."),
                             fontSize = 13.sp,
                             color = PawMedicSemanticColors.current.text
                         )
@@ -289,7 +292,7 @@ fun VeterinaryDetailScreen(
 
             // --- ESPECIALIDADES DISPONIBLES ---
             Text(
-                text = "Especialidades Disponibles",
+                text = language.text("Especialidades Disponibles", "Available specialties"),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicSemanticColors.current.text
@@ -319,7 +322,7 @@ fun VeterinaryDetailScreen(
                                 )
                             }
                             if (clinic.specialties.isEmpty()) {
-                                Text("Especialidades no registradas.", color = PawMedicSemanticColors.current.secondaryText)
+                                Text(language.text("Especialidades no registradas.", "No specialties recorded."), color = PawMedicSemanticColors.current.secondaryText)
                             }
                         }
                     }
@@ -329,7 +332,7 @@ fun VeterinaryDetailScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             Text(
-                text = "Productos disponibles",
+                text = language.text("Productos disponibles", "Available products"),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicSemanticColors.current.text
@@ -339,15 +342,17 @@ fun VeterinaryDetailScreen(
 
             when {
                 productsLoading -> Text(
-                    text = "Cargando catálogo...",
+                    text = language.text("Cargando catálogo...", "Loading catalog..."),
                     color = PawMedicSemanticColors.current.secondaryText
                 )
                 productsError != null -> Text(
-                    text = productsError.orEmpty(),
+                    text = if (productsError == "No se pudo cargar el catálogo.")
+                        language.text("No se pudo cargar el catálogo.", "Could not load the catalog.")
+                    else productsError.orEmpty(),
                     color = Color(0xFFB91C1C)
                 )
                 products.isEmpty() -> Text(
-                    text = "No hay productos disponibles.",
+                    text = language.text("No hay productos disponibles.", "No products available."),
                     color = PawMedicSemanticColors.current.secondaryText
                 )
                 else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -396,7 +401,7 @@ fun VeterinaryDetailScreen(
 
             // --- AGENDAR CITA BUTTON ---
             PawMedicPrimaryButton(
-                text = "Agendar cita",
+                text = language.text("Agendar cita", "Book an appointment"),
                 onClick = { onStartBooking(clinic.id) }
             )
 

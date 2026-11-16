@@ -54,6 +54,11 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.petCatalogLabel
+import com.pawsmedic.shared.core.designsystem.language.petAgeLabel
+import com.pawsmedic.features.appointments.presentation.localizeAppointmentError
 
 @Composable
 fun BookingFlowScreen(
@@ -122,6 +127,7 @@ private fun SelectServiceStep(
     onRetry: () -> Unit,
     onBack: () -> Unit
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -130,14 +136,14 @@ private fun SelectServiceStep(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = "Seleccionar Servicio",
+            title = language.text("Seleccionar Servicio", "Select service"),
             onBackClick = onBack
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Selecciona el tipo de servicio que requiere tu mascota en ${uiState.selectedClinicName}:",
+            text = language.text("Selecciona el tipo de servicio que requiere tu mascota en ${uiState.selectedClinicName}:", "Select the service your pet needs at ${uiState.selectedClinicName}:"),
             fontSize = 14.sp,
             color = PawMedicSemanticColors.current.secondaryText,
             lineHeight = 20.sp
@@ -146,10 +152,10 @@ private fun SelectServiceStep(
         Spacer(modifier = Modifier.height(20.dp))
 
         if (uiState.isLoadingServices) {
-            Text("Cargando servicios activos…", fontSize = 14.sp, color = PawMedicSemanticColors.current.secondaryText)
+            Text(language.text("Cargando servicios activos…", "Loading available services…"), fontSize = 14.sp, color = PawMedicSemanticColors.current.secondaryText)
         } else if (uiState.services.isEmpty()) {
             Text(
-                text = "Todavía no hay servicios disponibles para esta clínica.",
+                text = language.text("Todavía no hay servicios disponibles para esta clínica.", "No services are available at this clinic yet."),
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText,
                 modifier = Modifier.fillMaxWidth()
@@ -214,7 +220,7 @@ private fun SelectServiceStep(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "⏱ Duración: ${service.durationMinutes} minutos",
+                                text = language.text("⏱ Duración: ${service.durationMinutes} minutos", "⏱ Duration: ${service.durationMinutes} minutes"),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PawMedicSemanticColors.current.accent
@@ -234,15 +240,15 @@ private fun SelectServiceStep(
         }
 
         uiState.errorMessage?.let { error ->
-            Text(error, fontSize = 13.sp, color = PawMedicColors.Error)
+            Text(localizeAppointmentError(error, language), fontSize = 13.sp, color = PawMedicColors.Error)
             Spacer(modifier = Modifier.height(8.dp))
-            PawMedicSecondaryButton(text = "Reintentar", onClick = onRetry)
+            PawMedicSecondaryButton(text = language.text("Reintentar", "Retry"), onClick = onRetry)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         PawMedicPrimaryButton(
-            text = "Continuar",
+            text = language.text("Continuar", "Continue"),
             onClick = onNext,
             enabled = uiState.services.isNotEmpty()
         )
@@ -260,6 +266,7 @@ private fun SelectPetStep(
     onRetry: () -> Unit,
     onBack: () -> Unit
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -268,14 +275,14 @@ private fun SelectPetStep(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = "Seleccionar Mascota",
+            title = language.text("Seleccionar Mascota", "Select pet"),
             onBackClick = onBack
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "¿Para cuál de tus mascotas deseas agendar el servicio médico?",
+            text = language.text("¿Para cuál de tus mascotas deseas agendar el servicio médico?", "Which pet would you like to book the service for?"),
             fontSize = 14.sp,
             color = PawMedicSemanticColors.current.secondaryText,
             lineHeight = 20.sp
@@ -284,10 +291,10 @@ private fun SelectPetStep(
         Spacer(modifier = Modifier.height(20.dp))
 
         if (uiState.isLoadingPets) {
-            Text("Cargando tus mascotas…", fontSize = 14.sp, color = PawMedicSemanticColors.current.secondaryText)
+            Text(language.text("Cargando tus mascotas…", "Loading your pets…"), fontSize = 14.sp, color = PawMedicSemanticColors.current.secondaryText)
         } else if (uiState.userPets.isEmpty()) {
             Text(
-                text = "No tienes mascotas registradas para reservar una cita.",
+                text = language.text("No tienes mascotas registradas para reservar una cita.", "You have no registered pets to book an appointment for."),
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText,
                 modifier = Modifier.fillMaxWidth()
@@ -333,13 +340,13 @@ private fun SelectPetStep(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${pet.species} • ${pet.breed ?: "Mestizo"}",
+                                text = "${petCatalogLabel(pet.species, language)} • ${pet.breed?.let { petCatalogLabel(it, language) } ?: language.text("Mestizo", "Mixed breed")}",
                                 fontSize = 13.sp,
                                 color = PawMedicSemanticColors.current.hint
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = pet.age ?: "Edad no registrada",
+                                text = pet.age?.let { petAgeLabel(it, language) } ?: language.text("Edad no registrada", "Age not recorded"),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PawMedicSemanticColors.current.accent
@@ -355,7 +362,7 @@ private fun SelectPetStep(
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = "Elegido",
+                                text = language.text("Elegido", "Selected"),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PawMedicColors.White
@@ -368,15 +375,15 @@ private fun SelectPetStep(
         }
 
         uiState.errorMessage?.let { error ->
-            Text(error, fontSize = 13.sp, color = PawMedicColors.Error)
+            Text(localizeAppointmentError(error, language), fontSize = 13.sp, color = PawMedicColors.Error)
             Spacer(modifier = Modifier.height(8.dp))
-            PawMedicSecondaryButton(text = "Reintentar", onClick = onRetry)
+            PawMedicSecondaryButton(text = language.text("Reintentar", "Retry"), onClick = onRetry)
         }
 
         Spacer(modifier = Modifier.height(28.dp))
 
         PawMedicPrimaryButton(
-            text = "Continuar",
+            text = language.text("Continuar", "Continue"),
             onClick = onNext,
             enabled = uiState.userPets.isNotEmpty()
         )
@@ -428,6 +435,7 @@ private fun SelectDateTimeStep(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     var showDatePickerModal by remember { mutableStateOf(false) }
 
     if (showDatePickerModal) {
@@ -465,7 +473,7 @@ private fun SelectDateTimeStep(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = "Seleccionar Fecha y Hora",
+            title = language.text("Seleccionar Fecha y Hora", "Select date and time"),
             onBackClick = onBack
         )
 
@@ -473,7 +481,7 @@ private fun SelectDateTimeStep(
 
         // --- CALENDAR DATE SELECTION ---
         Text(
-            text = "Fecha de la cita (desde mañana y hasta dentro de dos años)",
+            text = language.text("Fecha de la cita (desde mañana y hasta dentro de dos años)", "Appointment date (from tomorrow up to two years from now)"),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = PawMedicSemanticColors.current.text,
@@ -504,13 +512,13 @@ private fun SelectDateTimeStep(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = uiState.selectedDateLabel.ifBlank { "Seleccionar fecha" },
+                            text = uiState.selectedDateLabel.ifBlank { language.text("Seleccionar fecha", "Select date") },
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicSemanticColors.current.accent
                         )
                         Text(
-                            text = "Toca para elegir fecha en el calendario (1 mes disponible)",
+                            text = language.text("Toca para elegir fecha en el calendario (1 mes disponible)", "Tap to choose a date in the calendar (1 month available)"),
                             fontSize = 12.sp,
                             color = PawMedicSemanticColors.current.hint
                         )
@@ -524,7 +532,7 @@ private fun SelectDateTimeStep(
 
         // --- TIME SELECTION SECTION ---
         Text(
-            text = "Horarios disponibles",
+            text = language.text("Horarios disponibles", "Available times"),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = PawMedicSemanticColors.current.text,
@@ -533,17 +541,17 @@ private fun SelectDateTimeStep(
 
         when {
             uiState.isLoadingSlots -> Text(
-                text = "Consultando horarios de la clínica…",
+                text = language.text("Consultando horarios de la clínica…", "Checking clinic availability…"),
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText
             )
             uiState.selectedDate.isBlank() -> Text(
-                text = "Selecciona una fecha para consultar los horarios disponibles.",
+                text = language.text("Selecciona una fecha para consultar los horarios disponibles.", "Select a date to see available times."),
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText
             )
             uiState.availableTimeSlots.isEmpty() -> Text(
-                text = "No hay horarios disponibles para esta fecha.",
+                text = language.text("No hay horarios disponibles para esta fecha.", "No times are available on this date."),
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText
             )
@@ -585,7 +593,7 @@ private fun SelectDateTimeStep(
         if (uiState.errorMessage != null) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = uiState.errorMessage ?: "",
+                text = localizeAppointmentError(uiState.errorMessage ?: "", language),
                 fontSize = 13.sp,
                 color = PawMedicColors.Error,
                 modifier = Modifier.fillMaxWidth()
@@ -595,7 +603,7 @@ private fun SelectDateTimeStep(
         Spacer(modifier = Modifier.height(32.dp))
 
         PawMedicPrimaryButton(
-            text = "Continuar",
+            text = language.text("Continuar", "Continue"),
             onClick = onNext
         )
 
@@ -610,6 +618,7 @@ private fun ConfirmBookingStep(
     onSubmit: () -> Unit,
     onBack: () -> Unit
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -618,14 +627,14 @@ private fun ConfirmBookingStep(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = "Confirmar Cita",
+            title = language.text("Confirmar Cita", "Confirm appointment"),
             onBackClick = onBack
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Revisa los detalles de tu solicitud antes de enviarla a la veterinaria.",
+            text = language.text("Revisa los detalles de tu solicitud antes de enviarla a la veterinaria.", "Review your request before sending it to the clinic."),
             fontSize = 14.sp,
             color = PawMedicSemanticColors.current.secondaryText,
             lineHeight = 20.sp
@@ -645,27 +654,27 @@ private fun ConfirmBookingStep(
             Column {
                 SummaryItem(
                     icon = "🏥",
-                    label = "Veterinaria",
+                    label = language.text("Veterinaria", "Clinic"),
                     value = uiState.selectedClinicName
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 SummaryItem(
                     icon = "🐾",
-                    label = "Mascota",
+                    label = language.text("Mascota", "Pet"),
                     value = uiState.selectedPet?.let { pet ->
-                        "${pet.name} (${pet.species}${pet.breed?.let { " • $it" }.orEmpty()})"
+                        "${pet.name} (${petCatalogLabel(pet.species, language)}${pet.breed?.let { " • ${petCatalogLabel(it, language)}" }.orEmpty()})"
                     }.orEmpty()
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 SummaryItem(
                     icon = "🩺",
-                    label = "Servicio",
+                    label = language.text("Servicio", "Service"),
                     value = uiState.selectedService?.title.orEmpty()
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 SummaryItem(
                     icon = "📅",
-                    label = "Fecha y Hora",
+                    label = language.text("Fecha y Hora", "Date and time"),
                     value = "${uiState.selectedDateLabel} • ${uiState.selectedTimeSlot}"
                 )
             }
@@ -690,7 +699,7 @@ private fun ConfirmBookingStep(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "La cita debe ser solicitada primero. Estará sujeta a la aprobación de la clínica. Podrás consultar su estado en tus citas.",
+                    text = language.text("La cita debe ser solicitada primero. Estará sujeta a la aprobación de la clínica. Podrás consultar su estado en tus citas.", "Your appointment request is subject to clinic approval. You can check its status in your appointments."),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF92400E),
@@ -702,7 +711,7 @@ private fun ConfirmBookingStep(
         uiState.errorMessage?.let { error ->
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = error,
+                text = localizeAppointmentError(error, language),
                 fontSize = 13.sp,
                 color = PawMedicColors.Error
             )
@@ -711,7 +720,7 @@ private fun ConfirmBookingStep(
         Spacer(modifier = Modifier.height(24.dp))
 
         PawMedicPrimaryButton(
-            text = "Solicitar cita",
+            text = language.text("Solicitar cita", "Request appointment"),
             onClick = onSubmit,
             isLoading = uiState.isLoading
         )
@@ -719,7 +728,7 @@ private fun ConfirmBookingStep(
         Spacer(modifier = Modifier.height(12.dp))
 
         PawMedicSecondaryButton(
-            text = "Regresar",
+            text = language.text("Regresar", "Back"),
             onClick = onBack
         )
 
@@ -765,6 +774,7 @@ private fun SummaryItem(
 private fun BookingSuccessStep(
     onComplete: () -> Unit
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -781,7 +791,7 @@ private fun BookingSuccessStep(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "¡Solicitud Enviada!",
+                text = language.text("¡Solicitud Enviada!", "Request sent!"),
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = PawMedicSemanticColors.current.text
@@ -790,7 +800,7 @@ private fun BookingSuccessStep(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Tu cita ha sido solicitada correctamente. La clínica revisará la disponibilidad y te notificará pronto.",
+                text = language.text("Tu cita ha sido solicitada correctamente. La clínica revisará la disponibilidad y te notificará pronto.", "Your appointment has been requested. The clinic will check availability and notify you soon."),
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText,
                 textAlign = TextAlign.Center,
@@ -800,7 +810,7 @@ private fun BookingSuccessStep(
             Spacer(modifier = Modifier.height(32.dp))
 
             PawMedicPrimaryButton(
-                text = "Ver mis citas",
+                text = language.text("Ver mis citas", "View my appointments"),
                 onClick = onComplete
             )
         }
