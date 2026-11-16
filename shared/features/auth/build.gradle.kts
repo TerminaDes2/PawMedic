@@ -26,11 +26,15 @@ kotlin {
         }
         androidMain.dependencies {
             implementation("androidx.compose.animation:animation-graphics:1.7.3")
+            implementation(libs.androidx.activity.compose)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.coroutines.test)
+        }
+        getByName("desktopTest").dependencies {
+            implementation(libs.ktor.client.cio)
         }
     }
 }

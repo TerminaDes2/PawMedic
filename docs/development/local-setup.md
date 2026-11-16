@@ -27,6 +27,15 @@ so users receive the six-digit code entered by the app. Configure SMTP in
 Supabase for reliable delivery to real email addresses; the built-in test SMTP
 service is rate-limited and is not intended for production delivery.
 
+For password recovery, configure the Supabase Auth **Reset Password** email
+template to display `{{ .Token }}`. The mobile app verifies this code and
+lets the user set a new password. Verify delivery and expiry with the project's
+actual email provider before using the flow in production. Review the template
+with the team before changing it: it is shared by all clients, and replacing
+the existing recovery link with a code could break other clients. The mobile
+recovery flow uses a separate in-memory session, rather than persisting the
+temporary recovery session as the user's normal session.
+
 For Google on Android, create a Web OAuth client and an Android OAuth client
 for `com.pawsmedic.mobile` with the signing certificate SHA-1 used to install
 the app. Enable Google as an Auth provider in Supabase, put the Web client ID
