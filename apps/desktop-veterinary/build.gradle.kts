@@ -38,6 +38,13 @@ dependencies {
 
 application { mainClass.set("com.pawsmedic.desktop.veterinary.MainKt") }
 
+tasks.processResources {
+    from(rootProject.file("t_rminos_y_condiciones_y_pol_tica_de_privacidad_pawsmedic.md")) {
+        into("legal")
+        rename { "terminos-y-privacidad.md" }
+    }
+}
+
 tasks.withType<JavaExec>().configureEach {
     jvmArgs("--enable-native-access=ALL-UNNAMED")
     val argos = layout.buildDirectory

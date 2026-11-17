@@ -72,6 +72,7 @@ fun RegisterScreen(
     var photoLoading by remember { mutableStateOf(false) }
 
     var acceptTerms by remember { mutableStateOf(false) }
+    var legalSection by remember { mutableStateOf<LegalSection?>(null) }
 
     var phoneWarning by remember { mutableStateOf(false) }
     var rucWarning by remember { mutableStateOf(false) }
@@ -498,19 +499,28 @@ fun RegisterScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { acceptTerms = !acceptTerms }
                     ) {
                         Checkbox(
                             checked = acceptTerms,
                             onCheckedChange = { acceptTerms = it },
                             colors = CheckboxDefaults.colors(checkedColor = ClinicalEmerald)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = tr("Acepto los Términos de Servicio y la Política de Privacidad de PawsMedic.", "I accept the PawsMedic Terms of Service and Privacy Policy."),
-                            fontSize = 12.sp,
-                            color = TextPrimary
-                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = tr("He leído y acepto:", "I have read and accept:"),
+                                fontSize = 12.sp,
+                                color = TextPrimary,
+                                modifier = Modifier.clickable { acceptTerms = !acceptTerms }
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                TextButton(onClick = { legalSection = LegalSection.TERMS }, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)) {
+                                    Text(tr("Términos de servicio", "Terms of service"), fontSize = 12.sp, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)
+                                }
+                                TextButton(onClick = { legalSection = LegalSection.PRIVACY }, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)) {
+                                    Text(tr("Política de privacidad", "Privacy policy"), fontSize = 12.sp, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)
+                                }
+                            }
+                        }
                     }
 
                     Row(
@@ -808,6 +818,9 @@ fun RegisterScreen(
                 }
             }
         }
+    }
+    legalSection?.let { section ->
+        LegalDocumentDialog(initialSection = section, onDismiss = { legalSection = null })
     }
 }
 

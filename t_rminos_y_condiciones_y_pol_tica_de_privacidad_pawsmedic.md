@@ -5,7 +5,7 @@
 **Versión:** 1.0  
 **Fecha de vigencia:** 16 de noviembre de 2026  
 
-> **Nota para el equipo:** Se asumió al Equipo 3 como responsable del tratamiento y se usa el domicilio de la Facultad, por lo que conviene contar con la autorización de la Universidad de Colima. Este documento está alineado con el SRS v2.6 (RF-99, RF-100, D-17, D-19, D-20, D-21, RN-09, RN-12, RN-13) y con la LFPDPPP. Se recomienda que sea revisado por un profesional del derecho antes de su publicación, ya que no constituye asesoría legal.
+> **Documento pendiente de revisión:** Se asumió al Equipo 3 como responsable del tratamiento y se usa el domicilio de la Facultad, por lo que conviene contar con la autorización de la Universidad de Colima. Este documento requiere revisión legal y técnica antes de su publicación: no todas sus afirmaciones se han verificado contra la implementación y no constituye asesoría legal.
 
 ---
 
@@ -14,7 +14,7 @@
 ### 1. Aceptación de los términos
 Estos Términos y Condiciones (los «Términos») regulan el acceso y uso de PawsMedic (la «Plataforma»), compuesta por una aplicación móvil Android para propietarios de mascotas, una aplicación de escritorio (Windows 11) para negocios veterinarios y un panel de administración global, todos sobre un backend común.
 
-Al crear una cuenta, marcar la casilla de aceptación o usar la Plataforma, la persona usuaria declara que leyó, entendió y acepta estos Términos y el Aviso de Privacidad de la Parte II. Si no está de acuerdo, no debe usar la Plataforma. La aceptación se registra electrónicamente con su versión, fecha y hora.
+Al crear una cuenta, marcar la casilla de aceptación o usar la Plataforma, la persona usuaria declara que leyó, entendió y acepta estos Términos y el Aviso de Privacidad de la Parte II. Si no está de acuerdo, no debe usar la Plataforma. El formulario veterinario requiere marcar la casilla para continuar; actualmente no se ha verificado el registro persistente de la versión, fecha y hora de esa aceptación.
 
 ### 2. Definiciones
 * **PawsMedic / Responsable:** Equipo 3, integrantes del proyecto académico PIGSV de la Facultad de Ingeniería Electromecánica de la Universidad de Colima, quien opera la Plataforma.
@@ -30,7 +30,7 @@ Al crear una cuenta, marcar la casilla de aceptación o usar la Plataforma, la p
 
 **3.2.** PawsMedic no presta servicios veterinarios. La atención médica la brinda exclusivamente cada Negocio, que es el único responsable de sus diagnósticos, tratamientos, precios, horarios y servicios. PawsMedic no emite diagnósticos, ni automatizados ni de ningún otro tipo, y no sustituye el criterio de un médico veterinario.
 
-**3.3. Funciones fuera del alcance actual.** La Plataforma no procesa pagos, no permite comprar productos, no incluye carrito ni módulo financiero, no genera facturas, no exporta reportes a PDF, no permite la cancelación ni reprogramación manual de citas y no cuenta con versión iOS. El catálogo de productos es únicamente informativo; los precios y la disponibilidad mostrados son orientativos y los actualiza manualmente cada Negocio.
+**3.3. Funciones fuera del alcance actual.** La Plataforma no procesa pagos, no permite comprar productos, no incluye carrito ni módulo financiero, no genera facturas y no cuenta con versión iOS. La aplicación veterinaria de escritorio permite exportar reportes operativos a PDF. El catálogo de productos es únicamente informativo; los precios y la disponibilidad mostrados son orientativos y los actualiza manualmente cada Negocio.
 
 **3.4.** Para usar la Plataforma se requiere conexión a Internet, un dispositivo compatible (Android 8.0 o superior; Windows 11 de 64 bits) y la disponibilidad de proveedores externos (Supabase, Firebase Cloud Messaging).
 
@@ -132,7 +132,7 @@ Estas limitaciones no excluyen la responsabilidad que no pueda limitarse conform
 **14.2.** PawsMedic puede suspender o cancelar cuentas, de forma temporal o definitiva, por incumplimiento de estos Términos, riesgo de seguridad, información falsa o requerimiento de autoridad competente.
 
 ### 15. Modificaciones
-PawsMedic puede modificar estos Términos. Los cambios se notificarán dentro de la aplicación y, cuando sean sustanciales, se solicitará una nueva aceptación, registrando la versión aceptada. El uso continuado tras la entrada en vigor de los cambios implica su aceptación. Las funciones fuera del alcance actual podrán incorporarse mediante un proceso formal de control de cambios.
+PawsMedic puede modificar estos Términos. La notificación de cambios y el registro persistente de nuevas aceptaciones requieren revisión e implementación antes de ofrecerse como funciones disponibles. Las funciones fuera del alcance actual podrán incorporarse mediante un proceso formal de control de cambios.
 
 ### 16. Legislación aplicable y jurisdicción
 Estos Términos se rigen por las leyes de los Estados Unidos Mexicanos. Para su interpretación y cumplimiento, las partes se someten a los tribunales competentes de Manzanillo, Colima, México, renunciando a cualquier otro fuero que pudiera corresponderles por su domicilio presente o futuro.
@@ -157,7 +157,7 @@ El Equipo 3 del proyecto académico PIGSV (Facultad de Ingeniería Electromecán
 * Nombre, correo electrónico verificado y contraseña (esta última se gestiona únicamente por el proveedor de autenticación y no se duplica en nuestra base de datos); teléfono, de forma opcional.
 * Datos de sus mascotas: nombre, especie, raza y demás datos requeridos para su registro.
 * Datos de citas: negocio, servicio, fecha y hora, motivo opcional, estado y confirmaciones de asistencia.
-* Información de consentimiento: versión del aviso aceptado, fecha y hora, y elecciones.
+* El formulario veterinario solicita marcar una casilla de aceptación. El registro persistente de versión, fecha y hora de aceptación está pendiente de verificación.
 * Datos técnicos: identificadores de sesión, token del dispositivo para notificaciones push, y registros de errores y disponibilidad.
 
 **Negocios:**
@@ -194,7 +194,7 @@ En caso de incorporarse en el futuro, las finalidades opcionales requieren su co
 * **Proveedores tecnológicos (encargados del tratamiento):**
   * **Supabase:** autenticación, base de datos PostgreSQL, almacenamiento de archivos y funciones en la nube.
   * **Google Firebase Cloud Messaging (FCM):** envío de notificaciones push en Android.
-  * **Microsoft Azure:** servicios de traducción.
+  * **Argos Translate:** traducción local en las funciones de escritorio que la tienen integrada; estos textos no se envían a Microsoft Azure para traducirse.
 * **Autoridades:** cuando exista un mandato legal o resolución judicial.
 
 PawsMedic no vende ni renta sus datos personales. Algunos proveedores pueden almacenar o procesar información en servidores ubicados fuera de México; en ese caso se exige un nivel de protección adecuado conforme a la ley. Al aceptar este aviso, usted consiente estas transferencias y remisiones que son necesarias para prestar el servicio.
@@ -241,7 +241,7 @@ Las aplicaciones usan identificadores de sesión y un token del dispositivo para
 PawsMedic puede ser utilizado por menores de edad en su calidad de propietarios de mascotas, ya que la aplicación no procesa pagos. Los menores deben usarla con el conocimiento y la supervisión de su madre, padre o tutor, y solo se les solicitan los datos estrictamente necesarios. Su madre, padre o tutor puede ejercer los derechos ARCO en su nombre. Si detectamos datos de menores recabados sin autorización, serán eliminados.
 
 ### 12. Cambios al Aviso de Privacidad
-Cualquier modificación se publicará en la aplicación y se le notificará antes de su aplicación. Se registrará la versión aceptada, la fecha y hora y su elección de consentimientos. Cuando el cambio afecte las finalidades, se le solicitará nuevamente su consentimiento.
+Cualquier modificación requiere revisión antes de su aplicación. La notificación de cambios y el registro persistente de la versión, fecha y hora de aceptación están pendientes de revisión e implementación.
 
 ### 13. Autoridad en materia de protección de datos
 Si considera que su derecho a la protección de datos personales ha sido vulnerado, puede acudir ante la autoridad competente en México en materia de protección de datos personales en posesión de particulares, actualmente la Secretaría Anticorrupción y Buen Gobierno (SABG), que asumió las funciones del extinto INAI.
