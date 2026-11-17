@@ -52,6 +52,7 @@ import com.pawsmedic.features.appointments.presentation.booking.BookingViewModel
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListScreen
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListViewModel
 import com.pawsmedic.features.businesses.data.datasource.SupabaseBusinessDataSource
+import com.pawsmedic.features.businesses.data.datasource.PublicProductsDataSource
 import com.pawsmedic.features.businesses.data.repository.DefaultBusinessRepository
 import com.pawsmedic.features.businesses.presentation.VeterinaryDetailViewModel
 import com.pawsmedic.features.businesses.presentation.VeterinaryListViewModel
@@ -481,7 +482,10 @@ fun PetNavHost(
 
                                 is CitasTabScreen.Detail -> {
                                     val detailVm = remember(screen.clinicId) {
-                                        VeterinaryDetailViewModel(businessRepository, screen.clinicId)
+                                        VeterinaryDetailViewModel(
+                                            businessRepository, screen.clinicId,
+                                            loadProducts = PublicProductsDataSource(supabaseClient)::list
+                                        )
                                     }
                                     VeterinaryDetailScreen(
                                         viewModel = detailVm,

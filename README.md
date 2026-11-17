@@ -68,6 +68,72 @@ configuration is not a substitute for protecting secrets.
 
 On Windows use `gradlew.bat`; on macOS/Linux use `./gradlew`.
 
+The desktop veterinary catalog supports product creation, detail, editing,
+availability, publication and JPG/PNG images (up to 5 MB). Images are stored
+in the public `product-images` bucket: do not upload private information, as
+an image URL is accessible even when its product is unpublished.
+
+The veterinary desktop's **Reportes operativos** screen reports total and
+completed appointments and groups services from completed appointments for
+an inclusive date range in the clinic's time zone. The database derives the
+tenant from the authenticated veterinary profile; superadmin accounts cannot
+use this tenant report.
+
+After consulting a report, use **PDF** to save its current date range, totals,
+completed appointments and services. The PDF contains clinic and patient
+information; save it only in an authorized location.
+
+In the veterinary catalog, select **Servicios** or **Productos**, then
+**Importar TXT** for the corresponding template. Save the text file as UTF-8,
+with one `campo: valor` per line and `---` on a separate line between entries.
+Products require `nombre`, `sku`, `precio` in MXN and `existencias`; services
+require `nombre`, `precio` and `duracion` in minutes. `descripcion` is optional.
+All records are validated before a single batch insert. Imported products start
+active but unpublished; category and image are not imported.
+
+Apply `supabase/migrations/20261116000000_operational_reports.sql` and
+`supabase/migrations/20261116000001_product_images.sql`, followed by
+`supabase/migrations/20261116000002_public_product_catalog.sql`, in that order, to
+the Supabase project after the existing migrations. The latter requires
+permission to create a Storage bucket and policies. Verify policies and
+reports with accounts from different clinics before deploying.
+The last migration exposes only active, published products of active clinics
+to signed-in users; these appear in the clinic profile in the mobile app.
+
+Both desktop dashboards provide a persistent dark-mode setting. English is
+available for navigation, veterinary reports, the main catalog labels,
+parts of clinical records and the superadmin interface. Errors and other
+screens are still in Spanish.
+
+An experimental Argos translation bridge is shared by the desktop applications.
+In English mode the veterinary catalog automatically translates product and
+service names and descriptions; use **Show original** to inspect the saved
+text. Selected clinical record fields and application addresses still use
+on-demand translation. It is not complete: many screens, errors and
+user-generated fields in both desktop applications are not translated yet.
+
+On a Windows development machine with Python 3.10, prepare the model and
+standalone worker with `python apps\desktop-veterinary\translation\prepare_argos.py`.
+This downloads dependencies and the Spanish-to-English model, verifies the
+model's SHA-256, builds the worker and runs a socket-blocked smoke test.
+Then run `gradlew.bat :apps:desktop-veterinary:installWithTranslation
+:apps:desktop-admin:installWithTranslation`. These tasks create experimental
+application folders under each module's `build\install-with-translation`;
+they are not Windows installers and still require a compatible Java runtime.
+The model's bundled README includes OPUS-MT CC BY 4.0 attribution.
+
+The worker translates on the CPU and uses bounded segments rather than
+download-capable sentence detectors. Segmentation and machine translation can
+change meaning; consult the original and do not rely on translations for
+clinical decisions. The packaged applications and redistribution of all
+third-party licenses still need verification before customer use.
+
+The veterinary desktop app can remember a signed-in session on Windows. The
+session is protected with Windows DPAPI for the current OS user; the password
+is not stored. Without “Recordarme”, closing the app signs out. Remembered
+sessions are rechecked for veterinary approval when the app is reopened.
+Secure session persistence is currently available only on Windows.
+
 ```text
 gradlew.bat test
 gradlew.bat :shared:features:auth:jvmTest

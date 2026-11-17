@@ -5,8 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -29,8 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.singleWindowApplication
 import com.pawsmedic.desktop.veterinary.SessionManager
+import com.pawsmedic.desktop.veterinary.SecureSessionStorage
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
+import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
+import com.pawsmedic.desktop.admin.ui.AppearanceButton
 import com.pawsmedic.shared.core.model.ProfileRole
 import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
@@ -43,13 +49,15 @@ fun SuperadminLoginScreen(
     onNavigateToAdminMain: (String) -> Unit,
     onBackToLogin: () -> Unit
 ) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(true) }
+    var rememberMe by remember { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<AuthMessage?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -77,21 +85,20 @@ fun SuperadminLoginScreen(
                     supabase.auth.signOut()
                     error("Esta cuenta no tiene permisos de Superadmin.")
                 }
-                SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
+                try {
+                    SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
+                    if (rememberMe) SecureSessionStorage.saveSession(session) else SecureSessionStorage.deleteSession()
+                } catch (e: Exception) {
+                    SessionManager.clearSession()
+                    SecureSessionStorage.deleteSession()
+                    throw IllegalStateException("No se pudo guardar la preferencia de sesión de forma segura.", e)
+                }
                 onNavigateToAdminMain(cleanEmail)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                val rawMsg = e.message.orEmpty()
-                errorMessage = when {
-                    rawMsg.contains("missing email or phone", ignoreCase = true) ||
-                    rawMsg.contains("invalid_credentials", ignoreCase = true) ||
-                    rawMsg.contains("invalid login", ignoreCase = true) ->
-                        "Correo o contraseña incorrectos, o cuenta no verificada."
-                    e is IllegalArgumentException || e is IllegalStateException ->
-                        rawMsg.lineSequence().firstOrNull().orEmpty().ifBlank { "Error de acceso." }
-                    else -> "No se pudo iniciar sesión. Revisa tu conexión e inténtalo de nuevo."
-                }
+                System.err.println("No se pudo iniciar sesión de superadmin: ${e.javaClass.simpleName}")
+                errorMessage = signInError(e.message.orEmpty())
             } finally {
                 isLoading = false
             }
@@ -142,14 +149,14 @@ fun SuperadminLoginScreen(
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     Text(
-                        text = "Control Central de Plataforma",
+                        text = tr("Control Central de Plataforma", "Central platform control"),
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         lineHeight = 40.sp
                     )
                     Text(
-                        text = "Supervisión general, aprobación de solicitudes de nuevas clínicas y auditoría central de operaciones veterinarias.",
+                        text = tr("Supervisión general, aprobación de solicitudes de nuevas clínicas y auditoría central de operaciones veterinarias.", "Oversee clinics, approve applications, and audit veterinary operations."),
                         fontSize = 15.sp,
                         color = Color(0xFF94A3B8),
                         lineHeight = 22.sp
@@ -165,7 +172,7 @@ fun SuperadminLoginScreen(
                     TextButton(onClick = onBackToLogin) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = ClinicalEmerald, modifier = Modifier.size(16.dp))
-                            Text("Volver al login de veterinaria", fontSize = 12.sp, color = ClinicalEmerald, fontWeight = FontWeight.Bold)
+                            Text(tr("Volver al login de veterinaria", "Back to veterinary sign in"), fontSize = 12.sp, color = ClinicalEmerald, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -176,7 +183,7 @@ fun SuperadminLoginScreen(
                 modifier = Modifier
                     .weight(0.85f)
                     .fillMaxHeight()
-                    .padding(40.dp),
+                    .padding(start = 40.dp, end = 40.dp, top = 64.dp, bottom = 40.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Card(
@@ -188,6 +195,7 @@ fun SuperadminLoginScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
                             .padding(36.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -209,14 +217,14 @@ fun SuperadminLoginScreen(
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "Acceso Superadmin",
+                                text = tr("Acceso Superadmin", "Superadmin sign in"),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Credenciales de control central requeridas",
+                                text = tr("Credenciales de control central requeridas", "Central control credentials required"),
                                 fontSize = 13.sp,
                                 color = TextSecondary
                             )
@@ -231,7 +239,7 @@ fun SuperadminLoginScreen(
                                     .padding(10.dp)
                             ) {
                                 Text(
-                                    text = errorMessage ?: "",
+                                    text = errorMessage?.text(english).orEmpty(),
                                     fontSize = 12.sp,
                                     color = Color(0xFF991B1B),
                                     fontWeight = FontWeight.Medium
@@ -249,7 +257,7 @@ fun SuperadminLoginScreen(
                             }
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Correo de Superadmin", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                Text(tr("Correo de Superadmin", "Superadmin email"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
                                 OutlinedTextField(
                                     value = email,
                                     onValueChange = { email = it; errorMessage = null },
@@ -266,7 +274,7 @@ fun SuperadminLoginScreen(
                             }
 
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Contraseña", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                Text(tr("Contraseña", "Password"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
                                 OutlinedTextField(
                                     value = password,
                                     onValueChange = { password = it; errorMessage = null },
@@ -309,7 +317,7 @@ fun SuperadminLoginScreen(
                                     onCheckedChange = { rememberMe = it },
                                     colors = CheckboxDefaults.colors(checkedColor = ClinicalEmerald)
                                 )
-                                Text("Recordarme", fontSize = 12.sp, color = TextSecondary)
+                                Text(tr("Recordarme", "Remember me"), fontSize = 12.sp, color = TextSecondary)
                             }
                         }
 
@@ -335,7 +343,7 @@ fun SuperadminLoginScreen(
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                                     Text(
-                                        text = "Ingresar como Superadmin",
+                                        text = tr("Ingresar como Superadmin", "Sign in as superadmin"),
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White
@@ -351,11 +359,18 @@ fun SuperadminLoginScreen(
                                 .height(42.dp),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("Volver al inicio de sesión veterinario", fontSize = 12.sp, color = TextPrimary)
+                            Text(tr("Volver al inicio de sesión veterinario", "Back to veterinary sign in"), fontSize = 12.sp, color = TextPrimary)
                         }
                     }
                 }
             }
+        }
+        Row(
+            modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            AppearanceButton()
+            NavigationLanguageButton()
         }
     }
 }
