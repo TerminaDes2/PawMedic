@@ -11,3 +11,4 @@ supabase/.branches/
 *.jks
 *.keystore
 *.env
+**/node_modules/

@@ -11,9 +11,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pawsmedic.features.auth.presentation.components.AuthLogo
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun SplashScreen(
@@ -34,7 +34,7 @@ fun SplashScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(PawMedicSemanticColors.current.background)
             .systemBarsPadding(),
         contentAlignment = Alignment.Center
     ) {

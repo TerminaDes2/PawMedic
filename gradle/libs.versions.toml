@@ -39,3 +39,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+google-services = { id = "com.google.gms.google-services", version = "4.4.2" }

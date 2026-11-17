@@ -17,6 +17,7 @@ import com.pawsmedic.features.auth.presentation.otp.OtpVerificationScreen
 import com.pawsmedic.features.auth.presentation.register.RegisterScreen
 import com.pawsmedic.features.auth.presentation.register.RegisterViewModel
 import com.pawsmedic.features.auth.presentation.register.RegistrationSuccessScreen
+import com.pawsmedic.features.auth.presentation.recovery.PasswordRecoveryScreen
 import com.pawsmedic.features.auth.presentation.splash.SplashScreen
 import com.pawsmedic.features.auth.presentation.splash.SplashViewModel
 import com.pawsmedic.features.auth.presentation.welcome.WelcomeScreen
@@ -29,6 +30,7 @@ sealed interface AuthScreenState {
     data object Splash : AuthScreenState
     data object Welcome : AuthScreenState
     data object Login : AuthScreenState
+    data object PasswordRecovery : AuthScreenState
     data object Register : AuthScreenState
     data object OtpVerification : AuthScreenState
     data class RegistrationSuccess(val userId: String, val email: String?) : AuthScreenState
@@ -43,6 +45,8 @@ fun AuthNavHost(
     supabaseClient: SupabaseClient,
     onGoogleLoginClick: (() -> Unit)? = null,
     onGoogleRegisterClick: (() -> Unit)? = null,
+    beforeSignOut: suspend () -> Unit = {},
+    afterAccountDeletion: suspend () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var currentScreen by remember { mutableStateOf<AuthScreenState>(AuthScreenState.Splash) }
@@ -84,7 +88,15 @@ fun AuthNavHost(
                     onLoginSuccess = { userId ->
                         currentScreen = AuthScreenState.Authenticated(userId, loginViewModel.uiState.value.userEmail)
                     },
-                    onGoogleSignInClick = onGoogleLoginClick
+                    onGoogleSignInClick = onGoogleLoginClick,
+                    onForgotPasswordClick = { currentScreen = AuthScreenState.PasswordRecovery }
+                )
+            }
+            AuthScreenState.PasswordRecovery -> {
+                PasswordRecoveryScreen(
+                    supabase = supabaseClient,
+                    initialEmail = loginViewModel.uiState.value.email,
+                    onBack = { currentScreen = AuthScreenState.Login }
                 )
             }
             AuthScreenState.Register -> {
@@ -125,6 +137,8 @@ fun AuthNavHost(
                     userId = screen.userId,
                     email = screen.email,
                     supabaseClient = supabaseClient,
+                    beforeSignOut = beforeSignOut,
+                    afterAccountDeletion = afterAccountDeletion,
                     onSignOut = {
                         loginViewModel.resetAfterSignOut()
                         registerViewModel.resetAfterSignOut()
@@ -142,6 +156,8 @@ fun AuthenticatedHomeScreen(
     email: String?,
     supabaseClient: SupabaseClient,
     onSignOut: () -> Unit,
+    beforeSignOut: suspend () -> Unit = {},
+    afterAccountDeletion: suspend () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val petRepository = remember(supabaseClient) {
@@ -154,7 +170,13 @@ fun AuthenticatedHomeScreen(
         userName = email?.substringBefore("@")?.takeIf(String::isNotBlank) ?: "usuario",
         supabaseClient = supabaseClient,
         onSignOut = {
+            beforeSignOut()
             supabaseClient.auth.signOut()
+            onSignOut()
+        },
+        onAccountDeleted = {
+            afterAccountDeletion()
+            supabaseClient.auth.clearSession()
             onSignOut()
         },
         modifier = modifier

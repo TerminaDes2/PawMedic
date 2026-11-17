@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.FolderShared
@@ -83,8 +82,13 @@ import com.pawsmedic.features.pets.presentation.profile.ProfileScreen
 import com.pawsmedic.features.pets.presentation.profile.ProfileViewModel
 import com.pawsmedic.features.pets.presentation.settings.SettingsScreen
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.features.pets.presentation.localizePetMessage
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 sealed interface PetTabScreen {
@@ -109,8 +113,10 @@ fun PetNavHost(
     userName: String,
     supabaseClient: SupabaseClient,
     onSignOut: suspend () -> Unit,
+    onAccountDeleted: suspend () -> Unit = onSignOut,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val pagerState = rememberPagerState(initialPage = 0) { 4 }
     val coroutineScope = rememberCoroutineScope()
 
@@ -123,6 +129,20 @@ fun PetNavHost(
     var showNotifications by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var accountDeleteError by remember { mutableStateOf<String?>(null) }
+
+    suspend fun performSignOut() {
+        isSigningOut = true
+        signOutError = null
+        try {
+            onSignOut()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            signOutError = e.message ?: "Inténtalo nuevamente."
+        } finally {
+            isSigningOut = false
+        }
+    }
 
     // Repositories & DataSources
     val medicalRecordRepository = remember(supabaseClient, ownerId) {
@@ -163,25 +183,25 @@ fun PetNavHost(
             .filter { it.status.contains("Pendiente", ignoreCase = true) }
         AlertDialog(
             onDismissRequest = { showNotifications = false },
-            title = { Text("Notificaciones de Citas (${pendingAppointments.size})") },
+            title = { Text(language.text("Notificaciones de Citas (${pendingAppointments.size})", "Appointment notifications (${pendingAppointments.size})")) },
             text = {
                 Column {
                     if (pendingAppointments.isEmpty()) {
-                        Text("No tienes citas pendientes por aprobación.")
+                        Text(language.text("No tienes citas pendientes por aprobación.", "You have no appointments pending approval."))
                     } else {
                         pendingAppointments.forEach { appointment ->
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFFFEF3C7), RoundedCornerShape(12.dp))
+                                    .background(PawMedicSemanticColors.current.warningSurface, RoundedCornerShape(12.dp))
                                     .padding(12.dp)
                             ) {
-                                Text(appointment.serviceName, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
+                                Text(appointment.serviceName, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                                 Text("${appointment.businessName} • ${appointment.petName}")
                                 Text(
-                                    "Fecha: ${appointment.date} • ${appointment.time}",
+                                    language.text("Fecha: ${appointment.date} • ${appointment.time}", "Date: ${appointment.date} • ${appointment.time}"),
                                     fontWeight = FontWeight.Bold,
-                                    color = PawMedicColors.Teal600
+                                    color = PawMedicSemanticColors.current.text
                                 )
                             }
                             Spacer(Modifier.height(8.dp))
@@ -190,7 +210,7 @@ fun PetNavHost(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showNotifications = false }) { Text("Cerrar") }
+                TextButton(onClick = { showNotifications = false }) { Text(language.text("Cerrar", "Close")) }
             }
         )
     }
@@ -198,10 +218,10 @@ fun PetNavHost(
     if (accountDeleteError != null) {
         AlertDialog(
             onDismissRequest = { accountDeleteError = null },
-            title = { Text("No se pudo eliminar la cuenta") },
-            text = { Text(accountDeleteError.orEmpty()) },
+            title = { Text(language.text("No se pudo eliminar la cuenta", "Could not delete the account")) },
+            text = { Text(localizePetMessage(accountDeleteError.orEmpty(), language)) },
             confirmButton = {
-                TextButton(onClick = { accountDeleteError = null }) { Text("Cerrar") }
+                TextButton(onClick = { accountDeleteError = null }) { Text(language.text("Cerrar", "Close")) }
             }
         )
     }
@@ -209,26 +229,23 @@ fun PetNavHost(
     if (signOutError != null) {
         AlertDialog(
             onDismissRequest = { signOutError = null },
-            title = { Text("No se pudo cerrar la sesión") },
-            text = { Text(signOutError.orEmpty()) },
+            title = { Text(language.text("No se pudo cerrar la sesión", "Could not sign out")) },
+            text = { Text(localizePetMessage(signOutError.orEmpty(), language)) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         signOutError = null
                         coroutineScope.launch {
-                            isSigningOut = true
-                            runCatching { onSignOut() }
-                                .onFailure { signOutError = it.message ?: "Inténtalo nuevamente." }
-                            isSigningOut = false
+                            performSignOut()
                         }
                     }
                 ) {
-                    Text("Reintentar")
+                    Text(language.text("Reintentar", "Retry"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { signOutError = null }) {
-                    Text("Cancelar")
+                    Text(language.text("Cancelar", "Cancel"))
                 }
             }
         )
@@ -242,7 +259,7 @@ fun PetNavHost(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(PawMedicColors.White)
+                        .background(PawMedicSemanticColors.current.surface)
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .padding(vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceAround,
@@ -250,7 +267,7 @@ fun PetNavHost(
                 ) {
                     BottomNavItem(
                         icon = Icons.Default.Home,
-                        label = "Inicio",
+                        label = language.text("Inicio", "Home"),
                         isSelected = pagerState.currentPage == 0,
                         onClick = {
                             showProfile = false
@@ -259,7 +276,7 @@ fun PetNavHost(
                     )
                     BottomNavItem(
                         icon = Icons.Default.Pets,
-                        label = "Mascotas",
+                        label = language.text("Mascotas", "Pets"),
                         isSelected = pagerState.currentPage == 1,
                         onClick = {
                             showProfile = false
@@ -270,7 +287,7 @@ fun PetNavHost(
                     )
                     BottomNavItem(
                         icon = Icons.Default.CalendarMonth,
-                        label = "Citas",
+                        label = language.text("Citas", "Appointments"),
                         isSelected = pagerState.currentPage == 2,
                         onClick = {
                             showProfile = false
@@ -281,7 +298,7 @@ fun PetNavHost(
                     )
                     BottomNavItem(
                         icon = Icons.Default.FolderShared,
-                        label = "Recetas",
+                        label = language.text("Historial", "Records"),
                         isSelected = pagerState.currentPage == 3,
                         onClick = {
                             showProfile = false
@@ -296,7 +313,7 @@ fun PetNavHost(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(PawMedicColors.BackgroundScreen)
+                .background(PawMedicSemanticColors.current.background)
                 .padding(innerPadding)
         ) {
             HorizontalPager(
@@ -534,7 +551,7 @@ fun PetNavHost(
                                     modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("Cargando recetas médicas…", color = PawMedicColors.Gray600)
+                                    Text(language.text("Cargando el historial clínico…", "Loading medical history…"), color = PawMedicSemanticColors.current.secondaryText)
                                 }
                             }
                             presState.errorMessage != null -> {
@@ -545,14 +562,17 @@ fun PetNavHost(
                                     verticalArrangement = Arrangement.Center
                                 ) {
                                     Text(
-                                        text = "No se pudieron cargar las recetas: ${presState.errorMessage}",
+                                        text = language.text(
+                                            "No se pudieron cargar las recetas: ${presState.errorMessage}",
+                                            "Could not load the medical history: ${presState.errorMessage}"
+                                        ),
                                         color = PawMedicColors.Error
                                     )
                                     Spacer(Modifier.height(12.dp))
                                     androidx.compose.material3.Button(
                                         onClick = prescriptionsViewModel::loadPrescriptions
                                     ) {
-                                        Text("Reintentar")
+                                        Text(language.text("Reintentar", "Retry"))
                                     }
                                 }
                             }
@@ -588,13 +608,7 @@ fun PetNavHost(
                         },
                         onSignOut = {
                             showProfile = false
-                            coroutineScope.launch {
-                                isSigningOut = true
-                                signOutError = null
-                                runCatching { onSignOut() }
-                                    .onFailure { signOutError = it.message ?: "Inténtalo nuevamente." }
-                                isSigningOut = false
-                            }
+                            coroutineScope.launch { performSignOut() }
                         },
                         drawerOnly = true,
                         modifier = Modifier.width(300.dp)
@@ -627,7 +641,7 @@ fun PetNavHost(
                     },
                     onSignOut = {
                         showProfilePage = false
-                        coroutineScope.launch { onSignOut() }
+                        coroutineScope.launch { performSignOut() }
                     },
                     showSidebar = false,
                     modifier = Modifier.fillMaxSize().zIndex(2f)
@@ -641,11 +655,13 @@ fun PetNavHost(
                     },
                     onDeleteAccount = {
                         coroutineScope.launch {
-                            runCatching {
+                            try {
                                 supabaseClient.postgrest.rpc("delete_my_account")
-                                onSignOut()
-                            }.onFailure {
-                                accountDeleteError = it.message
+                                onAccountDeleted()
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                accountDeleteError = e.message
                                     ?: "No se pudo eliminar la cuenta. Inténtalo nuevamente."
                             }
                         }
@@ -672,7 +688,7 @@ private fun BottomNavItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray500,
+            tint = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.hint,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
@@ -680,7 +696,7 @@ private fun BottomNavItem(
             text = label,
             fontSize = 12.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) PawMedicColors.Teal600 else PawMedicColors.Gray500
+            color = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.hint
         )
     }
 }

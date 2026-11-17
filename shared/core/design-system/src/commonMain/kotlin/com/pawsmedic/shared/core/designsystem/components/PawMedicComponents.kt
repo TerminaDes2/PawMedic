@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 private const val LOGO_CROSS_PATH = "M56.875 10.9375C56.875 4.9 61.775 0 67.8125 0H107.188C113.225 0 118.125 4.9 118.125 10.9375V56.875H164.062C170.1 56.875 175 61.775 175 67.8125V107.188C175 113.225 170.1 118.125 164.062 118.125H118.125V164.062C118.125 170.1 113.225 175 107.188 175H67.8125C61.775 175 56.875 170.1 56.875 164.062V118.125H10.9375C4.9 118.125 0 113.225 0 107.188V67.8125C0 61.775 4.9 56.875 10.9375 56.875H56.875V10.9375Z"
 private const val LOGO_SHIELD_BG_PATH = "M29 40.5765C68.0109 17.1412 107.344 17.1412 147 40.5765V85.8418C147 120.513 125.238 145.554 88 160C50.2787 145.554 29 120.513 29 85.8418V40.5765Z"
@@ -186,8 +187,8 @@ fun PawMedicSecondaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    borderColor: Color = PawMedicColors.Gray300,
-    textColor: Color = PawMedicColors.Gray700
+    borderColor: Color = PawMedicSemanticColors.current.border,
+    textColor: Color = PawMedicSemanticColors.current.text
 ) {
     OutlinedButton(
         onClick = onClick,
@@ -227,11 +228,11 @@ fun GoogleSocialButton(
             .height(52.dp),
         shape = RoundedCornerShape(12.dp),
         border = ButtonDefaults.outlinedButtonBorder.copy(
-            brush = androidx.compose.ui.graphics.SolidColor(PawMedicColors.Gray300)
+            brush = androidx.compose.ui.graphics.SolidColor(PawMedicSemanticColors.current.border)
         ),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = PawMedicColors.White,
-            contentColor = PawMedicColors.Gray800
+            containerColor = PawMedicSemanticColors.current.surface,
+            contentColor = PawMedicSemanticColors.current.text
         )
     ) {
         if (isLoading) {
@@ -255,7 +256,7 @@ fun GoogleSocialButton(
                     text = text,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = PawMedicColors.Gray800
+                    color = PawMedicSemanticColors.current.text
                 )
             }
         }
@@ -285,7 +286,7 @@ fun PawMedicTextField(
             text = label,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = PawMedicColors.Gray800,
+            color = PawMedicSemanticColors.current.text,
             modifier = Modifier.padding(bottom = 6.dp)
         )
         OutlinedTextField(
@@ -294,7 +295,7 @@ fun PawMedicTextField(
             placeholder = {
                 Text(
                     text = placeholder,
-                    color = PawMedicColors.Gray400,
+                    color = PawMedicSemanticColors.current.hint,
                     fontSize = 14.sp
                 )
             },
@@ -309,13 +310,13 @@ fun PawMedicTextField(
             modifier = inputModifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PawMedicColors.Teal600,
-                unfocusedBorderColor = PawMedicColors.Gray300,
+                focusedBorderColor = PawMedicSemanticColors.current.accent,
+                unfocusedBorderColor = PawMedicSemanticColors.current.border,
                 errorBorderColor = PawMedicColors.Error,
-                focusedContainerColor = PawMedicColors.White,
-                unfocusedContainerColor = PawMedicColors.White,
-                focusedTextColor = PawMedicColors.Gray900,
-                unfocusedTextColor = PawMedicColors.Gray900
+                focusedContainerColor = PawMedicSemanticColors.current.surface,
+                unfocusedContainerColor = PawMedicSemanticColors.current.surface,
+                focusedTextColor = PawMedicSemanticColors.current.text,
+                unfocusedTextColor = PawMedicSemanticColors.current.text
             )
         )
         AnimatedVisibility(visible = isError && errorMessage != null) {
@@ -346,14 +347,14 @@ fun PawMedicTopBar(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(PawMedicColors.Gray100)
+                    .background(PawMedicSemanticColors.current.mutedSurface)
                     .clickable { onBackClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "‹",
                     fontSize = 28.sp,
-                    color = PawMedicColors.Gray800,
+                    color = PawMedicSemanticColors.current.text,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 2.dp)
                 )
@@ -364,14 +365,14 @@ fun PawMedicTopBar(
             text = title,
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Gray900
+            color = PawMedicSemanticColors.current.text
         )
         if (subtitle != null) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = subtitle,
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray500
+                color = PawMedicSemanticColors.current.hint
             )
         }
     }

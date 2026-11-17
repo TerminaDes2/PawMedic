@@ -49,20 +49,20 @@ scaffold material and are not included in the build.
 
 ## Configuration, Secrets, and Supabase Connection
 
-Copy `.env.example` to `.env` to configure your local Supabase connection. The public
-`SUPABASE_URL` and `SUPABASE_ANON_KEY` are read from the `.env` file and injected into 
-the client apps (Android and Desktop) via their respective build and runtime environments. 
-
-**Important for Team Members**: 
-Because `.env` is ignored in Git (for security reasons), you will not see these credentials 
-when cloning the project. **Every developer must create their own `.env` file** and populate 
-it with the URL and Anon Key of the local or remote Supabase project.
+The shared development project's public client settings are in
+`config/client.properties`, and the Android Firebase client configuration is in
+`apps/mobile-android/google-services.json`. A normal checkout can use the shared
+backend without creating a `.env` file. An optional root `.env` or environment
+variables can override individual client settings; `.env` takes precedence.
+These settings are distributed with client apps and do not provide authorization:
+Supabase RLS and server-side authorization must protect the data.
 
 Never put a service-role key, database password, JWT signing secret, or user
 credentials in source control or a client app. `SUPABASE_SERVICE_ROLE_KEY`
 belongs only in Supabase Edge Function secrets.
 
-The Supabase client is configured in `shared/core/network` and consumed by the `SupabaseAuthRepository` in `core/model/data`. The credentials are injected safely by the platform (e.g. `BuildConfig` in Android) ensuring no secrets are hardcoded in the codebase.
+The Supabase client is configured in `shared/core/network`. Public client
+configuration is not a substitute for protecting secrets.
 
 ## Run the project
 
@@ -76,7 +76,8 @@ gradlew.bat :apps:desktop-admin:run
 gradlew.bat :apps:mobile-android:assembleDebug
 ```
 
-Start the local backend in a second terminal:
+To use an isolated local backend instead of the shared development project,
+start it in a second terminal:
 
 ```text
 supabase start
@@ -86,7 +87,7 @@ supabase functions serve
 
 `supabase db reset` applies the timestamp-ordered migrations and seed data.
 Use `supabase status` to obtain the local URL and anon key and place those
-values in the untracked `.env`. See `docs/development/local-setup.md` for
+values in the optional untracked `.env`. See `docs/development/local-setup.md` for
 Android, desktop, and Supabase troubleshooting.
 
 ## Request and authorization model

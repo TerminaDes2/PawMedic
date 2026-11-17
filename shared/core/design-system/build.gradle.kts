@@ -16,6 +16,9 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.ui)
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }
 

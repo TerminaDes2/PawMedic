@@ -32,9 +32,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
-
     implementation("org.slf4j:slf4j-nop:2.0.13")
-
     testImplementation(kotlin("test"))
 }
 

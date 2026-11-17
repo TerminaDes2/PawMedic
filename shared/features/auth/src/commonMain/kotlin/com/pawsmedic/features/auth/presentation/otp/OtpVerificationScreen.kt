@@ -36,9 +36,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.auth.presentation.register.RegisterViewModel
+import com.pawsmedic.features.auth.presentation.localizeAuthMessage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 
 @Composable
 fun OtpVerificationScreen(
@@ -47,6 +51,7 @@ fun OtpVerificationScreen(
     onVerificationSuccess: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSuccess) {
@@ -58,25 +63,25 @@ fun OtpVerificationScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             PawMedicTopBar(
-                title = "Verifica tu correo",
-                subtitle = "Hemos enviado un código de 6 dígitos a:\n${uiState.email}",
+                title = language.text("Verifica tu correo", "Verify your email"),
+                subtitle = language.text("Hemos enviado un código de 6 dígitos a:\n${uiState.email}", "We sent a 6-digit code to:\n${uiState.email}"),
                 onBackClick = onBackClick
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Código de confirmación",
+                text = language.text("Código de confirmación", "Confirmation code"),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = PawMedicColors.Gray800,
+                color = PawMedicSemanticColors.current.text,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
@@ -100,10 +105,10 @@ fun OtpVerificationScreen(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(PawMedicColors.White)
+                                    .background(PawMedicSemanticColors.current.surface)
                                     .border(
                                         width = if (isFocused) 2.dp else 1.dp,
-                                        color = if (isFocused) PawMedicColors.Teal600 else PawMedicColors.Gray300,
+                                        color = if (isFocused) PawMedicColors.Teal600 else PawMedicSemanticColors.current.border,
                                         shape = RoundedCornerShape(12.dp)
                                     ),
                                 contentAlignment = Alignment.Center
@@ -112,7 +117,7 @@ fun OtpVerificationScreen(
                                     text = char,
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = PawMedicColors.Gray900,
+                                    color = PawMedicSemanticColors.current.text,
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -124,7 +129,7 @@ fun OtpVerificationScreen(
             if (uiState.errorMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = uiState.errorMessage!!,
+                    text = localizeAuthMessage(uiState.errorMessage!!, language),
                     fontSize = 13.sp,
                     color = PawMedicColors.Error,
                     modifier = Modifier.fillMaxWidth()
@@ -134,9 +139,9 @@ fun OtpVerificationScreen(
             if (uiState.resendSuccessMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = uiState.resendSuccessMessage!!,
+                    text = localizeAuthMessage(uiState.resendSuccessMessage!!, language),
                     fontSize = 13.sp,
-                    color = PawMedicColors.Teal600,
+                    color = PawMedicSemanticColors.current.accent,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -145,7 +150,7 @@ fun OtpVerificationScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             PawMedicPrimaryButton(
-                text = "Verificar y continuar",
+                text = language.text("Verificar y continuar", "Verify and continue"),
                 onClick = viewModel::verifyOtp,
                 isLoading = uiState.isLoading,
                 enabled = uiState.otpCode.length == 6
@@ -160,15 +165,15 @@ fun OtpVerificationScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "¿No recibiste el código? ",
+                text = language.text("¿No recibiste el código? ", "Didn't receive the code? "),
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray600
+                color = PawMedicSemanticColors.current.secondaryText
             )
             Text(
-                text = "Reenviar",
+                text = language.text("Reenviar", "Resend"),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Teal600,
+                color = PawMedicSemanticColors.current.accent,
                 modifier = Modifier.clickable { viewModel.resendOtp() }
             )
         }

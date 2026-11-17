@@ -45,6 +45,10 @@ import com.pawsmedic.features.pets.presentation.components.PetAvatarImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.petCatalogLabel
 
 @Composable
 fun PetDetailScreen(
@@ -55,6 +59,7 @@ fun PetDetailScreen(
     onDeleteSuccess: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
     val pet = uiState.pet
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -62,8 +67,8 @@ fun PetDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text(text = "Eliminar mascota", fontWeight = FontWeight.Bold) },
-            text = { Text("¿Estás seguro de que deseas eliminar a ${pet?.name ?: "esta mascota"}? Esta acción no se puede deshacer.") },
+            title = { Text(text = language.text("Eliminar mascota", "Delete pet"), fontWeight = FontWeight.Bold) },
+            text = { Text(language.text("¿Estás seguro de que deseas eliminar a ${pet?.name ?: "esta mascota"}? Esta acción no se puede deshacer.", "Are you sure you want to delete ${pet?.name ?: "this pet"}? This action cannot be undone.")) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -71,12 +76,12 @@ fun PetDetailScreen(
                         viewModel.deletePet(onDeleteSuccess)
                     }
                 ) {
-                    Text(text = "Eliminar", color = PawMedicColors.Error, fontWeight = FontWeight.Bold)
+                    Text(text = language.text("Eliminar", "Delete"), color = PawMedicColors.Error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text(text = "Cancelar", color = PawMedicColors.Gray700)
+                    Text(text = language.text("Cancelar", "Cancel"), color = PawMedicSemanticColors.current.text)
                 }
             }
         )
@@ -85,12 +90,12 @@ fun PetDetailScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = "Detalle de Mascota",
+            title = language.text("Detalle de Mascota", "Pet details"),
             onBackClick = onBackClick
         )
 
@@ -123,15 +128,15 @@ fun PetDetailScreen(
                     text = pet.name,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
+                    color = PawMedicSemanticColors.current.text
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = pet.breed ?: "Raza no registrada",
+                    text = pet.breed?.let { petCatalogLabel(it, language) } ?: language.text("Raza no registrada", "Breed not recorded"),
                     fontSize = 13.sp,
-                    color = PawMedicColors.Gray500
+                    color = PawMedicSemanticColors.current.hint
                 )
             }
 
@@ -140,14 +145,14 @@ fun PetDetailScreen(
             // --- 4 STAT CARDS GRID ---
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatCard(
-                    title = "Especie",
-                    value = pet.species,
+                    title = language.text("Especie", "Species"),
+                    value = petCatalogLabel(pet.species, language),
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 StatCard(
-                    title = "Raza",
-                    value = pet.breed ?: "Mestizo",
+                    title = language.text("Raza", "Breed"),
+                    value = pet.breed?.let { petCatalogLabel(it, language) } ?: language.text("Mestizo", "Mixed breed"),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -156,14 +161,14 @@ fun PetDetailScreen(
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatCard(
-                    title = "Edad",
-                    value = pet.dateOfBirth?.let { "Nac. $it" } ?: "No registrada",
+                    title = language.text("Edad", "Age"),
+                    value = pet.dateOfBirth?.let { language.text("Nac. $it", "Born $it") } ?: language.text("No registrada", "Not recorded"),
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 StatCard(
-                    title = "Notas de Cuidado",
-                    value = pet.allergies ?: "Sin notas registradas",
+                    title = language.text("Notas de Cuidado", "Care notes"),
+                    value = pet.allergies ?: language.text("Sin notas registradas", "No notes recorded"),
                     isHighlight = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -178,19 +183,19 @@ fun PetDetailScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Historial Clínico",
+                    text = language.text("Historial Clínico", "Medical history"),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
+                    color = PawMedicSemanticColors.current.text
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Aún no hay registros clínicos vinculados a esta mascota.",
+                text = language.text("Aún no hay registros clínicos vinculados a esta mascota.", "There are no medical records linked to this pet yet."),
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray500,
+                color = PawMedicSemanticColors.current.hint,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -205,7 +210,7 @@ fun PetDetailScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = PawMedicColors.Teal600)
             ) {
                 Text(
-                    text = "Abrir expediente médico",
+                    text = language.text("Abrir expediente médico", "Open medical record"),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White
@@ -225,14 +230,14 @@ fun PetDetailScreen(
                         .height(50.dp),
                     shape = RoundedCornerShape(12.dp),
                     border = ButtonDefaults.outlinedButtonBorder.copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(PawMedicColors.Gray300)
+                        brush = androidx.compose.ui.graphics.SolidColor(PawMedicSemanticColors.current.border)
                     )
                 ) {
                     Text(
-                        text = "Editar información",
+                        text = language.text("Editar información", "Edit information"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = PawMedicColors.Gray800
+                        color = PawMedicSemanticColors.current.text
                     )
                 }
 
@@ -250,7 +255,7 @@ fun PetDetailScreen(
                     )
                 ) {
                     Text(
-                        text = "Eliminar mascota",
+                        text = language.text("Eliminar mascota", "Delete pet"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -272,10 +277,10 @@ private fun StatCard(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isHighlight) Color(0xFFFEF9C3) else PawMedicColors.White)
+            .background(if (isHighlight) PawMedicSemanticColors.current.warningSurface else PawMedicSemanticColors.current.surface)
             .border(
                 width = 1.dp,
-                color = if (isHighlight) Color(0xFFFDE047) else PawMedicColors.Gray200,
+                color = if (isHighlight) Color(0xFFFDE047) else PawMedicSemanticColors.current.separator,
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(14.dp)
@@ -284,14 +289,14 @@ private fun StatCard(
             Text(
                 text = title,
                 fontSize = 12.sp,
-                color = PawMedicColors.Gray500
+                color = PawMedicSemanticColors.current.hint
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = value,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
+                color = PawMedicSemanticColors.current.text
             )
         }
     }
