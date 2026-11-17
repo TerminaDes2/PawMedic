@@ -30,6 +30,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +47,7 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.features.auth.presentation.terms.TermsAndConditionsDialog
 
 @Composable
 fun RegisterScreen(
@@ -55,6 +59,7 @@ fun RegisterScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showTerms by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isSuccess, uiState.userId) {
         if (uiState.isSuccess && uiState.userId != null) onRegisterSuccess(uiState.userId!!)
@@ -205,7 +210,9 @@ fun RegisterScreen(
                         text = "Acepto los Términos y Condiciones y la Política de Privacidad",
                         fontSize = 13.sp,
                         color = PawMedicColors.Gray700,
-                        modifier = Modifier.padding(start = 4.dp)
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .clickable { showTerms = true }
                     )
                 }
                 StepError(uiState.errorMessage)
@@ -233,6 +240,10 @@ fun RegisterScreen(
                 modifier = Modifier.clickable { onNavigateToLogin() }
             )
         }
+    }
+
+    if (showTerms) {
+        TermsAndConditionsDialog(onDismiss = { showTerms = false })
     }
 }
 
