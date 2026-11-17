@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -57,11 +58,14 @@ import com.pawsmedic.features.businesses.presentation.VeterinaryDetailViewModel
 import com.pawsmedic.features.businesses.presentation.VeterinaryListViewModel
 import com.pawsmedic.features.businesses.presentation.detail.VeterinaryDetailScreen
 import com.pawsmedic.features.businesses.presentation.list.VeterinaryListScreen
+import com.pawsmedic.features.medical_records.data.datasource.SupabaseMedicalRecordDataSource
 import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryScreen
 import com.pawsmedic.features.medical_records.presentation.MedicalHistoryViewModel
 import com.pawsmedic.features.medical_records.presentation.MedicalRecordDetailScreen
 import com.pawsmedic.features.medical_records.presentation.MedicalRecordViewModel
+import com.pawsmedic.features.medical_records.presentation.PrescriptionsListScreen
+import com.pawsmedic.features.medical_records.presentation.PrescriptionsViewModel
 import com.pawsmedic.features.pets.domain.repository.PetRepository
 import com.pawsmedic.features.pets.domain.usecase.AddPetUseCase
 import com.pawsmedic.features.pets.domain.usecase.DeletePetUseCase
@@ -147,6 +151,9 @@ fun PetNavHost(
     }
     val profileState by profileViewModel.uiState.collectAsState()
     val medicalHistoryViewModel = remember { MedicalHistoryViewModel(medicalRecordRepository) }
+    val prescriptionsViewModel = remember(medicalRecordRepository, ownerId) {
+        PrescriptionsViewModel(medicalRecordRepository, ownerId)
+    }
     val veterinaryListViewModel = remember { VeterinaryListViewModel(businessRepository) }
     val appointmentsListViewModel = remember { AppointmentsListViewModel(appointmentRepository) }
     val appointmentsState by appointmentsListViewModel.uiState.collectAsState()
@@ -274,11 +281,11 @@ fun PetNavHost(
                     )
                     BottomNavItem(
                         icon = Icons.Default.FolderShared,
-                        label = "Historial",
+                        label = "Recetas",
                         isSelected = pagerState.currentPage == 3,
                         onClick = {
                             showProfile = false
-                            medicalHistoryViewModel.loadHistory()
+                            prescriptionsViewModel.loadPrescriptions()
                             coroutineScope.launch { pagerState.animateScrollToPage(3) }
                         }
                     )
@@ -520,17 +527,17 @@ fun PetNavHost(
                     }
 
                     3 -> {
-                        val historyState by medicalHistoryViewModel.uiState.collectAsState()
+                        val presState by prescriptionsViewModel.uiState.collectAsState()
                         when {
-                            historyState.isLoading -> {
+                            presState.isLoading -> {
                                 Box(
                                     modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("Cargando el historial clínico…", color = PawMedicColors.Gray600)
+                                    Text("Cargando recetas médicas…", color = PawMedicColors.Gray600)
                                 }
                             }
-                            historyState.errorMessage != null -> {
+                            presState.errorMessage != null -> {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -538,18 +545,18 @@ fun PetNavHost(
                                     verticalArrangement = Arrangement.Center
                                 ) {
                                     Text(
-                                        text = "No se pudo cargar el historial clínico: ${historyState.errorMessage}",
+                                        text = "No se pudieron cargar las recetas: ${presState.errorMessage}",
                                         color = PawMedicColors.Error
                                     )
                                     Spacer(Modifier.height(12.dp))
                                     androidx.compose.material3.Button(
-                                        onClick = medicalHistoryViewModel::loadHistory
+                                        onClick = prescriptionsViewModel::loadPrescriptions
                                     ) {
                                         Text("Reintentar")
                                     }
                                 }
                             }
-                            else -> MedicalHistoryScreen(viewModel = medicalHistoryViewModel)
+                            else -> PrescriptionsListScreen(viewModel = prescriptionsViewModel)
                         }
                     }
                 }

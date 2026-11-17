@@ -27,4 +27,5 @@ interface MedicalRecordRepository {
     suspend fun addPrescription(prescription: PrescriptionRecord): Result<PrescriptionRecord>
     suspend fun addClinicalStudy(study: ClinicalStudyRecord): Result<ClinicalStudyRecord>
     suspend fun getAuditLogs(petId: String): Result<List<AuditLogEntry>>
+    suspend fun getPrescriptionsForOwner(ownerId: String): Result<List<PrescriptionRecord>>
 }

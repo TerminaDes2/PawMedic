@@ -19,15 +19,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
@@ -123,6 +125,14 @@ private fun SelectServiceStep(
     onRetry: () -> Unit,
     onBack: () -> Unit
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    val normalizedQuery = searchQuery.trim()
+    val visibleServices = uiState.services.filter { service ->
+        normalizedQuery.isBlank() ||
+            service.title.contains(normalizedQuery, ignoreCase = true) ||
+            service.description.contains(normalizedQuery, ignoreCase = true)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -146,6 +156,26 @@ private fun SelectServiceStep(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            leadingIcon = {
+                Icon(Icons.Default.Search, contentDescription = "Buscar servicios")
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
+                    }
+                }
+            },
+            placeholder = { Text("Buscar servicio") }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         if (uiState.isLoadingServices) {
             Text("Cargando servicios activos…", fontSize = 14.sp, color = PawMedicColors.Gray600)
         } else if (uiState.services.isEmpty()) {
@@ -158,7 +188,7 @@ private fun SelectServiceStep(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        uiState.services.forEach { service ->
+        visibleServices.forEach { service ->
             val isSelected = service.id == uiState.selectedService?.id
             Box(
                 modifier = Modifier
@@ -245,7 +275,7 @@ private fun SelectServiceStep(
         PawMedicPrimaryButton(
             text = "Continuar",
             onClick = onNext,
-            enabled = uiState.services.isNotEmpty()
+            enabled = visibleServices.isNotEmpty()
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -420,6 +450,7 @@ private fun BookingPetAvatar(
 }
 
 // --- STEP 3: SELECT DATE & TIME ---
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SelectDateTimeStep(
     uiState: BookingUiState,
@@ -431,6 +462,17 @@ private fun SelectDateTimeStep(
     var showDatePickerModal by remember { mutableStateOf(false) }
 
     if (showDatePickerModal) {
+        val today = bookingToday()
+        val limit = bookingDateLimit(today)
+        val selectableDates = remember(today) {
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    isBookableDate(convertMillisToIsoDateString(utcTimeMillis), today)
+
+                override fun isSelectableYear(year: Int): Boolean =
+                    year in today.substring(0, 4).toInt()..limit.substring(0, 4).toInt()
+            }
+        }
         DatePickerModal(
             onDateSelected = { selectedMillis ->
                 if (selectedMillis != null) {
@@ -440,7 +482,9 @@ private fun SelectDateTimeStep(
                 }
                 showDatePickerModal = false
             },
-            onDismiss = { showDatePickerModal = false }
+            onDismiss = { showDatePickerModal = false },
+            yearRange = today.substring(0, 4).toInt()..limit.substring(0, 4).toInt(),
+            selectableDates = selectableDates
         )
     }
 
