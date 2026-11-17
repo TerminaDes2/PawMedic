@@ -44,20 +44,23 @@ data class PetBackgroundDto(
     )
 
     companion object {
-        fun fromDomain(domain: PetBackground) = PetBackgroundDto(
-            petId = domain.petId,
-            lastDewormingDate = domain.lastDewormingDate,
-            dewormingProduct = domain.dewormingProduct,
-            diet = domain.diet,
-            allergies = domain.allergies,
-            pastDiseases = domain.pastDiseases,
-            pastSurgeries = domain.pastSurgeries,
-            familyHistory = domain.familyHistory,
-            reproductiveStatus = domain.reproductiveStatus,
-            habitat = domain.habitat,
-            updatedAt = domain.updatedAt,
-            updatedBy = domain.updatedBy
-        )
+        fun fromDomain(domain: PetBackground): PetBackgroundDto {
+            val validUuid = domain.updatedBy?.takeIf { it.isNotBlank() && !it.contains(" ") && it.length == 36 }
+            return PetBackgroundDto(
+                petId = domain.petId,
+                lastDewormingDate = domain.lastDewormingDate,
+                dewormingProduct = domain.dewormingProduct,
+                diet = domain.diet,
+                allergies = domain.allergies,
+                pastDiseases = domain.pastDiseases,
+                pastSurgeries = domain.pastSurgeries,
+                familyHistory = domain.familyHistory,
+                reproductiveStatus = domain.reproductiveStatus,
+                habitat = domain.habitat,
+                updatedAt = domain.updatedAt,
+                updatedBy = validUuid
+            )
+        }
     }
 }
 
@@ -186,25 +189,30 @@ data class PrescriptionRecordDto(
         endDate = endDate,
         isAdministeredInConsultation = isAdministeredInConsultation,
         prescribingVetName = vetName,
+        prescribingVetId = prescribingVetId,
         notes = notes
     )
 
     companion object {
-        fun fromDomain(domain: PrescriptionRecord) = PrescriptionRecordDto(
-            id = if (domain.id.isBlank()) null else domain.id,
-            consultationId = domain.consultationId,
-            petId = domain.petId,
-            drugName = domain.drugName,
-            dosage = domain.dosage,
-            unit = domain.unit,
-            route = domain.route,
-            frequency = domain.frequency,
-            duration = domain.duration,
-            startDate = domain.startDate,
-            endDate = domain.endDate,
-            isAdministeredInConsultation = domain.isAdministeredInConsultation,
-            notes = domain.notes
-        )
+        fun fromDomain(domain: PrescriptionRecord): PrescriptionRecordDto {
+            val validVetId = domain.prescribingVetId?.takeIf { it.isNotBlank() && !it.contains(" ") && it.length == 36 }
+            return PrescriptionRecordDto(
+                id = if (domain.id.isBlank()) null else domain.id,
+                consultationId = domain.consultationId,
+                petId = domain.petId,
+                drugName = domain.drugName,
+                dosage = domain.dosage,
+                unit = domain.unit,
+                route = domain.route,
+                frequency = domain.frequency,
+                duration = domain.duration,
+                startDate = domain.startDate,
+                endDate = domain.endDate,
+                isAdministeredInConsultation = domain.isAdministeredInConsultation,
+                prescribingVetId = validVetId,
+                notes = domain.notes
+            )
+        }
     }
 }
 

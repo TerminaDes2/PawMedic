@@ -98,6 +98,7 @@ fun ExpedientesScreen(
     var showLinkOrRegisterDialog by remember { mutableStateOf(false) }
     var showEditPetDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var vetUserId by remember { mutableStateOf<String?>(null) }
     var vetUserName by remember { mutableStateOf("Dr. Veterinario") }
 
     val coroutineScope = rememberCoroutineScope()
@@ -129,6 +130,7 @@ fun ExpedientesScreen(
             if (profile.role != ProfileRole.VETERINARY_BUSINESS && profile.role != ProfileRole.SUPERADMIN) {
                 error("Los expedientes solo están disponibles para cuentas veterinarias.")
             }
+            vetUserId = user.id
             vetUserName = profile.displayName.ifBlank { "Dr. Veterinario" }
 
             val pets = supabase.postgrest["pets"]
@@ -196,10 +198,14 @@ fun ExpedientesScreen(
             onDismiss = { showEditBackgroundDialog = false },
             onConfirm = { updatedBg ->
                 coroutineScope.launch {
-                    repository.updateBackground(updatedBg.copy(updatedBy = vetUserName))
+                    repository.updateBackground(updatedBg.copy(updatedBy = vetUserId))
                         .onSuccess {
                             showEditBackgroundDialog = false
                             selectedPatient?.let { loadFullRecord(it.id) }
+                        }
+                        .onFailure { err ->
+                            errorMessage = err.message ?: "No se pudieron guardar los antecedentes en Supabase."
+                            showEditBackgroundDialog = false
                         }
                 }
             }
@@ -266,7 +272,7 @@ fun ExpedientesScreen(
 
                     val filtered = patientsList.filter { p ->
                         val mId = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
-                        val pName = p.nombre ?: p.name ?: ""
+                        val pName = p.name ?: ""
                         searchMedicalIdQuery.isBlank() ||
                             mId.contains(searchMedicalIdQuery, ignoreCase = true) ||
                             pName.contains(searchMedicalIdQuery, ignoreCase = true) ||
@@ -285,9 +291,9 @@ fun ExpedientesScreen(
                             items(filtered) { p ->
                                 val isSelected = selectedPatient?.id == p.id
                                 val medIdStr = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
-                                val nameStr = p.nombre ?: p.name ?: "Mascota"
-                                val speciesStr = p.especie ?: p.species ?: "Especie"
-                                val breedStr = p.raza ?: p.breed ?: "Mestizo"
+                                val nameStr = p.name ?: "Mascota"
+                                val speciesStr = p.species ?: "Especie"
+                                val breedStr = p.breed ?: "Mestizo"
 
                                 Box(
                                     modifier = Modifier
@@ -376,9 +382,9 @@ fun ExpedientesScreen(
 
                     if (p != null) {
                         val medId = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
-                        val pName = p.nombre ?: p.name ?: "Mascota"
-                        val pSpecies = p.especie ?: p.species ?: "Especie"
-                        val pBreed = p.raza ?: p.breed ?: "Mestizo"
+                        val pName = p.name ?: "Mascota"
+                        val pSpecies = p.species ?: "Especie"
+                        val pBreed = p.breed ?: "Mestizo"
                         val computedAge = calculateAgeFromIsoDate(p.dateOfBirth) ?: "Edad no especificada"
                         val ownerNameStr = listOfNotNull(selectedOwner?.firstName, selectedOwner?.lastName).joinToString(" ").ifBlank {
                             selectedOwner?.displayName ?: "Propietario Registrado"
@@ -450,6 +456,11 @@ fun ExpedientesScreen(
                                     Text("Ir a Consultas", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                             }
+                        }
+
+                        if (errorMessage != null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(errorMessage!!, color = Color(0xFFB91C1C), fontSize = 12.sp, modifier = Modifier.fillMaxWidth().background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp)).padding(8.dp))
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))

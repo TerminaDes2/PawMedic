@@ -12,7 +12,7 @@ class SupabaseProductDataSource(
             .select {
                 filter {
                     eq("tenant_id", tenantId)
-                    eq("activo", true)
+                    eq("active", true)
                 }
             }
             .decodeList<ProductDto>()

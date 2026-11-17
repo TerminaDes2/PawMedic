@@ -289,7 +289,7 @@ fun ConsultasScreen(
 
                     val filtered = patientsList.filter { p ->
                         val mId = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
-                        val pName = p.nombre ?: p.name ?: ""
+                        val pName = p.name ?: ""
                         searchMedicalIdQuery.isBlank() ||
                             mId.contains(searchMedicalIdQuery, ignoreCase = true) ||
                             pName.contains(searchMedicalIdQuery, ignoreCase = true) ||
@@ -308,9 +308,9 @@ fun ConsultasScreen(
                             items(filtered) { p ->
                                 val isSelected = selectedPatient?.id == p.id
                                 val medIdStr = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
-                                val nameStr = p.nombre ?: p.name ?: "Mascota"
-                                val speciesStr = p.especie ?: p.species ?: "Especie"
-                                val breedStr = p.raza ?: p.breed ?: "Mestizo"
+                                val nameStr = p.name ?: "Mascota"
+                                val speciesStr = p.species ?: "Especie"
+                                val breedStr = p.breed ?: "Mestizo"
 
                                 Box(
                                     modifier = Modifier
@@ -397,9 +397,9 @@ fun ConsultasScreen(
                     val p = selectedPatient
                     if (p != null) {
                         val medId = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
-                        val pName = p.nombre ?: p.name ?: "Mascota"
-                        val pSpecies = p.especie ?: p.species ?: "Especie"
-                        val pBreed = p.raza ?: p.breed ?: "Mestizo"
+                        val pName = p.name ?: "Mascota"
+                        val pSpecies = p.species ?: "Especie"
+                        val pBreed = p.breed ?: "Mestizo"
                         val ownerNameStr = listOfNotNull(selectedOwner?.firstName, selectedOwner?.lastName).joinToString(" ").ifBlank {
                             selectedOwner?.displayName ?: "Propietario Registrado"
                         }
@@ -517,7 +517,8 @@ fun ConsultasScreen(
                                                             startDate = todayIso,
                                                             endDate = drugEndDate.ifBlank { defaultExpiry },
                                                             isAdministeredInConsultation = isConsultationAdmin,
-                                                            prescribingVetName = vetUserName
+                                                            prescribingVetName = vetUserName,
+                                                            prescribingVetId = vetUserId
                                                         )
                                                     )
                                                 } else emptyList()

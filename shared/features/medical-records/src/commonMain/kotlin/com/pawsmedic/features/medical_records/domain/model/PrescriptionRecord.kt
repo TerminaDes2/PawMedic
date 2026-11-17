@@ -20,6 +20,7 @@ data class PrescriptionRecord(
     val endDate: String? = null, // Mandatory Expiration Date
     val isAdministeredInConsultation: Boolean = false,
     val prescribingVetName: String = "",
+    val prescribingVetId: String? = null,
     val notes: String = ""
 ) {
     val isActive: Boolean

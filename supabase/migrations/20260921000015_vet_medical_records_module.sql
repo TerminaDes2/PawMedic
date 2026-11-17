@@ -125,6 +125,7 @@ create table if not exists public.clinical_studies (
 );
 
 -- 6. Habilitar RLS en todas las tablas
+alter table public.pets enable row level security;
 alter table public.pet_backgrounds enable row level security;
 alter table public.clinical_consultations enable row level security;
 alter table public.medical_records enable row level security;
@@ -134,6 +135,18 @@ alter table public.dewormings enable row level security;
 alter table public.clinical_studies enable row level security;
 
 -- 7. Crear Políticas RLS
+
+-- PETS (Permite a cualquier Veterinario buscar y gestionar mascotas registradas)
+drop policy if exists pets_owner_crud on public.pets;
+drop policy if exists pets_select_access on public.pets;
+drop policy if exists pets_vet_read_write on public.pets;
+
+create policy pets_select_access on public.pets for select
+using (owner_id = auth.uid() or public.is_veterinarian());
+
+create policy pets_vet_read_write on public.pets for all
+using (owner_id = auth.uid() or public.is_veterinarian())
+with check (owner_id = auth.uid() or public.is_veterinarian());
 
 -- PET BACKGROUNDS
 drop policy if exists pet_backgrounds_select on public.pet_backgrounds;

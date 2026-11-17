@@ -7,11 +7,8 @@ import kotlinx.serialization.Serializable
 data class PatientRow(
     val id: String,
     val name: String? = null,
-    val nombre: String? = null,
     val breed: String? = null,
-    val raza: String? = null,
     val species: String? = null,
-    val especie: String? = null,
     @SerialName("owner_id") val ownerId: String? = null,
     @SerialName("medical_id") val medicalId: String? = null,
     @SerialName("date_of_birth") val dateOfBirth: String? = null,
@@ -41,4 +38,10 @@ data class NewPetDesktopRecord(
     @SerialName("medical_id") val medicalId: String,
     val allergies: String? = null,
     val notes: String? = null
+)
+
+@Serializable
+data class GrantAccessParams(
+    @SerialName("p_pet_id") val petId: String,
+    @SerialName("p_reason") val reason: String = "Atención Médica por ID Médico"
 )

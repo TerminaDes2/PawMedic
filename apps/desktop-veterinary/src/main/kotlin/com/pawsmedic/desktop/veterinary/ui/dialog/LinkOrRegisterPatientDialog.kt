@@ -59,6 +59,8 @@ import com.pawsmedic.desktop.veterinary.ui.theme.TextSecondary
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.UUID
 
 @Composable
@@ -186,16 +188,21 @@ fun LinkOrRegisterPatientDialog(
                                             searchedPatient = null
                                             try {
                                                 val queryStr = searchMedicalId.trim()
-                                                val results = supabase.postgrest["pets"]
-                                                    .select {
-                                                        filter {
-                                                            or {
+                                                val results = try {
+                                                    supabase.postgrest.rpc(
+                                                        "search_pet_by_medical_id",
+                                                        buildJsonObject { put("p_medical_id", queryStr) }
+                                                    ).decodeList<PatientRow>()
+                                                } catch (e: Exception) {
+                                                    supabase.postgrest["pets"]
+                                                        .select {
+                                                            filter {
                                                                 eq("medical_id", queryStr)
-                                                                eq("id", queryStr)
                                                             }
                                                         }
-                                                    }
-                                                    .decodeList<PatientRow>()
+                                                        .decodeList<PatientRow>()
+                                                }
+
                                                 if (results.isEmpty()) {
                                                     errorMessage = "No se encontró ninguna mascota con el ID Médico '$queryStr'."
                                                 } else {
@@ -220,9 +227,9 @@ fun LinkOrRegisterPatientDialog(
                             if (searchedPatient != null) {
                                 val p = searchedPatient!!
                                 val medIdStr = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
-                                val nameStr = p.nombre ?: p.name ?: "Mascota"
-                                val speciesStr = p.especie ?: p.species ?: "Especie"
-                                val breedStr = p.raza ?: p.breed ?: "Mestizo"
+                                val nameStr = p.name ?: "Mascota"
+                                val speciesStr = p.species ?: "Especie"
+                                val breedStr = p.breed ?: "Mestizo"
 
                                 Card(
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -238,8 +245,19 @@ fun LinkOrRegisterPatientDialog(
                                         Spacer(modifier = Modifier.height(10.dp))
                                         Button(
                                             onClick = {
-                                                onPatientSelected(p)
-                                                onDismiss()
+                                                coroutineScope.launch {
+                                                    runCatching {
+                                                        supabase.postgrest.rpc(
+                                                            "grant_pet_access",
+                                                            buildJsonObject {
+                                                                put("p_pet_id", p.id)
+                                                                put("p_reason", "Atención Médica por ID Médico")
+                                                            }
+                                                        )
+                                                    }
+                                                    onPatientSelected(p)
+                                                    onDismiss()
+                                                }
                                             },
                                             modifier = Modifier.fillMaxWidth(),
                                             colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)

@@ -65,9 +65,9 @@ fun EditPetDataDialog(
     onDismiss: () -> Unit,
     onConfirm: (PatientRow) -> Unit
 ) {
-    var petName by remember { mutableStateOf(initialPatient.nombre ?: initialPatient.name ?: "") }
-    var species by remember { mutableStateOf(initialPatient.especie ?: initialPatient.species ?: "Canino") }
-    var breed by remember { mutableStateOf(initialPatient.raza ?: initialPatient.breed ?: "") }
+    var petName by remember { mutableStateOf(initialPatient.name ?: "") }
+    var species by remember { mutableStateOf(initialPatient.species ?: "Canino") }
+    var breed by remember { mutableStateOf(initialPatient.breed ?: "") }
     var gender by remember { mutableStateOf(initialPatient.gender ?: "Macho") }
     var weightKg by remember { mutableStateOf(initialPatient.weightGrams?.let { "${it / 1000.0}" } ?: "") }
     var medicalId by remember { mutableStateOf(initialPatient.medicalId ?: "PM-${initialPatient.id.take(4).uppercase()}") }
