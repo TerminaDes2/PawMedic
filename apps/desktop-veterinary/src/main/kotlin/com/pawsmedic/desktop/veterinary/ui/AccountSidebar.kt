@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.pawsmedic.desktop.admin.translation.translateBatchLocally
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.desktop.veterinary.verifyAccountPassword
@@ -44,6 +46,8 @@ internal fun AccountSidebar(
     onProfileLoaded: (String) -> Unit,
     onProfileSaved: (String) -> Unit
 ) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     val scope = rememberCoroutineScope()
     val user = supabase.auth.currentUserOrNull()
     var profile by remember { mutableStateOf<JsonObject?>(null) }
@@ -59,6 +63,43 @@ internal fun AccountSidebar(
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var reload by remember { mutableIntStateOf(0) }
+    val translations = remember(user?.id) { mutableStateMapOf<String, String>() }
+    var showOriginal by remember { mutableStateOf(false) }
+    var translating by remember { mutableStateOf(false) }
+    var translationError by remember { mutableStateOf(false) }
+    var translationAttempt by remember { mutableIntStateOf(0) }
+    val clinicTexts = remember(clinic) {
+        listOf(clinic?.value("business_name").orEmpty(), clinic?.value("address").orEmpty())
+            .filter { it.isNotBlank() }.distinct()
+    }
+
+    LaunchedEffect(english, page, clinicTexts, translationAttempt) {
+        if (!english || page != "info") {
+            translating = false
+            return@LaunchedEffect
+        }
+        val missing = clinicTexts.filterNot { translations.containsKey(it) }
+        val pending = missing.filter { it.length <= 4000 }
+        translationError = missing.size != pending.size
+        if (pending.isNotEmpty()) {
+            translating = true
+            try {
+                for (batch in pending.chunked(50)) {
+                    batch.zip(translateBatchLocally(batch)).forEach { (original, translated) ->
+                        translations[original] = translated
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                translationError = true
+            } finally {
+                translating = false
+            }
+        }
+    }
+    fun displayText(value: String): String =
+        if (english && !showOriginal) translations[value] ?: value else value
 
     LaunchedEffect(user?.id, reload) {
         loading = true
@@ -78,7 +119,7 @@ internal fun AccountSidebar(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            error = "No se pudieron cargar los datos de la cuenta. Inténtalo de nuevo."
+            error = tr("No se pudieron cargar los datos de la cuenta. Inténtalo de nuevo.", "Could not load account information. Please try again.")
         } finally {
             loading = false
         }
@@ -99,22 +140,22 @@ internal fun AccountSidebar(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (page == "menu") "Mi perfil" else if (page == "info") "Información de la cuenta" else "Editar perfil",
+                Text(if (page == "menu") tr("Mi perfil", "My profile") else if (page == "info") tr("Información de la cuenta", "Account information") else tr("Editar perfil", "Edit profile"),
                     style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 IconButton(onClick = onClose, enabled = !busy) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar panel")
+                    Icon(Icons.Default.Close, contentDescription = tr("Cerrar panel", "Close panel"))
                 }
             }
             if (page != "menu") {
                 TextButton(onClick = {
                     page = "menu"; revealed = false; photo = null; error = null
-                }, enabled = !busy) { Text("Volver") }
+                }, enabled = !busy) { Text(tr("Volver", "Back")) }
             }
             if (loading) {
                 CircularProgressIndicator()
             } else if (profile == null) {
-                Text(error ?: "No se pudieron cargar los datos.", color = MaterialTheme.colorScheme.error)
-                OutlinedButton(onClick = { reload++ }) { Text("Reintentar") }
+                Text(error ?: tr("No se pudieron cargar los datos.", "Could not load information."), color = MaterialTheme.colorScheme.error)
+                OutlinedButton(onClick = { reload++ }) { Text(tr("Reintentar", "Retry")) }
             } else {
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 when (page) {
@@ -125,55 +166,64 @@ internal fun AccountSidebar(
                             contentAlignment = Alignment.Center
                         ) {
                             if (avatar != null) {
-                                Image(avatar, "Foto de perfil", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                Image(avatar, tr("Foto de perfil", "Profile photo"), Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                             } else {
-                                Icon(Icons.Default.Person, "Sin foto de perfil", modifier = Modifier.size(72.dp), tint = ClinicalEmerald)
+                                Icon(Icons.Default.Person, tr("Sin foto de perfil", "No profile photo"), modifier = Modifier.size(72.dp), tint = ClinicalEmerald)
                             }
                         }
-                        Text(profile?.value("display_name").orEmpty().ifBlank { "Cuenta veterinaria" },
+                        Text(profile?.value("display_name").orEmpty().ifBlank { tr("Cuenta veterinaria", "Veterinary account") },
                             modifier = Modifier.align(Alignment.CenterHorizontally),
                             style = MaterialTheme.typography.titleMedium)
                         OutlinedButton(onClick = { error = null; page = "info" }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Información de la cuenta")
+                            Text(tr("Información de la cuenta", "Account information"))
                         }
                         OutlinedButton(onClick = {
                             name = profile?.value("display_name").orEmpty()
                             phone = profile?.value("phone").orEmpty()
                             error = null
                             page = "edit"
-                        }, modifier = Modifier.fillMaxWidth()) { Text("Editar perfil") }
+                        }, modifier = Modifier.fillMaxWidth()) { Text(tr("Editar perfil", "Edit profile")) }
                         TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-                            Text("Cerrar sesión", color = MaterialTheme.colorScheme.error)
+                            Text(tr("Cerrar sesión", "Sign out"), color = MaterialTheme.colorScheme.error)
                         }
                     }
                     "info" -> {
-                        AccountField("Nombre", profile?.value("display_name").orEmpty())
-                        AccountField("Teléfono", profile?.value("phone").orEmpty().ifBlank { clinic?.value("contact_phone").orEmpty() })
-                        AccountField("Clínica", clinic?.value("business_name").orEmpty())
-                        AccountField("Ubicación", listOfNotNull(
-                            clinic?.value("address")?.takeIf { it.isNotBlank() },
+                        if (english && clinicTexts.isNotEmpty()) {
+                            Text("Clinic details may be machine translated. Verify the original.", color = TextSecondary)
+                            TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
+                            if (translating) Text("Translating…", color = TextSecondary)
+                            if (translationError) {
+                                Text("Some details could not be translated; the original is shown.", color = MaterialTheme.colorScheme.error)
+                                TextButton(onClick = { translationAttempt++ }, enabled = !translating) { Text("Retry") }
+                            }
+                        }
+                        AccountField(tr("Nombre", "Name"), profile?.value("display_name").orEmpty())
+                        AccountField(tr("Teléfono", "Phone"), profile?.value("phone").orEmpty().ifBlank { clinic?.value("contact_phone").orEmpty() })
+                        AccountField(tr("Clínica", "Clinic"), displayText(clinic?.value("business_name").orEmpty()))
+                        AccountField(tr("Ubicación", "Location"), listOfNotNull(
+                            clinic?.value("address")?.takeIf { it.isNotBlank() }?.let(::displayText),
                             clinic?.value("city")?.takeIf { it.isNotBlank() }
                         ).joinToString(", "))
-                        AccountField("Veterinario responsable", clinic?.value("veterinarian_name").orEmpty())
-                        if (clinic == null) Text("No se encontró una solicitud de clínica aprobada.")
+                        AccountField(tr("Veterinario responsable", "Veterinarian in charge"), clinic?.value("veterinarian_name").orEmpty())
+                        if (clinic == null) Text(tr("No se encontró una solicitud de clínica aprobada.", "No approved clinic application was found."))
                         HorizontalDivider()
-                        SensitiveField("Correo", user?.email.orEmpty(), revealed) {
+                        SensitiveField(tr("Correo", "Email"), user?.email.orEmpty(), revealed) {
                             if (revealed) revealed = false else passwordPrompt = true
                         }
                         SensitiveField("RFC", clinic?.value("tax_id").orEmpty(), revealed) {
                             if (revealed) revealed = false else passwordPrompt = true
                         }
-                        SensitiveField("Cédula profesional", clinic?.value("professional_license").orEmpty(), revealed) {
+                        SensitiveField(tr("Cédula profesional", "Professional license"), clinic?.value("professional_license").orEmpty(), revealed) {
                             if (revealed) revealed = false else passwordPrompt = true
                         }
                     }
                     "edit" -> {
-                        OutlinedTextField(name, { name = it }, label = { Text("Nombre") },
+                        OutlinedTextField(name, { name = it }, label = { Text(tr("Nombre", "Name")) },
                             singleLine = true, modifier = Modifier.fillMaxWidth(), enabled = !busy)
-                        OutlinedTextField(phone, { phone = it }, label = { Text("Teléfono") },
+                        OutlinedTextField(phone, { phone = it }, label = { Text(tr("Teléfono", "Phone")) },
                             singleLine = true, modifier = Modifier.fillMaxWidth(), enabled = !busy)
                         photo?.let {
-                            Image(it.preview, "Vista previa de la foto", Modifier.size(90.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+                            Image(it.preview, tr("Vista previa de la foto", "Photo preview"), Modifier.size(90.dp).clip(CircleShape), contentScale = ContentScale.Crop)
                         }
                         ProfilePhotoPicker(
                             enabled = !busy,
@@ -182,11 +232,11 @@ internal fun AccountSidebar(
                             onBusyChange = { busy = it }
                         )
                         if (photo != null) TextButton(onClick = { photo = null }, enabled = !busy) {
-                            Text("Descartar foto seleccionada")
+                            Text(tr("Descartar foto seleccionada", "Discard selected photo"))
                         }
                         Button(onClick = {
                             if (name.isBlank()) {
-                                error = "Escribe un nombre."
+                                error = tr("Escribe un nombre.", "Enter a name.")
                             } else {
                                 busy = true
                                 scope.launch {
@@ -215,11 +265,11 @@ internal fun AccountSidebar(
                                     } catch (e: CancellationException) {
                                         throw e
                                     } catch (e: Exception) {
-                                        error = "No se pudieron guardar los cambios. Revisa tu conexión y los permisos del perfil."
+                                        error = tr("No se pudieron guardar los cambios. Revisa tu conexión y los permisos del perfil.", "Could not save changes. Check your connection and profile permissions.")
                                     } finally { busy = false }
                                 }
                             }
-                        }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Guardar cambios") }
+                        }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(tr("Guardar cambios", "Save changes")) }
                     }
                 }
             }
@@ -230,11 +280,11 @@ internal fun AccountSidebar(
             onDismissRequest = {
                 if (!busy) { passwordPrompt = false; password = "" }
             },
-            title = { Text("Confirma tu contraseña") },
+            title = { Text(tr("Confirma tu contraseña", "Confirm your password")) },
             text = {
                 Column {
-                    Text("Para mostrar los datos sensibles, confirma tu contraseña.")
-                    OutlinedTextField(password, { password = it }, label = { Text("Contraseña") },
+                    Text(tr("Para mostrar los datos sensibles, confirma tu contraseña.", "Confirm your password to show sensitive information."))
+                    OutlinedTextField(password, { password = it }, label = { Text(tr("Contraseña", "Password")) },
                         singleLine = true, visualTransformation = PasswordVisualTransformation(), enabled = !busy)
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
@@ -255,15 +305,15 @@ internal fun AccountSidebar(
                             throw e
                         } catch (e: Exception) {
                             password = ""
-                            error = "No se pudo confirmar la contraseña. Verifica los datos y tu conexión."
+                            error = tr("No se pudo confirmar la contraseña. Verifica los datos y tu conexión.", "Could not confirm your password. Check your credentials and connection.")
                         } finally { busy = false }
                     }
-                }) { Text("Confirmar") }
+                }) { Text(tr("Confirmar", "Confirm")) }
             },
             dismissButton = {
                 TextButton(enabled = !busy, onClick = {
                     password = ""; error = null; passwordPrompt = false
-                }) { Text("Cancelar") }
+                }) { Text(tr("Cancelar", "Cancel")) }
             }
         )
     }
@@ -271,19 +321,21 @@ internal fun AccountSidebar(
 
 @Composable
 private fun AccountField(label: String, value: String) {
+    val english = LocalDesktopAppearance.current.english
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-        Text(value.ifBlank { "No disponible" }, style = MaterialTheme.typography.bodyLarge)
+        Text(value.ifBlank { if (english) "Not available" else "No disponible" }, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
 @Composable
 private fun SensitiveField(label: String, value: String, revealed: Boolean, onToggle: () -> Unit) {
+    val english = LocalDesktopAppearance.current.english
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f)) { AccountField(label, if (revealed) value else "****") }
         IconButton(onClick = onToggle) {
             Icon(if (revealed) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                contentDescription = if (revealed) "Ocultar $label" else "Mostrar $label")
+                contentDescription = if (revealed) (if (english) "Hide $label" else "Ocultar $label") else (if (english) "Show $label" else "Mostrar $label"))
         }
     }
 }

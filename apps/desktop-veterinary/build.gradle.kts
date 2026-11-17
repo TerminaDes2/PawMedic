@@ -29,6 +29,7 @@ dependencies {
     implementation("net.java.dev.jna:jna-platform:5.6.0")
     implementation("com.github.sarxos:webcam-capture:0.3.12")
     implementation("org.slf4j:slf4j-nop:2.0.13")
+    implementation("org.apache.pdfbox:pdfbox:2.0.32")
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
@@ -39,4 +40,47 @@ application { mainClass.set("com.pawsmedic.desktop.veterinary.MainKt") }
 
 tasks.withType<JavaExec>().configureEach {
     jvmArgs("--enable-native-access=ALL-UNNAMED")
+    val argos = layout.buildDirectory
+    if (argos.file("argos-dist/pawmedic-argos-worker/pawmedic-argos-worker.exe").get().asFile.isFile) {
+        systemProperty("pawmedic.argos.executable", argos.file("argos-dist/pawmedic-argos-worker/pawmedic-argos-worker.exe").get().asFile.absolutePath)
+        systemProperty("pawmedic.argos.packages", argos.dir("argos-models").get().asFile.absolutePath)
+    }
+}
+
+distributions {
+    main {
+        contents {
+            eachFile {
+                if (name == "library-desktop-1.7.3.jar" && file.path.contains("components-ui-tooling-preview-desktop")) {
+                    name = "compose-preview-library-1.7.3.jar"
+                }
+            }
+        }
+    }
+}
+
+tasks.named<CreateStartScripts>("startScripts") {
+    doLast {
+        windowsScript.writeText(windowsScript.readText().replace(Regex("(?m)^set CLASSPATH=.*$")) {
+            "set CLASSPATH=%APP_HOME%\\lib\\*"
+        })
+        unixScript.writeText(unixScript.readText().replace(Regex("(?m)^CLASSPATH=.*$")) {
+            "CLASSPATH=\$APP_HOME/lib/*"
+        })
+    }
+}
+
+tasks.register<Sync>("installWithTranslation") {
+    dependsOn("installDist")
+    val argos = layout.buildDirectory
+    doFirst {
+        check(argos.file("argos-dist/pawmedic-argos-worker/pawmedic-argos-worker.exe").get().asFile.isFile &&
+            argos.file("argos-models/translate-es_en-1_9/metadata.json").get().asFile.isFile) {
+            "Run python apps\\desktop-veterinary\\translation\\prepare_argos.py first."
+        }
+    }
+    from(argos.dir("install/${project.name}"))
+    from(argos.dir("argos-dist/pawmedic-argos-worker")) { into("argos/worker") }
+    from(argos.dir("argos-models")) { into("argos/models") }
+    into(argos.dir("install-with-translation/${project.name}"))
 }

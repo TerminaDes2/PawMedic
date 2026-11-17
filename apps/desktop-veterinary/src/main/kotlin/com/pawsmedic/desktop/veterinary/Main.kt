@@ -21,10 +21,18 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.pawsmedic.desktop.admin.ui.SuperadminDashboardScreen
+import com.pawsmedic.desktop.admin.ui.DesktopAppearanceProvider
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
+import com.pawsmedic.desktop.admin.ui.AppearanceButton
+import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
+import com.pawsmedic.desktop.admin.translation.translateLocally
 import com.pawsmedic.desktop.veterinary.ui.AgendaScreen
 import com.pawsmedic.desktop.veterinary.ui.CatalogScreen
+import com.pawsmedic.desktop.veterinary.ui.CatalogTranslationProvider
 import com.pawsmedic.desktop.veterinary.ui.ExpedientesScreen
+import com.pawsmedic.desktop.veterinary.ui.HeaderProfileProvider
 import com.pawsmedic.desktop.veterinary.ui.ScheduleScreen
+import com.pawsmedic.desktop.veterinary.ui.ReportsScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.LoginScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.RegisterScreen
 import com.pawsmedic.desktop.veterinary.ui.auth.SuperadminLoginScreen
@@ -49,33 +57,74 @@ private fun AccessStatusScreen(
     message: String,
     onBackToLogin: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(OffWhiteBg)
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
+    val english = LocalDesktopAppearance.current.english
+    val knownTranslation = remember(message) { knownAccessStatusEnglish(message) }
+    var translation by remember(message) { mutableStateOf<String?>(null) }
+    var showOriginal by remember(message) { mutableStateOf(false) }
+    var translating by remember(message) { mutableStateOf(false) }
+    var translationError by remember(message) { mutableStateOf(false) }
+    var translationAttempt by remember(message) { mutableIntStateOf(0) }
+    LaunchedEffect(message, english, translationAttempt) {
+        if (!english || knownTranslation != null || message.isBlank() || translation != null) {
+            translating = false
+            return@LaunchedEffect
+        }
+        if (message.length > 4000) {
+            translationError = true
+            return@LaunchedEffect
+        }
+        translating = true
+        translationError = false
+        try {
+            translation = translateLocally(message)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            translationError = true
+        } finally {
+            translating = false
+        }
+    }
+
+    Box(Modifier.fillMaxSize().background(OffWhiteBg)) {
+        Row(Modifier.align(Alignment.TopEnd).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            AppearanceButton()
+            NavigationLanguageButton()
+        }
+        Column(
+            modifier = Modifier.fillMaxSize().padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
         Text(
-            text = "Estado de la cuenta",
+            text = if (english) "Account status" else "Estado de la cuenta",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = message,
+            text = if (english && !showOriginal) knownTranslation ?: translation ?: message else message,
             fontSize = 15.sp,
             color = TextSecondary,
             textAlign = TextAlign.Center
         )
+        if (english && knownTranslation == null && message.isNotBlank()) {
+            Text("Machine translation may be inaccurate. Verify the original.", fontSize = 12.sp, color = TextSecondary)
+            TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
+            if (translating) Text("Translating…", color = TextSecondary, fontSize = 12.sp)
+            if (translationError) {
+                Text("Could not translate this message; the original is shown.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                TextButton(onClick = { translationAttempt++ }) { Text("Retry") }
+            }
+        }
         Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = onBackToLogin,
             colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
         ) {
-            Text("Volver al inicio de sesión", color = Color.White)
+            Text(if (english) "Back to sign in" else "Volver al inicio de sesión", color = Color.White)
+        }
         }
     }
 }
@@ -201,28 +250,16 @@ fun main() = application {
         title = "PawsMedic - Sistema Veterinario",
         state = windowState
     ) {
-        MaterialTheme(
-            colorScheme = lightColorScheme(
-                primary = ClinicalEmerald,
-                onPrimary = Color.White,
-                secondary = EmeraldHover,
-                surface = CardWhite,
-                background = OffWhiteBg,
-                onSurface = TextPrimary,
-                outline = BorderLight
-            ),
-            shapes = Shapes(
-                small = RoundedCornerShape(8.dp),
-                medium = RoundedCornerShape(12.dp),
-                large = RoundedCornerShape(16.dp)
-            )
-        ) {
+        DesktopAppearanceProvider {
+            HeaderProfileProvider(activeUserEmail) {
+            CatalogTranslationProvider(activeUserEmail) {
             Box(modifier = Modifier.fillMaxSize()) {
+                val english = LocalDesktopAppearance.current.english
                 when (currentScreen) {
                     "Restoring" -> Box(Modifier.fillMaxSize().background(OffWhiteBg), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             CircularProgressIndicator(color = ClinicalEmerald)
-                            Text("Preparando tu sesión...", color = TextSecondary)
+                            Text(if (english) "Preparing your session..." else "Preparando tu sesión...", color = TextSecondary)
                         }
                     }
                     "Login" -> LoginScreen(
@@ -269,6 +306,11 @@ fun main() = application {
                         onNavigate = { currentScreen = it },
                         onLogout = { handleLogout() }
                     )
+                    "Reports" -> ReportsScreen(
+                        userEmail = activeUserEmail,
+                        onNavigate = { currentScreen = it },
+                        onLogout = { handleLogout() }
+                    )
                     "Admin" -> SuperadminDashboardScreen(
                         userEmail = activeUserEmail,
                         onLogout = { handleLogout() },
@@ -288,7 +330,7 @@ fun main() = application {
                                 .width(540.dp)
                                 .wrapContentHeight(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = CardWhite),
                             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                         ) {
                             Column(
@@ -312,19 +354,23 @@ fun main() = application {
                                 }
 
                                 Text(
-                                    text = "Aviso: Sesión Activa",
+                                    text = if (english) "Active session" else "Aviso: Sesión Activa",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextPrimary
                                 )
 
                                 Text(
-                                    text = "Elige si deseas conservar tu sesión para la próxima vez que abras PawMedic.",
+                                    text = if (english) "Choose whether to keep your session for the next time you open PawMedic."
+                                        else "Elige si deseas conservar tu sesión para la próxima vez que abras PawMedic.",
                                     fontSize = 14.sp,
                                     color = TextSecondary,
                                     textAlign = TextAlign.Center
                                 )
-                                exitError?.let { Text(it, color = Color(0xFFDC2626), fontSize = 12.sp) }
+                                exitError?.let {
+                                    Text(if (english) "Could not sign out. Check your connection and try again." else it,
+                                        color = Color(0xFFDC2626), fontSize = 12.sp)
+                                }
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -338,7 +384,7 @@ fun main() = application {
                                             .height(42.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Text("Regresar", fontSize = 12.sp, color = TextPrimary)
+                                        Text(if (english) "Go back" else "Regresar", fontSize = 12.sp, color = TextPrimary)
                                     }
 
                                     OutlinedButton(
@@ -366,7 +412,7 @@ fun main() = application {
                                         shape = RoundedCornerShape(8.dp),
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626))
                                     ) {
-                                        Text("Cerrar sesión y salir", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text(if (english) "Sign out and exit" else "Cerrar sesión y salir", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     Button(
@@ -381,9 +427,11 @@ fun main() = application {
                                         shape = RoundedCornerShape(8.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
                                     ) {
-                                        Text("Continuar", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text(if (english) "Continue" else "Continuar", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                     }
                                 }
+                            }
+                        }
                             }
                         }
                     }

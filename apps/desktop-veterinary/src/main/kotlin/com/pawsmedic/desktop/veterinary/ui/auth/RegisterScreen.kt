@@ -32,6 +32,8 @@ import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.SelectedPhoto
 import com.pawsmedic.desktop.veterinary.ui.ProfilePhotoPicker
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
+import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email as SupabaseEmail
@@ -54,6 +56,8 @@ private data class SubmittedBusinessApplication(
 fun RegisterScreen(
     onNavigateToLogin: () -> Unit
 ) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     var clinicName by remember { mutableStateOf("") }
     var rucTaxId by remember { mutableStateOf("") }
     var adminEmail by remember { mutableStateOf("") }
@@ -71,8 +75,8 @@ fun RegisterScreen(
 
     var phoneWarning by remember { mutableStateOf(false) }
     var rucWarning by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var successMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<AuthMessage?>(null) }
+    var successMessage by remember { mutableStateOf<AuthMessage?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var requiresEmailVerification by remember { mutableStateOf(false) }
     var verificationCode by remember { mutableStateOf("") }
@@ -85,7 +89,7 @@ fun RegisterScreen(
 
     suspend fun submitApplication() {
         val user = supabase.auth.currentUserOrNull()
-            ?: error("Debes verificar el correo e iniciar sesión antes de enviar la solicitud.")
+            ?: error(tr("Debes verificar el correo e iniciar sesión antes de enviar la solicitud.", "Verify your email and sign in before submitting the application."))
         val userEmail = user.email ?: adminEmail.trim()
         profilePhoto?.let { photo ->
             val bucket = supabase.storage.from("profiles")
@@ -156,29 +160,29 @@ fun RegisterScreen(
             result
         }
         submittedFolio = application.id
-        successMessage = "¡Solicitud enviada con éxito! Redirigiendo..."
+        successMessage = AuthMessage("¡Solicitud enviada con éxito! Redirigiendo...", "Application submitted successfully! Redirecting...")
         requiresEmailVerification = false
         kotlinx.coroutines.delay(2000)
         supabase.auth.signOut()
         onNavigateToLogin()
     }
 
-    fun validatePassword(pwd: String): String? {
+    fun validatePassword(pwd: String): AuthMessage? {
         if (pwd.length < 8) {
-            return "La contraseña debe tener al menos 8 caracteres."
+            return AuthMessage("La contraseña debe tener al menos 8 caracteres.", "The password must contain at least 8 characters.")
         }
         if (!pwd.any { it.isUpperCase() }) {
-            return "La contraseña debe incluir al menos una letra mayúscula (A-Z)."
+            return AuthMessage("La contraseña debe incluir al menos una letra mayúscula (A-Z).", "The password must include an uppercase letter (A-Z).")
         }
         if (!pwd.any { it.isLowerCase() }) {
-            return "La contraseña debe incluir al menos una letra minúscula (a-z)."
+            return AuthMessage("La contraseña debe incluir al menos una letra minúscula (a-z).", "The password must include a lowercase letter (a-z).")
         }
         if (!pwd.any { it.isDigit() }) {
-            return "La contraseña debe incluir al menos un número (0-9)."
+            return AuthMessage("La contraseña debe incluir al menos un número (0-9).", "The password must include a number (0-9).")
         }
         val specialChars = "!@#$%^&*()_+-=[]{}|;:,.<>/?"
         if (!pwd.any { it in specialChars }) {
-            return "La contraseña debe incluir al menos un carácter especial (ej. !@#$)."
+            return AuthMessage("La contraseña debe incluir al menos un carácter especial (ej. !@#$).", "The password must include a special character (e.g. !@#$).")
         }
         return null
     }
@@ -229,19 +233,20 @@ fun RegisterScreen(
                         )
                     }
 
-                    Column {
+                    Column(Modifier.weight(1f)) {
                         Text(
-                            text = "Registro de Clínica Veterinaria",
+                            text = tr("Registro de Clínica Veterinaria", "Veterinary clinic registration"),
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                         Text(
-                            text = "Solicita el alta de tu establecimiento para comenzar a utilizar PawsMedic",
+                            text = tr("Solicita el alta de tu establecimiento para comenzar a utilizar PawsMedic", "Apply to register your clinic and start using PawsMedic"),
                             fontSize = 13.sp,
                             color = TextSecondary
                         )
                     }
+                    NavigationLanguageButton()
                 }
 
                 if (errorMessage != null) {
@@ -253,7 +258,7 @@ fun RegisterScreen(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = errorMessage ?: "",
+                            text = errorMessage?.text(english).orEmpty(),
                             fontSize = 12.sp,
                             color = Color(0xFF991B1B),
                             fontWeight = FontWeight.Bold
@@ -270,7 +275,7 @@ fun RegisterScreen(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = successMessage ?: "",
+                            text = successMessage?.text(english).orEmpty(),
                             fontSize = 12.sp,
                             color = Color(0xFF166534),
                             fontWeight = FontWeight.Bold
@@ -279,7 +284,7 @@ fun RegisterScreen(
                 }
                 if (submittedFolio != null) {
                     Text(
-                        text = "Folio de solicitud: ${submittedFolio}\nEstado: PENDIENTE DE APROBACIÓN",
+                        text = tr("Folio de solicitud: ${submittedFolio}\nEstado: PENDIENTE DE APROBACIÓN", "Application reference: ${submittedFolio}\nStatus: PENDING APPROVAL"),
                         fontSize = 13.sp,
                         color = Color(0xFF166534),
                         fontWeight = FontWeight.Bold
@@ -301,8 +306,8 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = clinicName,
                             onValueChange = { clinicName = it },
-                            label = { Text("Nombre de la Clínica *", color = TextSecondary) },
-                            placeholder = { Text("ej. Veterinaria San Miguel", color = TextMuted) },
+                            label = { Text(tr("Nombre de la Clínica *", "Clinic name *"), color = TextSecondary) },
+                            placeholder = { Text(tr("ej. Veterinaria San Miguel", "e.g. San Miguel Veterinary Clinic"), color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.Store, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -321,8 +326,8 @@ fun RegisterScreen(
                                         rucWarning = true
                                     }
                                 },
-                                label = { Text("RUC / ID Fiscal *", color = TextSecondary) },
-                                placeholder = { Text("ej. 20123456789", color = TextMuted) },
+                                label = { Text(tr("RUC / ID Fiscal *", "Tax ID *"), color = TextSecondary) },
+                                placeholder = { Text(tr("ej. 20123456789", "e.g. 20123456789"), color = TextMuted) },
                                 leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = TextMuted) },
                                 singleLine = true,
                                 isError = rucWarning,
@@ -331,14 +336,14 @@ fun RegisterScreen(
                                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ClinicalEmerald, unfocusedBorderColor = BorderLight)
                             )
                             if (rucWarning) {
-                                Text("⚠️ Solo se permiten letras, números y guiones.", fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                                Text(tr("⚠️ Solo se permiten letras, números y guiones.", "⚠️ Only letters, numbers, and hyphens are allowed."), fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
                             }
                         }
 
                         OutlinedTextField(
                             value = adminEmail,
                             onValueChange = { adminEmail = it },
-                            label = { Text("Correo Electrónico Administrador *", color = TextSecondary) },
+                            label = { Text(tr("Correo Electrónico Administrador *", "Administrator email *"), color = TextSecondary) },
                             placeholder = { Text("admin@veterinaria.com", color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
@@ -358,7 +363,7 @@ fun RegisterScreen(
                                         phoneWarning = true
                                     }
                                 },
-                                label = { Text("Teléfono de Contacto *", color = TextSecondary) },
+                                label = { Text(tr("Teléfono de Contacto *", "Contact phone *"), color = TextSecondary) },
                                 placeholder = { Text("+52 55 1234 5678", color = TextMuted) },
                                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = TextMuted) },
                                 singleLine = true,
@@ -368,7 +373,7 @@ fun RegisterScreen(
                                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ClinicalEmerald, unfocusedBorderColor = BorderLight)
                             )
                             if (phoneWarning) {
-                                Text("⚠️ En este campo solo se permiten números, espacio y '+'.", fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                                Text(tr("⚠️ En este campo solo se permiten números, espacios, guiones y '+'.", "⚠️ Only numbers, spaces, hyphens, and '+' are allowed."), fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -381,8 +386,8 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = clinicAddress,
                             onValueChange = { clinicAddress = it },
-                            label = { Text("Dirección de la Clínica *", color = TextSecondary) },
-                            placeholder = { Text("Av. Principal 123, Ciudad", color = TextMuted) },
+                            label = { Text(tr("Dirección de la Clínica *", "Clinic address *"), color = TextSecondary) },
+                            placeholder = { Text(tr("Av. Principal 123, Ciudad", "123 Main Street, City"), color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -393,7 +398,7 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = vetManagerName,
                             onValueChange = { vetManagerName = it },
-                            label = { Text("Nombre del Veterinario Responsable *", color = TextSecondary) },
+                            label = { Text(tr("Nombre del Veterinario Responsable *", "Veterinarian in charge *"), color = TextSecondary) },
                             placeholder = { Text("MVZ Dr. Carlos Ramos", color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
@@ -405,7 +410,7 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = licenseNumber,
                             onValueChange = { licenseNumber = it },
-                            label = { Text("Cédula Profesional / Licencia *", color = TextSecondary) },
+                            label = { Text(tr("Cédula Profesional / Licencia *", "Professional license *"), color = TextSecondary) },
                             placeholder = { Text("CÉD-981204", color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.Verified, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
@@ -414,30 +419,11 @@ fun RegisterScreen(
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ClinicalEmerald, unfocusedBorderColor = BorderLight)
                         )
 
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            profilePhoto?.let { photo ->
-                                Image(photo.preview, contentDescription = "Vista previa de la foto",
-                                    modifier = Modifier.size(72.dp).clip(CircleShape), contentScale = ContentScale.Crop)
-                            }
-                            Column {
-                                ProfilePhotoPicker(
-                                    enabled = !isLoading,
-                                    onPhotoSelected = { profilePhoto = it; errorMessage = null },
-                                    onError = { errorMessage = it },
-                                    onBusyChange = { photoLoading = it }
-                                )
-                                Text("JPG o PNG, máximo 5 MB", color = TextSecondary, fontSize = 12.sp)
-                                if (profilePhoto != null) TextButton(onClick = { profilePhoto = null }, enabled = !isLoading) {
-                                    Text("Quitar foto")
-                                }
-                            }
-                        }
-
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             OutlinedTextField(
                                 value = password,
                                 onValueChange = { password = it },
-                                label = { Text("Contraseña (Seguridad Alta) *", color = TextSecondary) },
+                                label = { Text(tr("Contraseña (Seguridad Alta) *", "Password (high security) *"), color = TextSecondary) },
                                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = TextMuted) },
                                 trailingIcon = {
                                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -453,9 +439,27 @@ fun RegisterScreen(
                             )
 
                             if (passwordError != null) {
-                                Text("⚠️ $passwordError", fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Medium)
+                                Text("⚠️ ${passwordError.text(english)}", fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Medium)
                             } else if (password.isNotEmpty()) {
-                                Text("✓ Contraseña segura con formato correcto.", fontSize = 11.sp, color = Color(0xFF166534), fontWeight = FontWeight.Bold)
+                                Text(tr("✓ Contraseña segura con formato correcto.", "✓ Strong password with valid format."), fontSize = 11.sp, color = Color(0xFF166534), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            profilePhoto?.let { photo ->
+                                Image(photo.preview, contentDescription = tr("Vista previa de la foto", "Photo preview"),
+                                    modifier = Modifier.size(72.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+                            }
+                            Column {
+                                ProfilePhotoPicker(
+                                    enabled = !isLoading,
+                                    onPhotoSelected = { profilePhoto = it; errorMessage = null },
+                                    onError = { errorMessage = photoErrorMessage(it) },
+                                    onBusyChange = { photoLoading = it }
+                                )
+                                Text(tr("JPG o PNG, máximo 5 MB", "JPG or PNG, maximum 5 MB"), color = TextSecondary, fontSize = 12.sp)
+                                if (profilePhoto != null) TextButton(onClick = { profilePhoto = null }, enabled = !isLoading) {
+                                    Text(tr("Quitar foto", "Remove photo"))
+                                }
                             }
                         }
                     }
@@ -476,9 +480,9 @@ fun RegisterScreen(
                     ) {
                         Text(
                             if (useExistingAccount) {
-                                "¿Aún no tienes cuenta? Regístrate con este correo"
+                                tr("¿Aún no tienes cuenta? Regístrate con este correo", "Don't have an account? Register with this email")
                             } else {
-                                "¿Ya tienes cuenta? Inicia sesión para solicitar aprobación"
+                                tr("¿Ya tienes cuenta? Inicia sesión para solicitar aprobación", "Already have an account? Sign in to apply")
                             }
                         )
                     }
@@ -503,7 +507,7 @@ fun RegisterScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Acepto los Términos de Servicio y la Política de Privacidad de PawsMedic.",
+                            text = tr("Acepto los Términos de Servicio y la Política de Privacidad de PawsMedic.", "I accept the PawsMedic Terms of Service and Privacy Policy."),
                             fontSize = 12.sp,
                             color = TextPrimary
                         )
@@ -518,7 +522,7 @@ fun RegisterScreen(
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.height(44.dp)
                         ) {
-                            Text("Cancelar", fontSize = 14.sp, color = TextPrimary)
+                            Text(tr("Cancelar", "Cancel"), fontSize = 14.sp, color = TextPrimary)
                         }
 
                         Button(
@@ -528,13 +532,13 @@ fun RegisterScreen(
                                     if (clinicName.isBlank() || adminEmail.isBlank() || rucTaxId.isBlank() ||
                                         contactPhone.isBlank() || clinicAddress.isBlank() ||
                                         vetManagerName.isBlank() || licenseNumber.isBlank()) {
-                                        errorMessage = "Por favor complete todos los campos obligatorios (*)."
+                                        errorMessage = AuthMessage("Por favor complete todos los campos obligatorios (*).", "Complete all required fields (*).")
                                         return@launch
                                     }
 
                                     if (!Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
                                             .matches(adminEmail.trim())) {
-                                        errorMessage = "El correo electrónico no tiene un formato válido."
+                                        errorMessage = AuthMessage("El correo electrónico no tiene un formato válido.", "Enter a valid email address.")
                                         return@launch
                                     }
                                     if (!useExistingAccount && pwdCheck != null) {
@@ -542,7 +546,7 @@ fun RegisterScreen(
                                         return@launch
                                     }
                                     if (!acceptTerms) {
-                                        errorMessage = "Debe aceptar los Términos de Servicio para continuar."
+                                        errorMessage = AuthMessage("Debe aceptar los Términos de Servicio para continuar.", "Accept the Terms of Service to continue.")
                                         return@launch
                                     }
 
@@ -568,14 +572,16 @@ fun RegisterScreen(
                                                         email = adminEmail.trim()
                                                     )
                                                     requiresEmailVerification = true
-                                                    successMessage = "Te reenviamos un código a ${adminEmail.trim()}."
+                                                    successMessage = AuthMessage("Te reenviamos un código a ${adminEmail.trim()}.", "A code was resent to ${adminEmail.trim()}.")
+                                                } catch (e: CancellationException) {
+                                                    throw e
                                                 } catch (e: Exception) {
                                                     val rawMsg = e.message.orEmpty()
                                                     if (rawMsg.contains("missing email or phone", ignoreCase = true) ||
                                                         rawMsg.contains("confirmed", ignoreCase = true) ||
                                                         rawMsg.contains("already exists", ignoreCase = true)) {
                                                         useExistingAccount = true
-                                                        errorMessage = "Este correo ya está verificado en el sistema. Inicia sesión para continuar."
+                                                        errorMessage = AuthMessage("Este correo ya está verificado en el sistema. Inicia sesión para continuar.", "This email is already verified. Sign in to continue.")
                                                     } else {
                                                         throw e
                                                     }
@@ -592,16 +598,18 @@ fun RegisterScreen(
                                                             put("role", "VETERINARY_BUSINESS")
                                                         }
                                                     }
+                                                } catch (e: CancellationException) {
+                                                    throw e
                                                 } catch (e: Exception) {
                                                     val rawMsg = e.message.orEmpty()
                                                     if (rawMsg.contains("already registered", ignoreCase = true) ||
                                                         rawMsg.contains("already exists", ignoreCase = true) ||
                                                         rawMsg.contains("missing email or phone", ignoreCase = true)) {
                                                         useExistingAccount = true
-                                                        errorMessage = "Este correo ya está registrado en el sistema. Inicia sesión con tus credenciales para enviar la solicitud."
+                                                        errorMessage = AuthMessage("Este correo ya está registrado en el sistema. Inicia sesión con tus credenciales para enviar la solicitud.", "This email is already registered. Sign in to submit the application.")
                                                         return@launch
                                                     } else if (rawMsg.contains("rate limit", ignoreCase = true) || rawMsg.contains("429", ignoreCase = true)) {
-                                                        errorMessage = "Supabase ha alcanzado el límite de envío de correos por hora. Por favor espera unos minutos o usa la opción 'Ya tengo cuenta'."
+                                                        errorMessage = AuthMessage("Supabase ha alcanzado el límite de envío de correos por hora. Por favor espera unos minutos o usa la opción 'Ya tengo cuenta'.", "The email sending limit has been reached. Wait a few minutes or use the existing account option.")
                                                         return@launch
                                                     } else {
                                                         throw e
@@ -616,19 +624,18 @@ fun RegisterScreen(
                                                     accountCreated = true
                                                     requiresEmailVerification = true
                                                     verificationCode = ""
-                                                    successMessage =
-                                                        "Si este correo es nuevo, recibirás un código en ${adminEmail.trim()}. " +
-                                                            "Si ya tienes una cuenta de PawMedic, inicia sesión con esa cuenta para enviar la solicitud."
+                                                    successMessage = AuthMessage(
+                                                        "Si este correo es nuevo, recibirás un código en ${adminEmail.trim()}. Si ya tienes una cuenta de PawMedic, inicia sesión con esa cuenta para enviar la solicitud.",
+                                                        "If this email is new, you will receive a code at ${adminEmail.trim()}. If you already have a PawMedic account, sign in with it to submit the application."
+                                                    )
                                                 }
                                             }
                                         }
                                     } catch (e: CancellationException) {
                                         throw e
                                     } catch (e: Exception) {
-                                        e.printStackTrace()
-                                        println("=== PAWSMEDIC REGISTER FLOW ERROR ===")
-                                        println(e.stackTraceToString())
-                                        errorMessage = e.message ?: "Error al procesar la solicitud."
+                                        System.err.println("Error al procesar la solicitud: ${e.javaClass.simpleName}")
+                                        errorMessage = AuthMessage("No se pudo procesar la solicitud. Comprueba los datos y la conexión.", "Could not process the application. Check your information and connection.")
                                     } finally {
                                         isLoading = false
                                     }
@@ -648,10 +655,10 @@ fun RegisterScreen(
                             } else {
                                 Text(
                                     text = when {
-                                        useExistingAccount -> "Iniciar sesión y enviar solicitud"
-                                        emailVerified -> "Reintentar envío de solicitud"
-                                        accountCreated -> "Reenviar código de verificación"
-                                        else -> "Crear cuenta y verificar correo"
+                                        useExistingAccount -> tr("Iniciar sesión y enviar solicitud", "Sign in and submit application")
+                                        emailVerified -> tr("Reintentar envío de solicitud", "Retry application")
+                                        accountCreated -> tr("Reenviar código de verificación", "Resend verification code")
+                                        else -> tr("Crear cuenta y verificar correo", "Create account and verify email")
                                     },
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
@@ -673,13 +680,13 @@ fun RegisterScreen(
                                     verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
                                     Text(
-                                        text = "Verifica tu correo",
+                                        text = tr("Verifica tu correo", "Verify your email"),
                                         fontSize = 22.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = TextPrimary
                                     )
                                     Text(
-                                        text = "Ingresa el código de 6 dígitos que enviamos a ${adminEmail.trim()}.",
+                                        text = tr("Ingresa el código de 6 dígitos que enviamos a ${adminEmail.trim()}.", "Enter the 6-digit code sent to ${adminEmail.trim()}."),
                                         fontSize = 14.sp,
                                         color = TextSecondary
                                     )
@@ -692,7 +699,7 @@ fun RegisterScreen(
                                             errorMessage = null
                                         }
                                     ) {
-                                        Text("¿Ya registraste este correo en la app móvil? Usa esa cuenta.")
+                                        Text(tr("¿Ya registraste este correo en la app móvil? Usa esa cuenta.", "Already registered this email in the mobile app? Use that account."))
                                     }
                                     OutlinedTextField(
                                         value = verificationCode,
@@ -701,7 +708,7 @@ fun RegisterScreen(
                                                 verificationCode = value
                                             }
                                         },
-                                        label = { Text("Código de verificación") },
+                                        label = { Text(tr("Código de verificación", "Verification code")) },
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Number,
                                             imeAction = ImeAction.Done
@@ -711,12 +718,12 @@ fun RegisterScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                     Text(
-                                        text = "Verificar el correo solo permite enviar la solicitud; la clínica seguirá pendiente hasta que Superadmin la apruebe.",
+                                        text = tr("Verificar el correo solo permite enviar la solicitud; la clínica seguirá pendiente hasta que Superadmin la apruebe.", "Email verification only allows submission; the clinic remains pending until approved by a superadmin."),
                                         fontSize = 12.sp,
                                         color = TextSecondary
                                     )
                                     if (errorMessage != null) {
-                                        Text(errorMessage.orEmpty(), color = Color(0xFFB91C1C), fontSize = 13.sp)
+                                        Text(errorMessage?.text(english).orEmpty(), color = Color(0xFFB91C1C), fontSize = 13.sp)
                                     }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -733,7 +740,7 @@ fun RegisterScreen(
                                                             type = OtpType.Email.SIGNUP,
                                                             email = adminEmail.trim()
                                                         )
-                                                        successMessage = "Te reenviamos un nuevo código."
+                                                        successMessage = AuthMessage("Te reenviamos un nuevo código.", "A new code was sent.")
                                                     } catch (e: CancellationException) {
                                                         throw e
                                                     } catch (e: Exception) {
@@ -741,11 +748,11 @@ fun RegisterScreen(
                                                         errorMessage = when {
                                                             rawMsg.contains("missing email or phone", ignoreCase = true) ||
                                                             rawMsg.contains("confirmed", ignoreCase = true) ->
-                                                                "Este correo ya fue verificado o ya está registrado. Selecciona la opción 'Usa esa cuenta'."
+                                                                AuthMessage("Este correo ya fue verificado o ya está registrado. Selecciona la opción 'Usa esa cuenta'.", "This email is already verified or registered. Select 'Use that account'.")
                                                             rawMsg.contains("rate limit", ignoreCase = true) ||
                                                             rawMsg.contains("429", ignoreCase = true) ->
-                                                                "Por seguridad, debes esperar 60 segundos antes de reenviar otro código."
-                                                            else -> rawMsg.ifBlank { "No se pudo reenviar el código." }
+                                                                AuthMessage("Por seguridad, debes esperar 60 segundos antes de reenviar otro código.", "For security, wait 60 seconds before requesting another code.")
+                                                            else -> AuthMessage("No se pudo reenviar el código.", "Could not resend the code.")
                                                         }
                                                     } finally {
                                                         isLoading = false
@@ -753,7 +760,7 @@ fun RegisterScreen(
                                                 }
                                             }
                                         ) {
-                                            Text("Reenviar código")
+                                            Text(tr("Reenviar código", "Resend code"))
                                         }
                                         Button(
                                             enabled = !isLoading && (emailVerified || verificationCode.length == 6),
@@ -775,7 +782,8 @@ fun RegisterScreen(
                                                     } catch (e: CancellationException) {
                                                         throw e
                                                     } catch (e: Exception) {
-                                                        errorMessage = e.message ?: "No se pudo verificar el código."
+                                                        System.err.println("No se pudo verificar el código: ${e.javaClass.simpleName}")
+                                                        errorMessage = AuthMessage("No se pudo verificar el código o enviar la solicitud. Comprueba los datos y la conexión.", "Could not verify the code or submit the application. Check your information and connection.")
                                                     } finally {
                                                         isLoading = false
                                                     }
@@ -789,7 +797,7 @@ fun RegisterScreen(
                                                     strokeWidth = 2.dp
                                                 )
                                             } else {
-                                                Text(if (emailVerified) "Reintentar" else "Verificar y enviar")
+                                                Text(if (emailVerified) tr("Reintentar", "Retry") else tr("Verificar y enviar", "Verify and submit"))
                                             }
                                         }
                                     }

@@ -1,5 +1,7 @@
 package com.pawsmedic.desktop.veterinary.ui
 
+import com.pawsmedic.desktop.admin.translation.translateBatchLocally
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.shared.core.model.ProfileRole
@@ -89,6 +91,8 @@ fun ExpedientesScreen(
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {}
 ) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, translated: String) = if (english) translated else spanish
     var consultations by remember { mutableStateOf<List<ClinicalConsultation>>(emptyList()) }
     var medicalRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var tenantId by remember { mutableStateOf<String?>(null) }
@@ -104,18 +108,64 @@ fun ExpedientesScreen(
     var observations by remember { mutableStateOf("") }
     var diagnosis by remember { mutableStateOf("") }
     var plan by remember { mutableStateOf("") }
+    val translations = remember(userEmail) { mutableStateMapOf<String, String>() }
+    var showOriginal by remember { mutableStateOf(false) }
+    var translationError by remember { mutableStateOf(false) }
+    var translating by remember { mutableStateOf(false) }
+    var translationAttempt by remember { mutableIntStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
+
+    val textsToTranslate = remember(consultations, medicalRecords, selectedRecord, selectedConsultation) {
+        consultations.flatMap { listOf(it.reason, it.observations, it.diagnosis, it.plan) } +
+            medicalRecords.flatMap { listOf(it.title, it.content) } +
+            listOfNotNull(selectedRecord?.consultationReason, selectedRecord?.symptoms,
+                selectedRecord?.diagnosis, selectedRecord?.treatment, selectedRecord?.medication,
+                selectedRecord?.dosage, selectedRecord?.observations)
+    }
+    LaunchedEffect(english, textsToTranslate, translationAttempt) {
+        if (!english) {
+            translating = false
+            translationError = false
+            return@LaunchedEffect
+        }
+        val missing = textsToTranslate.filter { it.isNotBlank() && !translations.containsKey(it) }.distinct()
+        val pending = missing.filter { it.length <= 4000 }
+        translationError = pending.size != missing.size
+        if (pending.isNotEmpty()) {
+            translating = true
+            try {
+                for (batch in pending.chunked(50)) {
+                    val results = translateBatchLocally(batch)
+                    batch.zip(results).forEach { (original, translated) -> translations[original] = translated }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                translationError = true
+            } finally {
+                translating = false
+            }
+        }
+    }
+    fun displayText(value: String): String =
+        if (english && !showOriginal) translations[value] ?: value else value
+    fun statusText(value: String): String = when (value) {
+        "DRAFT" -> tr("Borrador", "Draft")
+        "PUBLISHED" -> tr("Publicado", "Published")
+        "AMENDED" -> tr("Modificado", "Amended")
+        else -> value
+    }
 
     suspend fun loadRecords() {
         isLoading = true
         errorMessage = null
         try {
             val userId = supabase.auth.currentSessionOrNull()?.user?.id
-                ?: error("No hay una sesión de Supabase activa. Inicia sesión nuevamente.")
+                ?: error(tr("No hay una sesión de Supabase activa. Inicia sesión nuevamente.", "There is no active Supabase session. Please sign in again."))
             val profile = supabase.postgrest["profiles"].select {
                 filter { eq("id", userId) }
             }.decodeSingle<UserProfile>()
-            if (profile.role != ProfileRole.VETERINARY_BUSINESS) error("Los expedientes solo están disponibles para cuentas veterinarias.")
+            if (profile.role != ProfileRole.VETERINARY_BUSINESS) error(tr("Los expedientes solo están disponibles para cuentas veterinarias.", "Records are only available to veterinary accounts."))
             val clinicId = com.pawsmedic.desktop.veterinary.model.resolveTenantId(supabase, userId, profile)
             tenantId = clinicId
             veterinarianId = userId
@@ -128,18 +178,19 @@ fun ExpedientesScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = e.message ?: "No se pudieron cargar los expedientes desde Supabase."
+            System.err.println("No se pudieron cargar los expedientes: ${e.javaClass.simpleName}")
+            errorMessage = tr("No se pudieron cargar los expedientes. Comprueba tu sesión, los permisos y la conexión.", "Could not load records. Check your session, permissions, and connection.")
         } finally {
             isLoading = false
         }
     }
 
     suspend fun createConsultation() {
-        val clinicId = tenantId ?: run { errorMessage = "No hay una clínica autorizada."; return }
-        val userId = veterinarianId ?: run { errorMessage = "No se encontró el veterinario de la sesión."; return }
+        val clinicId = tenantId ?: run { errorMessage = tr("No hay una clínica autorizada.", "No clinic is authorized."); return }
+        val userId = veterinarianId ?: run { errorMessage = tr("No se encontró el veterinario de la sesión.", "No veterinarian was found for this session."); return }
         val petId = petIdInput.trim()
-        if (runCatching { UUID.fromString(petId) }.isFailure) { errorMessage = "Ingresa un ID de mascota UUID válido."; return }
-        if (reason.isBlank() || observations.isBlank()) { errorMessage = "El motivo y las observaciones son obligatorios."; return }
+        if (runCatching { UUID.fromString(petId) }.isFailure) { errorMessage = tr("Ingresa un ID de mascota UUID válido.", "Enter a valid pet UUID."); return }
+        if (reason.isBlank() || observations.isBlank()) { errorMessage = tr("El motivo y las observaciones son obligatorios.", "Reason and observations are required."); return }
         isSaving = true
         errorMessage = null
         try {
@@ -150,7 +201,8 @@ fun ExpedientesScreen(
                 }
             }.decodeList<MedicalRecord>()
             if (accessibleRecords.isEmpty()) {
-                error("No se puede crear la consulta: la política RLS solo permite leer mascotas con un expediente médico existente de esta clínica. La tabla medical_records tampoco tiene una política INSERT en las migraciones actuales.")
+                errorMessage = tr("No se puede crear la consulta: la mascota necesita un expediente existente visible para esta clínica.", "Cannot create the consultation: the pet needs an existing record visible to this clinic.")
+                return
             }
             supabase.postgrest["clinical_consultations"].insert(
                 NewClinicalConsultation(
@@ -174,7 +226,8 @@ fun ExpedientesScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = e.message ?: "No se pudo guardar la consulta clínica en Supabase."
+            System.err.println("No se pudo guardar la consulta: ${e.javaClass.simpleName}")
+            errorMessage = tr("No se pudo guardar la consulta. Comprueba los permisos y la conexión.", "Could not save the consultation. Check permissions and your connection.")
         } finally {
             isSaving = false
         }
@@ -186,20 +239,32 @@ fun ExpedientesScreen(
         currentScreen = "Expedientes",
         onNavigate = onNavigate,
         onLogout = onLogout,
-        title = "Expedientes Clínicos",
+        title = tr("Expedientes Clínicos", "Clinical records"),
         userEmail = userEmail
     ) {
-        Column(Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)).background(Color.White).border(1.dp, BorderLight, RoundedCornerShape(12.dp)).padding(20.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text("Consultas y registros de la clínica", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text("Información leída de clinical_consultations y medical_records según las políticas RLS vigentes.", fontSize = 12.sp, color = TextSecondary)
+        Column(Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)).background(CardWhite).border(1.dp, BorderLight, RoundedCornerShape(12.dp)).padding(20.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(tr("Consultas y registros de la clínica", "Clinic consultations and records"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text(tr("Información leída de clinical_consultations y medical_records según las políticas RLS vigentes.", "Data from clinical_consultations and medical_records, subject to current RLS policies."), fontSize = 12.sp, color = TextSecondary)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { coroutineScope.launch { loadRecords() } }, enabled = !isLoading) { Text("Actualizar") }
-                    Button(onClick = { showConsultationDialog = true }, enabled = tenantId != null && !isLoading, colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen)) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(5.dp)); Text("Nueva consulta")
+                    OutlinedButton(onClick = { coroutineScope.launch { loadRecords() } }, enabled = !isLoading) { Text(tr("Actualizar", "Refresh")) }
+                    Button(onClick = { errorMessage = null; showConsultationDialog = true }, enabled = tenantId != null && !isLoading, colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen)) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(5.dp)); Text(tr("Nueva consulta", "New consultation"))
                     }
+                }
+            }
+            if (english) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Machine translation may be inaccurate. Verify the original before clinical decisions.", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
+                }
+                Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.CenterStart) {
+                    if (translationError) Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Some text could not be translated; the original is shown.", color = Color(0xFFB91C1C), fontSize = 12.sp)
+                        TextButton(onClick = { translationAttempt++ }, enabled = !translating) { Text("Retry") }
+                    } else if (translating) Text("Translating…", color = TextSecondary, fontSize = 12.sp)
                 }
             }
             errorMessage?.let {
@@ -207,35 +272,37 @@ fun ExpedientesScreen(
                 Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp, modifier = Modifier.fillMaxWidth().background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp)).padding(10.dp))
             }
             Spacer(Modifier.height(16.dp))
-            if (isLoading) Text("Cargando expedientes…", color = TextSecondary)
-            if (!isLoading && consultations.isEmpty() && medicalRecords.isEmpty() && errorMessage == null) Text("No hay registros clínicos visibles para esta clínica. La creación de consultas requiere acceso RLS válido a un expediente previo de la mascota.", color = TextSecondary, fontSize = 13.sp)
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
+                if (isLoading) item { Text(tr("Cargando expedientes…", "Loading records…"), color = TextSecondary) }
+                if (!isLoading && consultations.isEmpty() && medicalRecords.isEmpty() && errorMessage == null) item {
+                    Text(tr("No hay registros clínicos visibles para esta clínica. La creación de consultas requiere acceso RLS válido a un expediente previo de la mascota.", "There are no clinical records visible to this clinic. Creating a consultation requires RLS access to a previous record for the pet."), color = TextSecondary, fontSize = 13.sp)
+                }
                 if (consultations.isNotEmpty()) item {
-                    Text("CONSULTAS CLÍNICAS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                    Text(tr("CONSULTAS CLÍNICAS", "CLINICAL CONSULTATIONS"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMuted)
                 }
                 items(consultations, key = { "consultation-${it.id}" }) { consultation ->
                     Column(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp))
                         .clickable { selectedConsultation = consultation }.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(consultation.reason, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                            Text("${consultation.status} · ${consultation.occurredAt}", fontSize = 11.sp, color = TextMuted)
+                            Text(displayText(consultation.reason), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            Text("${statusText(consultation.status)} · ${consultation.occurredAt}", fontSize = 11.sp, color = TextMuted)
                         }
-                        Text("Mascota ID: ${consultation.petId}", fontSize = 11.sp, color = TextSecondary)
-                        Text("Observaciones: ${consultation.observations}", fontSize = 12.sp, color = TextPrimary)
-                        if (consultation.diagnosis.isNotBlank()) Text("Diagnóstico: ${consultation.diagnosis}", fontSize = 12.sp, color = TextSecondary)
-                        if (consultation.plan.isNotBlank()) Text("Plan: ${consultation.plan}", fontSize = 12.sp, color = TextSecondary)
+                        Text("${tr("Mascota ID", "Pet ID")}: ${consultation.petId}", fontSize = 11.sp, color = TextSecondary)
+                        Text("${tr("Observaciones", "Observations")}: ${displayText(consultation.observations)}", fontSize = 12.sp, color = TextPrimary)
+                        if (consultation.diagnosis.isNotBlank()) Text("${tr("Diagnóstico", "Diagnosis")}: ${displayText(consultation.diagnosis)}", fontSize = 12.sp, color = TextSecondary)
+                        if (consultation.plan.isNotBlank()) Text("${tr("Plan", "Plan")}: ${displayText(consultation.plan)}", fontSize = 12.sp, color = TextSecondary)
                     }
                 }
                 if (medicalRecords.isNotEmpty()) item {
                     Spacer(Modifier.height(4.dp))
-                    Text("EXPEDIENTES MÉDICOS EXISTENTES (SOLO LECTURA)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                    Text(tr("EXPEDIENTES MÉDICOS EXISTENTES (SOLO LECTURA)", "EXISTING MEDICAL RECORDS (READ ONLY)"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMuted)
                 }
                 items(medicalRecords, key = { "record-${it.id}" }) { record ->
                     Column(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp))
                         .clickable { selectedRecord = record }.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(record.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Text("Mascota ID: ${record.petId} · ${record.createdAt}", fontSize = 11.sp, color = TextMuted)
-                        Text(record.content, fontSize = 12.sp, color = TextSecondary)
+                        Text(displayText(record.title), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text("${tr("Mascota ID", "Pet ID")}: ${record.petId} · ${record.createdAt}", fontSize = 11.sp, color = TextMuted)
+                        Text(displayText(record.content), fontSize = 12.sp, color = TextSecondary)
                     }
                 }
             }
@@ -245,7 +312,16 @@ fun ExpedientesScreen(
             Dialog(onDismissRequest = { selectedRecord = null }) {
                 Card(Modifier.width(640.dp).heightIn(max = 780.dp), shape = RoundedCornerShape(16.dp)) {
                     Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Expediente médico", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text(tr("Expediente médico", "Medical record"), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        if (english) {
+                            Text("Machine translation may be inaccurate. Verify the original before clinical decisions.", color = TextSecondary, fontSize = 12.sp)
+                            TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
+                            if (translating) Text("Translating…", color = TextSecondary, fontSize = 12.sp)
+                            if (translationError) {
+                                Text("Some text could not be translated; the original is shown.", color = Color(0xFFB91C1C), fontSize = 12.sp)
+                                TextButton(onClick = { translationAttempt++ }) { Text("Retry") }
+                            }
+                        }
                         listOf(
                             "Servicio" to record.title, "Mascota ID" to record.petId,
                             "Cita ID" to record.appointmentId, "Veterinario ID" to record.veterinarianId,
@@ -258,11 +334,32 @@ fun ExpedientesScreen(
                             "Detalle" to record.content
                         ).forEach { (label, value) ->
                             if (!value.isNullOrBlank()) {
-                                Text(label, fontWeight = FontWeight.Bold, color = TextPrimary)
-                                Text(value, color = TextSecondary)
+                                val englishLabel = when (label) {
+                                    "Servicio" -> "Service"
+                                    "Mascota ID" -> "Pet ID"
+                                    "Cita ID" -> "Appointment ID"
+                                    "Veterinario ID" -> "Veterinarian ID"
+                                    "Fecha" -> "Date"
+                                    "Hora" -> "Time"
+                                    "Peso" -> "Weight"
+                                    "Motivo" -> "Reason"
+                                    "Síntomas" -> "Symptoms"
+                                    "Diagnóstico" -> "Diagnosis"
+                                    "Tratamiento" -> "Treatment"
+                                    "Medicamento" -> "Medication"
+                                    "Dosis" -> "Dosage"
+                                    "Observaciones" -> "Observations"
+                                    "Próxima revisión" -> "Next review"
+                                    "Detalle" -> "Details"
+                                    else -> label
+                                }
+                                Text(tr(label, englishLabel), fontWeight = FontWeight.Bold, color = TextPrimary)
+                                val translatable = label in setOf("Servicio", "Motivo", "Síntomas", "Diagnóstico",
+                                    "Tratamiento", "Medicamento", "Dosis", "Observaciones", "Detalle")
+                                Text(if (translatable) displayText(value) else value, color = TextSecondary)
                             }
                         }
-                        TextButton(onClick = { selectedRecord = null }, modifier = Modifier.align(Alignment.End)) { Text("Cerrar") }
+                        TextButton(onClick = { selectedRecord = null }, modifier = Modifier.align(Alignment.End)) { Text(tr("Cerrar", "Close")) }
                     }
                 }
             }
@@ -270,39 +367,49 @@ fun ExpedientesScreen(
         selectedConsultation?.let { consultation ->
             AlertDialog(
                 onDismissRequest = { selectedConsultation = null },
-                title = { Text("Consulta clínica") },
+                title = { Text(tr("Consulta clínica", "Clinical consultation")) },
                 text = {
                     Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Mascota ID: ${consultation.petId}")
-                        Text("Veterinario ID: ${consultation.veterinarianId}")
-                        Text("Fecha: ${consultation.occurredAt}")
-                        Text("Estado: ${consultation.status}")
-                        Text("Motivo: ${consultation.reason}")
-                        Text("Observaciones: ${consultation.observations}")
-                        Text("Diagnóstico: ${consultation.diagnosis}")
-                        Text("Tratamiento: ${consultation.plan}")
+                        if (english) {
+                            Text("Machine translation may be inaccurate. Verify the original before clinical decisions.", color = TextSecondary, fontSize = 12.sp)
+                            TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
+                            if (translating) Text("Translating…", color = TextSecondary, fontSize = 12.sp)
+                            if (translationError) {
+                                Text("Some text could not be translated; the original is shown.", color = Color(0xFFB91C1C), fontSize = 12.sp)
+                                TextButton(onClick = { translationAttempt++ }) { Text("Retry") }
+                            }
+                        }
+                        Text("${tr("Mascota ID", "Pet ID")}: ${consultation.petId}")
+                        Text("${tr("Veterinario ID", "Veterinarian ID")}: ${consultation.veterinarianId}")
+                        Text("${tr("Fecha", "Date")}: ${consultation.occurredAt}")
+                        Text("${tr("Estado", "Status")}: ${statusText(consultation.status)}")
+                        Text("${tr("Motivo", "Reason")}: ${displayText(consultation.reason)}")
+                        Text("${tr("Observaciones", "Observations")}: ${displayText(consultation.observations)}")
+                        Text("${tr("Diagnóstico", "Diagnosis")}: ${displayText(consultation.diagnosis)}")
+                        Text("${tr("Tratamiento", "Treatment")}: ${displayText(consultation.plan)}")
                     }
                 },
-                confirmButton = { TextButton(onClick = { selectedConsultation = null }) { Text("Cerrar") } }
+                confirmButton = { TextButton(onClick = { selectedConsultation = null }) { Text(tr("Cerrar", "Close")) } }
             )
         }
 
         if (showConsultationDialog) Dialog(onDismissRequest = { if (!isSaving) showConsultationDialog = false }) {
-            Card(Modifier.width(540.dp).wrapContentHeight(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Card(Modifier.width(540.dp).wrapContentHeight(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardWhite)) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Registrar consulta clínica", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        IconButton(onClick = { if (!isSaving) showConsultationDialog = false }) { Icon(Icons.Default.Close, contentDescription = "Cerrar") }
+                        Text(tr("Registrar consulta clínica", "Create clinical consultation"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        IconButton(onClick = { if (!isSaving) showConsultationDialog = false }) { Icon(Icons.Default.Close, contentDescription = tr("Cerrar", "Close")) }
                     }
-                    Text("Se guarda en clinical_consultations como borrador. Para respetar RLS, solo se permite continuar si la mascota ya tiene un expediente medical_records visible en esta clínica.", fontSize = 12.sp, color = TextSecondary)
-                    OutlinedTextField(petIdInput, { petIdInput = it }, label = { Text("ID de mascota (UUID)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(reason, { reason = it }, label = { Text("Motivo de consulta") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(observations, { observations = it }, label = { Text("Observaciones clínicas") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(diagnosis, { diagnosis = it }, label = { Text("Diagnóstico") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(plan, { plan = it }, label = { Text("Plan de tratamiento") }, modifier = Modifier.fillMaxWidth())
+                    Text(tr("Se guarda en clinical_consultations como borrador. Para respetar RLS, solo se permite continuar si la mascota ya tiene un expediente medical_records visible en esta clínica.", "A draft is saved in clinical_consultations. RLS requires an existing medical_records entry for the pet that is visible to this clinic."), fontSize = 12.sp, color = TextSecondary)
+                    OutlinedTextField(petIdInput, { petIdInput = it }, label = { Text(tr("ID de mascota (UUID)", "Pet ID (UUID)")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(reason, { reason = it }, label = { Text(tr("Motivo de consulta", "Reason for consultation")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(observations, { observations = it }, label = { Text(tr("Observaciones clínicas", "Clinical observations")) }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(diagnosis, { diagnosis = it }, label = { Text(tr("Diagnóstico", "Diagnosis")) }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(plan, { plan = it }, label = { Text(tr("Plan de tratamiento", "Treatment plan")) }, modifier = Modifier.fillMaxWidth())
+                    errorMessage?.let { Text(it, color = Color(0xFFB91C1C), fontSize = 12.sp) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedButton(onClick = { showConsultationDialog = false }, enabled = !isSaving, modifier = Modifier.weight(1f)) { Text("Cancelar") }
-                        Button(onClick = { coroutineScope.launch { createConsultation() } }, enabled = !isSaving, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)) { Text(if (isSaving) "Guardando…" else "Guardar borrador", color = Color.White) }
+                        OutlinedButton(onClick = { showConsultationDialog = false }, enabled = !isSaving, modifier = Modifier.weight(1f)) { Text(tr("Cancelar", "Cancel")) }
+                        Button(onClick = { coroutineScope.launch { createConsultation() } }, enabled = !isSaving, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)) { Text(if (isSaving) tr("Guardando…", "Saving…") else tr("Guardar borrador", "Save draft"), color = Color.White) }
                     }
                 }
             }

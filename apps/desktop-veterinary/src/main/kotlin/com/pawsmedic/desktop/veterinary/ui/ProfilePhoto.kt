@@ -49,8 +49,8 @@ internal fun selectedPhotoFromImage(image: BufferedImage): SelectedPhoto {
     return SelectedPhoto(bytes, "png", image.toComposeImageBitmap())
 }
 
-internal fun chooseProfilePhoto(): File? {
-    val dialog = FileDialog(null as Frame?, "Seleccionar foto de perfil", FileDialog.LOAD)
+internal fun chooseProfilePhoto(english: Boolean = false): File? {
+    val dialog = FileDialog(null as Frame?, if (english) "Select profile photo" else "Seleccionar foto de perfil", FileDialog.LOAD)
     return try {
         dialog.isVisible = true
         val name = dialog.file

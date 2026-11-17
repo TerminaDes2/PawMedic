@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,6 +31,8 @@ internal fun ProfilePhotoPicker(
     onError: (String) -> Unit,
     onBusyChange: (Boolean) -> Unit
 ) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     val scope = rememberCoroutineScope()
     var pending by remember { mutableStateOf<SelectedPhoto?>(null) }
     var cameraOpen by remember { mutableStateOf(false) }
@@ -44,7 +47,15 @@ internal fun ProfilePhotoPicker(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                onError(e.message ?: "No se pudo preparar la foto.")
+                val message = when (e.message) {
+                    "Selecciona una imagen JPG o PNG." -> tr("Selecciona una imagen JPG o PNG.", "Select a JPG or PNG image.")
+                    "Selecciona una imagen JPG o PNG válida." -> tr("Selecciona una imagen JPG o PNG válida.", "Select a valid JPG or PNG image.")
+                    "La foto debe tener un tamaño máximo de 5 MB.", "La imagen supera el tamaño máximo de 5 MB." -> tr("La foto debe tener un tamaño máximo de 5 MB.", "The photo must be no larger than 5 MB.")
+                    "La extensión de la foto no coincide con su contenido." -> tr("La extensión de la foto no coincide con su contenido.", "The photo extension does not match its contents.")
+                    "La imagen no debe superar 4096 × 4096 píxeles." -> tr("La imagen no debe superar 4096 × 4096 píxeles.", "The image must not exceed 4096 × 4096 pixels.")
+                    else -> tr("No se pudo preparar la foto.", "Could not prepare the photo.")
+                }
+                onError(message)
             } finally {
                 working = false
                 onBusyChange(false)
@@ -54,10 +65,10 @@ internal fun ProfilePhotoPicker(
 
     Column {
         OutlinedButton(enabled = enabled && !working, onClick = {
-            chooseProfilePhoto()?.let { file -> process { readProfilePhoto(file) } }
-        }) { Text("Seleccionar foto") }
+            chooseProfilePhoto(english)?.let { file -> process { readProfilePhoto(file) } }
+        }) { Text(tr("Seleccionar foto", "Select photo")) }
         OutlinedButton(enabled = enabled && !working, onClick = { cameraOpen = true }) {
-            Text("Tomar foto con cámara")
+            Text(tr("Tomar foto con cámara", "Take photo with camera"))
         }
     }
 
@@ -81,6 +92,8 @@ internal fun ProfilePhotoPicker(
 
 @Composable
 private fun CameraDialog(onDismiss: () -> Unit, onCapture: (BufferedImage) -> Unit) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     var frame by remember { mutableStateOf<BufferedImage?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var attempt by remember { mutableIntStateOf(0) }
@@ -89,37 +102,37 @@ private fun CameraDialog(onDismiss: () -> Unit, onCapture: (BufferedImage) -> Un
         message = null
         try {
             if (!runCameraPreview(::defaultCamera) { frame = it }) {
-                message = "No se encontró una cámara. Conéctala y vuelve a intentar."
+                message = tr("No se encontró una cámara. Conéctala y vuelve a intentar.", "No camera was found. Connect one and try again.")
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            message = "No se pudo abrir la cámara. Comprueba los permisos y que no esté en uso."
+            message = tr("No se pudo abrir la cámara. Comprueba los permisos y que no esté en uso.", "Could not open the camera. Check permissions and that it is not in use.")
             frame = null
         } catch (e: LinkageError) {
-            message = "La cámara no es compatible con este equipo."
+            message = tr("La cámara no es compatible con este equipo.", "The camera is not supported on this device.")
             frame = null
         }
     }
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
             Column(Modifier.widthIn(max = 520.dp).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Tomar foto", style = MaterialTheme.typography.titleLarge)
+                Text(tr("Tomar foto", "Take photo"), style = MaterialTheme.typography.titleLarge)
                 val current = frame
                 if (current != null) {
-                    androidx.compose.foundation.Image(current.toComposeImageBitmap(), "Vista de la cámara",
+                    androidx.compose.foundation.Image(current.toComposeImageBitmap(), tr("Vista de la cámara", "Camera preview"),
                         modifier = Modifier.fillMaxWidth().height(300.dp))
                 } else {
                     Box(Modifier.fillMaxWidth().height(180.dp).background(Color.LightGray), contentAlignment = Alignment.Center) {
-                        Text(message ?: "Iniciando cámara…")
+                        Text(message ?: tr("Iniciando cámara…", "Starting camera…"))
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = onDismiss) { Text("Cancelar") }
+                    TextButton(onClick = onDismiss) { Text(tr("Cancelar", "Cancel")) }
                     if (message != null) {
-                        OutlinedButton(onClick = { attempt++ }) { Text("Reintentar") }
+                        OutlinedButton(onClick = { attempt++ }) { Text(tr("Reintentar", "Retry")) }
                     }
-                    Button(enabled = current != null, onClick = { current?.let(onCapture) }) { Text("Capturar") }
+                    Button(enabled = current != null, onClick = { current?.let(onCapture) }) { Text(tr("Capturar", "Capture")) }
                 }
             }
         }
@@ -128,6 +141,8 @@ private fun CameraDialog(onDismiss: () -> Unit, onCapture: (BufferedImage) -> Un
 
 @Composable
 private fun PhotoCropDialog(photo: SelectedPhoto, onDismiss: () -> Unit, onApply: (SelectedPhoto) -> Unit) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     var zoom by remember(photo) { mutableFloatStateOf(1f) }
     var horizontal by remember(photo) { mutableFloatStateOf(0.5f) }
     var vertical by remember(photo) { mutableFloatStateOf(0.5f) }
@@ -138,8 +153,8 @@ private fun PhotoCropDialog(photo: SelectedPhoto, onDismiss: () -> Unit, onApply
     Dialog(onDismissRequest = { if (!saving) onDismiss() }) {
         Surface(shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
             Column(Modifier.widthIn(max = 430.dp).padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Ajustar foto", style = MaterialTheme.typography.titleLarge)
-                Text("Arrastra la imagen para centrarla y ajusta el zoom.")
+                Text(tr("Ajustar foto", "Adjust photo"), style = MaterialTheme.typography.titleLarge)
+                Text(tr("Arrastra la imagen para centrarla y ajusta el zoom.", "Drag the image to center it and adjust the zoom."))
                 Canvas(
                     Modifier.align(Alignment.CenterHorizontally).size(240.dp).clip(CircleShape)
                         .background(Color.LightGray).pointerInput(photo, zoom) {
@@ -158,13 +173,13 @@ private fun PhotoCropDialog(photo: SelectedPhoto, onDismiss: () -> Unit, onApply
                 }
                 Text("Zoom")
                 Slider(value = zoom, onValueChange = { zoom = it }, valueRange = 1f..3f, enabled = !saving)
-                Text("Posición horizontal")
+                Text(tr("Posición horizontal", "Horizontal position"))
                 Slider(value = horizontal, onValueChange = { horizontal = it }, enabled = !saving)
-                Text("Posición vertical")
+                Text(tr("Posición vertical", "Vertical position"))
                 Slider(value = vertical, onValueChange = { vertical = it }, enabled = !saving)
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(enabled = !saving, onClick = onDismiss) { Text("Cancelar") }
+                    TextButton(enabled = !saving, onClick = onDismiss) { Text(tr("Cancelar", "Cancel")) }
                     Button(enabled = !saving, onClick = {
                         saving = true
                         scope.launch {
@@ -173,10 +188,10 @@ private fun PhotoCropDialog(photo: SelectedPhoto, onDismiss: () -> Unit, onApply
                             } catch (e: CancellationException) {
                                 throw e
                             } catch (e: Exception) {
-                                error = "No se pudo ajustar la foto. Inténtalo de nuevo."
+                                error = tr("No se pudo ajustar la foto. Inténtalo de nuevo.", "Could not adjust the photo. Please try again.")
                             } finally { saving = false }
                         }
-                    }) { Text("Usar foto") }
+                    }) { Text(tr("Usar foto", "Use photo")) }
                 }
             }
         }

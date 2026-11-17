@@ -23,6 +23,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.desktop.admin.ui.AppearanceButton
+import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import com.pawsmedic.desktop.veterinary.supabase
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
@@ -40,6 +43,47 @@ private data class ProfileAvatar(
     @SerialName("display_name") val displayName: String? = null
 )
 
+private class HeaderProfile {
+    var name by mutableStateOf("")
+    var avatar by mutableStateOf<ImageBitmap?>(null)
+    var revision by mutableIntStateOf(0)
+}
+
+private val LocalHeaderProfile = staticCompositionLocalOf { HeaderProfile() }
+
+@Composable
+internal fun HeaderProfileProvider(sessionKey: String, content: @Composable () -> Unit) {
+    val state = remember(sessionKey) { HeaderProfile() }
+    LaunchedEffect(sessionKey, state.revision) {
+        if (sessionKey.isBlank()) return@LaunchedEffect
+        try {
+            val userId = supabase.auth.currentUserOrNull()?.id ?: return@LaunchedEffect
+            val profile = supabase.postgrest["profiles"].select { filter { eq("id", userId) } }
+                .decodeSingle<ProfileAvatar>()
+            state.name = profile.displayName.orEmpty()
+            val url = profile.url
+            if (url.isNullOrBlank()) {
+                state.avatar = null
+            } else {
+                state.avatar = withContext(Dispatchers.IO) {
+                    val uri = URI(url)
+                    require(uri.scheme == "https") { "La foto debe usar HTTPS." }
+                    val connection = uri.toURL().openConnection().apply {
+                        connectTimeout = 5000
+                        readTimeout = 5000
+                    }
+                    connection.getInputStream().use { input -> ImageIO.read(input)?.toComposeImageBitmap() }
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            System.err.println("No se pudo cargar el perfil o su foto.")
+        }
+    }
+    CompositionLocalProvider(LocalHeaderProfile provides state, content = content)
+}
+
 @Composable
 fun VetAppLayout(
     currentScreen: String,
@@ -49,37 +93,14 @@ fun VetAppLayout(
     userEmail: String = "",
     content: @Composable BoxScope.() -> Unit
 ) {
+    val english = LocalDesktopAppearance.current.english
     var showAdminModal by remember { mutableStateOf(false) }
 
     var adminUsername by remember { mutableStateOf("") }
     var adminPassword by remember { mutableStateOf("") }
     var loginError by remember { mutableStateOf(false) }
     var showProfile by remember(userEmail) { mutableStateOf(false) }
-    var profileRevision by remember(userEmail) { mutableIntStateOf(0) }
-    var profileName by remember(userEmail) { mutableStateOf("") }
-    var avatar by remember(userEmail) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(userEmail, profileRevision) {
-        try {
-            val userId = supabase.auth.currentUserOrNull()?.id ?: return@LaunchedEffect
-            val profile = supabase.postgrest["profiles"].select { filter { eq("id", userId) } }
-                .decodeSingle<ProfileAvatar>()
-            profileName = profile.displayName.orEmpty()
-            val url = profile.url ?: return@LaunchedEffect
-            avatar = withContext(Dispatchers.IO) {
-                val uri = URI(url)
-                require(uri.scheme == "https") { "La foto debe usar HTTPS." }
-                val connection = uri.toURL().openConnection().apply {
-                    connectTimeout = 5000
-                    readTimeout = 5000
-                }
-                connection.getInputStream().use { input -> ImageIO.read(input)?.toComposeImageBitmap() }
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            System.err.println("No se pudo cargar la foto del perfil.")
-        }
-    }
+    val headerProfile = LocalHeaderProfile.current
 
     Box(
         modifier = Modifier
@@ -132,14 +153,15 @@ fun VetAppLayout(
                 }
 
                 Spacer(modifier = Modifier.height(30.dp))
-                Text("ESPACIO DE TRABAJO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 1.sp)
+                Text(if (english) "WORKSPACE" else "ESPACIO DE TRABAJO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 1.sp)
                 Spacer(modifier = Modifier.height(12.dp))
 
                 val menuItems = listOf(
-                    Triple("Agenda", "Agenda y Citas", Icons.Default.CalendarMonth),
-                    Triple("Horarios", "Horarios de atención", Icons.Default.Schedule),
-                    Triple("Expedientes", "Expedientes Clínicos", Icons.Default.FolderShared),
-                    Triple("Catalog", "Catálogo de Servicios", Icons.Default.ShoppingCart)
+                    Triple("Agenda", if (english) "Appointments" else "Agenda y Citas", Icons.Default.CalendarMonth),
+                    Triple("Horarios", if (english) "Opening hours" else "Horarios de atención", Icons.Default.Schedule),
+                    Triple("Expedientes", if (english) "Medical records" else "Expedientes Clínicos", Icons.Default.FolderShared),
+                    Triple("Catalog", if (english) "Catalog" else "Catálogo de Servicios", Icons.Default.ShoppingCart),
+                    Triple("Reports", if (english) "Operational reports" else "Reportes operativos", Icons.Default.Assessment)
                 )
 
                 Column(
@@ -191,17 +213,26 @@ fun VetAppLayout(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Text(text = "PANEL VETERINARIO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald, letterSpacing = 1.sp)
+                        Text(text = if (english) "VETERINARY DASHBOARD" else "PANEL VETERINARIO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald, letterSpacing = 1.sp)
                         Spacer(Modifier.height(3.dp))
-                        Text(text = title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text(text = if (english) when (currentScreen) {
+                            "Agenda" -> "Appointments"
+                            "Horarios" -> "Opening hours"
+                            "Expedientes" -> "Medical records"
+                            "Catalog" -> "Services and products"
+                            "Reports" -> "Operational reports"
+                            else -> title
+                        } else title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        AppearanceButton()
+                        NavigationLanguageButton()
                         // Perfil Usuario (Muestra icono y nombre antes de @)
-                        val displayName = profileName.ifBlank { "Cuenta veterinaria" }
+                        val displayName = headerProfile.name.ifBlank { if (english) "Veterinary account" else "Cuenta veterinaria" }
                         Row(
                             modifier = Modifier.clip(RoundedCornerShape(8.dp))
                                 .clickable { showProfile = true }.padding(6.dp),
@@ -219,12 +250,12 @@ fun VetAppLayout(
                                         .background(EmeraldLightBg),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    val image = avatar
+                                    val image = headerProfile.avatar
                                     if (image == null) {
                                         Icon(imageVector = Icons.Default.Person, contentDescription = null,
                                             tint = ClinicalEmerald, modifier = Modifier.size(20.dp))
                                     } else {
-                                        Image(image, contentDescription = "Foto de perfil", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                        Image(image, contentDescription = if (english) "Profile photo" else "Foto de perfil", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                                     }
                                 }
 
@@ -236,7 +267,7 @@ fun VetAppLayout(
                                         color = TextPrimary
                                     )
                                     Text(
-                                        text = "Mi perfil",
+                                        text = if (english) "My profile" else "Mi perfil",
                                         fontSize = 11.sp,
                                         color = TextMuted
                                     )
@@ -260,11 +291,11 @@ fun VetAppLayout(
 
         if (showProfile) {
             AccountSidebar(
-                avatar = avatar,
+                avatar = headerProfile.avatar,
                 onClose = { showProfile = false },
                 onLogout = { showProfile = false; onLogout() },
-                onProfileLoaded = { profileName = it },
-                onProfileSaved = { name -> profileName = name; profileRevision++ }
+                onProfileLoaded = { headerProfile.name = it },
+                onProfileSaved = { name -> headerProfile.name = name; headerProfile.revision++ }
             )
         }
 

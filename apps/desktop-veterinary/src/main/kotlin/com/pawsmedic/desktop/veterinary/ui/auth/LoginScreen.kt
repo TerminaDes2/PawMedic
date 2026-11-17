@@ -5,8 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -32,6 +34,9 @@ import com.pawsmedic.desktop.veterinary.SessionManager
 import com.pawsmedic.desktop.veterinary.SecureSessionStorage
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
+import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
+import com.pawsmedic.desktop.admin.ui.AppearanceButton
 import com.pawsmedic.shared.core.model.ProfileRole
 import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
@@ -46,13 +51,15 @@ fun LoginScreen(
     onNavigateToAccessStatus: (String) -> Unit = {},
     onNavigateToRegister: () -> Unit = {}
 ) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<AuthMessage?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
     val cardDarkIllustration = Color(0xFF1C2A3A)
@@ -111,16 +118,8 @@ fun LoginScreen(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                val rawMsg = e.message.orEmpty()
-                errorMessage = when {
-                    rawMsg.contains("missing email or phone", ignoreCase = true) ||
-                    rawMsg.contains("invalid_credentials", ignoreCase = true) ||
-                    rawMsg.contains("invalid login", ignoreCase = true) ->
-                        "Correo o contraseña incorrectos, o la cuenta no ha sido verificada."
-                    e is IllegalArgumentException || e is IllegalStateException ->
-                        rawMsg.lineSequence().firstOrNull().orEmpty().ifBlank { "Error de acceso." }
-                    else -> "No se pudo iniciar sesión. Revisa tu conexión e inténtalo de nuevo."
-                }
+                System.err.println("No se pudo iniciar sesión: ${e.javaClass.simpleName}")
+                errorMessage = signInError(e.message.orEmpty())
             } finally {
                 isLoading = false
             }
@@ -210,7 +209,7 @@ fun LoginScreen(
                                         .background(Color(0xFF2DD4BF))
                                 )
                                 Text(
-                                    text = "TECNOLOGÍA QUE CUIDA",
+                                    text = tr("TECNOLOGÍA QUE CUIDA", "TECHNOLOGY THAT CARES"),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF2DD4BF),
@@ -220,7 +219,7 @@ fun LoginScreen(
                         }
 
                         Text(
-                            text = "Cuidamos\nhistorias, no\nsolo mascotas.",
+                            text = tr("Cuidamos\nhistorias, no\nsolo mascotas.", "We care for\nstories, not\njust pets."),
                             fontSize = 38.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -228,7 +227,7 @@ fun LoginScreen(
                         )
 
                         Text(
-                            text = "Sistema de Gestión Veterinaria e Historial Clínico",
+                            text = tr("Sistema de Gestión Veterinaria e Historial Clínico", "Veterinary management and medical records system"),
                             fontSize = 14.sp,
                             color = TextMuted
                         )
@@ -248,7 +247,7 @@ fun LoginScreen(
                                 ) {
                                     Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF2DD4BF), modifier = Modifier.size(14.dp))
                                 }
-                                Text("Información clínica protegida", fontSize = 13.sp, color = Color(0xFFCBD5E1))
+                                Text(tr("Información clínica protegida", "Protected clinical information"), fontSize = 13.sp, color = Color(0xFFCBD5E1))
                             }
 
                             Row(
@@ -264,7 +263,7 @@ fun LoginScreen(
                                 ) {
                                     Icon(Icons.Default.History, contentDescription = null, tint = Color(0xFF2DD4BF), modifier = Modifier.size(14.dp))
                                 }
-                                Text("Todo el historial, siempre disponible", fontSize = 13.sp, color = Color(0xFFCBD5E1))
+                                Text(tr("Todo el historial, siempre disponible", "Medical history, always available"), fontSize = 13.sp, color = Color(0xFFCBD5E1))
                             }
                         }
                     }
@@ -309,7 +308,7 @@ fun LoginScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "© 2026 PawsMedic. Cuidado conectado.",
+                        text = tr("© 2026 PawsMedic. Cuidado conectado.", "© 2026 PawsMedic. Connected care."),
                         fontSize = 12.sp,
                         color = TextMuted
                     )
@@ -325,7 +324,7 @@ fun LoginScreen(
                                 .background(ClinicalEmerald)
                         )
                         Text(
-                            text = "Plataforma operativa",
+                            text = tr("Plataforma operativa", "Platform operational"),
                             fontSize = 12.sp,
                             color = TextMuted
                         )
@@ -338,7 +337,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .weight(0.85f)
                     .fillMaxHeight()
-                    .padding(40.dp),
+                    .padding(start = 40.dp, end = 40.dp, top = 64.dp, bottom = 40.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Card(
@@ -350,6 +349,7 @@ fun LoginScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
                             .padding(36.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -372,14 +372,14 @@ fun LoginScreen(
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "Iniciar Sesión",
+                                text = tr("Iniciar Sesión", "Sign in"),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Ingresa tus credenciales para acceder",
+                                text = tr("Ingresa tus credenciales para acceder", "Enter your credentials to continue"),
                                 fontSize = 13.sp,
                                 color = TextSecondary
                             )
@@ -394,7 +394,7 @@ fun LoginScreen(
                                     .padding(10.dp)
                             ) {
                                 Text(
-                                    text = errorMessage ?: "",
+                                    text = errorMessage?.text(english).orEmpty(),
                                     fontSize = 12.sp,
                                     color = Color(0xFF991B1B),
                                     fontWeight = FontWeight.Medium
@@ -412,7 +412,7 @@ fun LoginScreen(
                             }
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Email", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                Text(tr("Correo electrónico", "Email"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
                                 OutlinedTextField(
                                     value = email,
                                     onValueChange = { email = it },
@@ -429,7 +429,7 @@ fun LoginScreen(
                             }
 
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Password", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                Text(tr("Contraseña", "Password"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
                                 OutlinedTextField(
                                     value = password,
                                     onValueChange = { password = it },
@@ -472,7 +472,7 @@ fun LoginScreen(
                                     onCheckedChange = { rememberMe = it },
                                     colors = CheckboxDefaults.colors(checkedColor = ClinicalEmerald)
                                 )
-                                Text("Recordarme", fontSize = 12.sp, color = TextSecondary)
+                                Text(tr("Recordarme", "Remember me"), fontSize = 12.sp, color = TextSecondary)
                             }
 
                         }
@@ -500,7 +500,7 @@ fun LoginScreen(
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                                     Text(
-                                        text = "Ingresar al Sistema",
+                                        text = tr("Ingresar al Sistema", "Sign in"),
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White
@@ -515,9 +515,9 @@ fun LoginScreen(
                             horizontalArrangement = Arrangement.Center,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("¿No tienes cuenta?", fontSize = 12.sp, color = TextSecondary)
+                            Text(tr("¿No tienes cuenta?", "Don't have an account?"), fontSize = 12.sp, color = TextSecondary)
                             TextButton(onClick = onNavigateToRegister) {
-                                Text("Regístrate aquí", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                Text(tr("Regístrate aquí", "Register here"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
                             }
                         }
 
@@ -528,11 +528,19 @@ fun LoginScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                            Text("Acceso Seguro SSL", fontSize = 11.sp, color = TextMuted)
+                            Text(tr("Acceso Seguro SSL", "Secure SSL access"), fontSize = 11.sp, color = TextMuted)
                         }
                     }
                 }
             }
+        }
+
+        Row(
+            modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            AppearanceButton()
+            NavigationLanguageButton()
         }
 
         // Botón sutil en la esquina inferior derecha para Superadmin
@@ -548,7 +556,7 @@ fun LoginScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.AdminPanelSettings,
-                    contentDescription = "Acceso Superadmin",
+                    contentDescription = tr("Acceso Superadmin", "Superadmin sign in"),
                     tint = TextMuted.copy(alpha = 0.35f),
                     modifier = Modifier.size(20.dp)
                 )

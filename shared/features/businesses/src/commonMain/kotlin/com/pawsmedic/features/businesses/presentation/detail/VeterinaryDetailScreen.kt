@@ -293,6 +293,41 @@ fun VeterinaryDetailScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            Text("Productos disponibles", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
+            Spacer(modifier = Modifier.height(12.dp))
+            when {
+                uiState.productsLoading -> Text("Cargando productos…", color = PawMedicColors.Gray600)
+                uiState.productsError -> {
+                    Text("No se pudieron cargar los productos.", color = PawMedicColors.Error)
+                    PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::refreshProducts)
+                }
+                uiState.products.isEmpty() -> Text("No hay productos disponibles.", color = PawMedicColors.Gray600)
+                else -> uiState.products.forEach { product ->
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(PawMedicColors.White)
+                            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        if (product.imageUrl.isNotBlank()) {
+                            ProductImage(product.imageUrl, Modifier.size(100.dp).clip(RoundedCornerShape(8.dp)))
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        Text(product.name, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
+                        if (product.description.isNotBlank()) {
+                            Text(product.description, color = PawMedicColors.Gray600)
+                        }
+                        Text(
+                            "$${product.priceCents / 100}.${(product.priceCents % 100).toString().padStart(2, '0')} MXN",
+                            color = PawMedicColors.Teal600,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+
             // --- AGENDAR CITA BUTTON ---
             PawMedicPrimaryButton(
                 text = "Agendar cita",

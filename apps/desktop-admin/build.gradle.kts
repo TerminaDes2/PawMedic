@@ -34,4 +34,47 @@ application { mainClass.set("com.pawsmedic.desktop.admin.MainKt") }
 
 tasks.withType<JavaExec>().configureEach {
     jvmArgs("--enable-native-access=ALL-UNNAMED")
+    val argos = rootProject.layout.projectDirectory.dir("apps/desktop-veterinary/build")
+    if (argos.file("argos-dist/pawmedic-argos-worker/pawmedic-argos-worker.exe").asFile.isFile) {
+        systemProperty("pawmedic.argos.executable", argos.file("argos-dist/pawmedic-argos-worker/pawmedic-argos-worker.exe").asFile.absolutePath)
+        systemProperty("pawmedic.argos.packages", argos.dir("argos-models").asFile.absolutePath)
+    }
+}
+
+distributions {
+    main {
+        contents {
+            eachFile {
+                if (name == "library-desktop-1.7.3.jar" && file.path.contains("components-ui-tooling-preview-desktop")) {
+                    name = "compose-preview-library-1.7.3.jar"
+                }
+            }
+        }
+    }
+}
+
+tasks.named<CreateStartScripts>("startScripts") {
+    doLast {
+        windowsScript.writeText(windowsScript.readText().replace(Regex("(?m)^set CLASSPATH=.*$")) {
+            "set CLASSPATH=%APP_HOME%\\lib\\*"
+        })
+        unixScript.writeText(unixScript.readText().replace(Regex("(?m)^CLASSPATH=.*$")) {
+            "CLASSPATH=\$APP_HOME/lib/*"
+        })
+    }
+}
+
+tasks.register<Sync>("installWithTranslation") {
+    dependsOn("installDist")
+    val argos = rootProject.layout.projectDirectory.dir("apps/desktop-veterinary/build")
+    doFirst {
+        check(argos.file("argos-dist/pawmedic-argos-worker/pawmedic-argos-worker.exe").asFile.isFile &&
+            argos.file("argos-models/translate-es_en-1_9/metadata.json").asFile.isFile) {
+            "Run python apps\\desktop-veterinary\\translation\\prepare_argos.py first."
+        }
+    }
+    from(layout.buildDirectory.dir("install/${project.name}"))
+    from(argos.dir("argos-dist/pawmedic-argos-worker")) { into("argos/worker") }
+    from(argos.dir("argos-models")) { into("argos/models") }
+    into(layout.buildDirectory.dir("install-with-translation/${project.name}"))
 }
