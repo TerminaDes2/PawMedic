@@ -1,3 +1,7 @@
+import java.net.URI
+import java.util.Base64
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.compose)
@@ -90,4 +94,48 @@ tasks.register<Sync>("installWithTranslation") {
     from(argos.dir("argos-dist/pawmedic-argos-worker")) { into("argos/worker") }
     from(argos.dir("argos-models")) { into("argos/models") }
     into(argos.dir("install-with-translation/${project.name}"))
+}
+
+val portableConfig = layout.buildDirectory.dir("portable-config")
+val preparePortableConfig = tasks.register("preparePortableConfig") {
+    outputs.dir(portableConfig)
+    outputs.upToDateWhen { false }
+    doLast {
+        val envFile = rootProject.file(".env")
+        val properties = Properties()
+        if (envFile.isFile) envFile.inputStream().use(properties::load)
+        fun value(name: String): String =
+            (properties.getProperty(name)?.trim()?.trim('"')?.takeIf { it.isNotBlank() }
+                ?: System.getenv(name)?.trim()?.takeIf { it.isNotBlank() })
+                ?: error("Missing $name in .env or environment.")
+        val url = value("SUPABASE_URL")
+        val key = value("SUPABASE_ANON_KEY")
+        check(URI(url).scheme == "https") { "Portable distribution requires an HTTPS Supabase URL." }
+        val publicKey = key.startsWith("sb_publishable_") || runCatching {
+            val payload = String(Base64.getUrlDecoder().decode(key.split('.')[1]), Charsets.UTF_8)
+            payload.contains(Regex("\"role\"\\s*:\\s*\"anon\""))
+        }.getOrDefault(false)
+        check(publicKey) { "SUPABASE_ANON_KEY must be a public publishable or anon key; never package a secret key." }
+        val target = portableConfig.get().file(".env").asFile
+        target.parentFile.mkdirs()
+        target.writeText("SUPABASE_URL=$url\nSUPABASE_ANON_KEY=$key\n", Charsets.UTF_8)
+    }
+}
+
+tasks.register<Zip>("portableWindowsZip") {
+    dependsOn("installWithTranslation", preparePortableConfig)
+    val runtime = providers.environmentVariable("JAVA_HOME").map { file(it) }
+    doFirst {
+        check(runtime.isPresent && runtime.get().resolve("bin/java.exe").isFile) {
+            "Set JAVA_HOME to a Windows Java runtime before building the portable ZIP."
+        }
+    }
+    archiveFileName.set("PawMedic-Windows-Portable.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("distributions"))
+    into("PawMedic") {
+        from(layout.buildDirectory.dir("install-with-translation/${project.name}"))
+        from(runtime) { into("runtime") }
+        from(portableConfig)
+        from("distribution")
+    }
 }
