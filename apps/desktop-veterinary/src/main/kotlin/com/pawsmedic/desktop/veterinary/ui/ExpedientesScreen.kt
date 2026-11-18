@@ -374,7 +374,7 @@ fun ExpedientesScreen(
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color.White)
                     .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
-                    .padding(20.dp)
+                    .padding(14.dp)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     val p = selectedPatient
@@ -398,72 +398,75 @@ fun ExpedientesScreen(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(52.dp)
+                                        .size(42.dp)
                                         .clip(CircleShape)
                                         .background(EmeraldLightBg)
                                         .border(2.dp, ClinicalEmerald, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(pName.take(2).uppercase(), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SelectedText)
+                                    Text(pName.take(2).uppercase(), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SelectedText)
                                 }
 
                                 Column {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(pName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(pName, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(ClinicalEmerald)
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
-                                            Text("ID Médico: $medId", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            Text("ID Médico: $medId", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                         }
                                     }
-                                    Text("$pSpecies • $pBreed • Edad: $computedAge", fontSize = 13.sp, color = TextSecondary)
-                                    Text("Propietario: $ownerNameStr • Tel: ${selectedOwner?.phone ?: "N/A"}", fontSize = 12.sp, color = TextMuted)
+                                    Text("$pSpecies • $pBreed • Edad: $computedAge", fontSize = 12.sp, color = TextSecondary)
+                                    Text("Propietario: $ownerNameStr • Tel: ${selectedOwner?.phone ?: "N/A"}", fontSize = 11.sp, color = TextMuted)
                                 }
                             }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 OutlinedButton(
                                     onClick = { showEditPetDialog = true },
+                                    modifier = Modifier.height(34.dp),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Editar Paciente", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                    Text("Editar Paciente", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
                                 }
 
                                 OutlinedButton(
                                     onClick = { showEditBackgroundDialog = true },
+                                    modifier = Modifier.height(34.dp),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Editar Antecedentes", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                    Text("Editar Antecedentes", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
                                 }
 
                                 Button(
                                     onClick = { onNavigate("Consultas") },
+                                    modifier = Modifier.height(34.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text("Ir a Consultas", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("Ir a Consultas", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                             }
                         }
 
                         if (errorMessage != null) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(errorMessage!!, color = Color(0xFFB91C1C), fontSize = 12.sp, modifier = Modifier.fillMaxWidth().background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp)).padding(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(errorMessage!!, color = Color(0xFFB91C1C), fontSize = 11.sp, modifier = Modifier.fillMaxWidth().background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp)).padding(6.dp))
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         // PESTAÑAS DEL EXPEDIENTE
                         val tabs = listOf(
@@ -476,7 +479,7 @@ fun ExpedientesScreen(
                         )
 
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             tabs.forEachIndexed { idx, title ->
@@ -487,11 +490,11 @@ fun ExpedientesScreen(
                                         .background(if (isSel) SelectedBg else Color.Transparent)
                                         .border(1.dp, if (isSel) BorderLight else Color.Transparent, RoundedCornerShape(6.dp))
                                         .clickable { selectedTab = idx }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        .padding(horizontal = 8.dp, vertical = 5.dp)
                                 ) {
                                     Text(
                                         text = title,
-                                        fontSize = 12.sp,
+                                        fontSize = 11.sp,
                                         fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSel) SelectedText else TextSecondary
                                     )
@@ -499,7 +502,7 @@ fun ExpedientesScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         if (isLoadingRecord) {
                             Text("Cargando expediente de $pName…", fontSize = 13.sp, color = TextSecondary)

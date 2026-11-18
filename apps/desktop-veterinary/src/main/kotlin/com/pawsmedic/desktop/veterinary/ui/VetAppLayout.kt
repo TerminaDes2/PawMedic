@@ -139,16 +139,16 @@ fun VetAppLayout(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(80.dp)
+                        .height(56.dp)
                         .background(CardWhite)
                         .border(1.dp, BorderLight)
-                        .padding(horizontal = 24.dp),
+                        .padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = title,
-                        fontSize = 22.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
@@ -242,7 +242,7 @@ fun VetAppLayout(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(20.dp)
+                        .padding(12.dp)
                 ) {
                     content()
                 }
