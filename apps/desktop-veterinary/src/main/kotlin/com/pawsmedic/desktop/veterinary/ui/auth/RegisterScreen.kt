@@ -75,7 +75,6 @@ fun RegisterScreen(
     var legalSection by remember { mutableStateOf<LegalSection?>(null) }
 
     var phoneWarning by remember { mutableStateOf(false) }
-    var rucWarning by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<AuthMessage?>(null) }
     var successMessage by remember { mutableStateOf<AuthMessage?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -192,6 +191,12 @@ fun RegisterScreen(
         if (password.isNotEmpty()) validatePassword(password) else null
     }
 
+    val clinicNameError = if (clinicName.isNotEmpty()) validateBusinessOrPersonName(clinicName) else null
+    val rfcError = if (rucTaxId.isNotEmpty()) validateRfc(rucTaxId) else null
+    val addressError = if (clinicAddress.isNotEmpty()) validateClinicAddress(clinicAddress) else null
+    val vetNameError = if (vetManagerName.isNotEmpty()) validateBusinessOrPersonName(vetManagerName) else null
+    val licenseError = if (licenseNumber.isNotEmpty()) validateProfessionalLicense(licenseNumber) else null
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -307,6 +312,8 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = clinicName,
                             onValueChange = { clinicName = it },
+                            isError = clinicNameError != null,
+                            supportingText = clinicNameError?.let { { Text(it.text(english)) } },
                             label = { Text(tr("Nombre de la Clínica *", "Clinic name *"), color = TextSecondary) },
                             placeholder = { Text(tr("ej. Veterinaria San Miguel", "e.g. San Miguel Veterinary Clinic"), color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.Store, contentDescription = null, tint = TextMuted) },
@@ -316,30 +323,19 @@ fun RegisterScreen(
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ClinicalEmerald, unfocusedBorderColor = BorderLight)
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            OutlinedTextField(
-                                value = rucTaxId,
-                                onValueChange = { input ->
-                                    if (input.all { it.isLetterOrDigit() || it == '-' }) {
-                                        rucTaxId = input
-                                        rucWarning = false
-                                    } else {
-                                        rucWarning = true
-                                    }
-                                },
-                                label = { Text(tr("RUC / ID Fiscal *", "Tax ID *"), color = TextSecondary) },
-                                placeholder = { Text(tr("ej. 20123456789", "e.g. 20123456789"), color = TextMuted) },
-                                leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = TextMuted) },
-                                singleLine = true,
-                                isError = rucWarning,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ClinicalEmerald, unfocusedBorderColor = BorderLight)
-                            )
-                            if (rucWarning) {
-                                Text(tr("⚠️ Solo se permiten letras, números y guiones.", "⚠️ Only letters, numbers, and hyphens are allowed."), fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
-                            }
-                        }
+                        OutlinedTextField(
+                            value = rucTaxId,
+                            onValueChange = { rucTaxId = it.uppercase() },
+                            label = { Text(tr("RFC *", "RFC (tax ID) *"), color = TextSecondary) },
+                            placeholder = { Text("ABC123456XY1", color = TextMuted) },
+                            leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = TextMuted) },
+                            singleLine = true,
+                            isError = rfcError != null,
+                            supportingText = rfcError?.let { { Text(it.text(english)) } },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ClinicalEmerald, unfocusedBorderColor = BorderLight)
+                        )
 
                         OutlinedTextField(
                             value = adminEmail,
@@ -387,6 +383,8 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = clinicAddress,
                             onValueChange = { clinicAddress = it },
+                            isError = addressError != null,
+                            supportingText = addressError?.let { { Text(it.text(english)) } },
                             label = { Text(tr("Dirección de la Clínica *", "Clinic address *"), color = TextSecondary) },
                             placeholder = { Text(tr("Av. Principal 123, Ciudad", "123 Main Street, City"), color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextMuted) },
@@ -399,6 +397,8 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = vetManagerName,
                             onValueChange = { vetManagerName = it },
+                            isError = vetNameError != null,
+                            supportingText = vetNameError?.let { { Text(it.text(english)) } },
                             label = { Text(tr("Nombre del Veterinario Responsable *", "Veterinarian in charge *"), color = TextSecondary) },
                             placeholder = { Text("MVZ Dr. Carlos Ramos", color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = TextMuted) },
@@ -411,8 +411,10 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = licenseNumber,
                             onValueChange = { licenseNumber = it },
-                            label = { Text(tr("Cédula Profesional / Licencia *", "Professional license *"), color = TextSecondary) },
-                            placeholder = { Text("CÉD-981204", color = TextMuted) },
+                            isError = licenseError != null,
+                            supportingText = licenseError?.let { { Text(it.text(english)) } },
+                            label = { Text(tr("Cédula Profesional *", "Professional license *"), color = TextSecondary) },
+                            placeholder = { Text("1234567", color = TextMuted) },
                             leadingIcon = { Icon(Icons.Default.Verified, contentDescription = null, tint = TextMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -512,11 +514,12 @@ fun RegisterScreen(
                                 color = TextPrimary,
                                 modifier = Modifier.clickable { acceptTerms = !acceptTerms }
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TextButton(onClick = { legalSection = LegalSection.TERMS }, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { legalSection = LegalSection.TERMS }, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(24.dp)) {
                                     Text(tr("Términos de servicio", "Terms of service"), fontSize = 12.sp, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)
                                 }
-                                TextButton(onClick = { legalSection = LegalSection.PRIVACY }, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)) {
+                                Text(tr("  y  ", "  and  "), fontSize = 12.sp, color = TextPrimary)
+                                TextButton(onClick = { legalSection = LegalSection.PRIVACY }, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(24.dp)) {
                                     Text(tr("Política de privacidad", "Privacy policy"), fontSize = 12.sp, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)
                                 }
                             }
@@ -543,6 +546,16 @@ fun RegisterScreen(
                                         contactPhone.isBlank() || clinicAddress.isBlank() ||
                                         vetManagerName.isBlank() || licenseNumber.isBlank()) {
                                         errorMessage = AuthMessage("Por favor complete todos los campos obligatorios (*).", "Complete all required fields (*).")
+                                        return@launch
+                                    }
+
+                                    val fieldError = validateBusinessOrPersonName(clinicName)
+                                        ?: validateRfc(rucTaxId)
+                                        ?: validateClinicAddress(clinicAddress)
+                                        ?: validateBusinessOrPersonName(vetManagerName)
+                                        ?: validateProfessionalLicense(licenseNumber)
+                                    if (fieldError != null) {
+                                        errorMessage = fieldError
                                         return@launch
                                     }
 

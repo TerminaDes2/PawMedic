@@ -37,6 +37,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -613,14 +614,23 @@ fun CatalogScreen(
                     else {
                         OutlinedTextField(stock, { stock = it }, label = { Text(tr("Existencias", "Stock")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                         Box(Modifier.fillMaxWidth()) {
-                            OutlinedButton(
-                                onClick = { categoryMenuExpanded = true },
+                            OutlinedTextField(
+                                value = categories.find { it.id == selectedCategoryId }?.name?.let(::displayText).orEmpty(),
+                                onValueChange = {},
+                                readOnly = true,
                                 enabled = !isSaving && categories.isNotEmpty(),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(categories.find { it.id == selectedCategoryId }?.name?.let(::displayText)
-                                    ?: tr("Seleccionar categoría obligatoria", "Select required category"))
-                            }
+                                singleLine = true,
+                                label = { Text(tr("Categoría", "Category")) },
+                                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                            Box(Modifier.matchParentSize().clickable(enabled = !isSaving && categories.isNotEmpty()) { categoryMenuExpanded = true })
                             DropdownMenu(expanded = categoryMenuExpanded, onDismissRequest = { categoryMenuExpanded = false }) {
                                 categories.forEach { category ->
                                     DropdownMenuItem(text = { Text(displayText(category.name)) }, onClick = {
