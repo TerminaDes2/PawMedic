@@ -25,6 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 import kotlinx.coroutines.delay
 
 @Composable
@@ -32,6 +35,7 @@ fun RegistrationSuccessScreen(
     onContinue: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val scale = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
@@ -49,7 +53,7 @@ fun RegistrationSuccessScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen),
+            .background(PawMedicSemanticColors.current.background),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -63,26 +67,26 @@ fun RegistrationSuccessScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "Registro exitoso",
+                    contentDescription = language.text("Registro exitoso", "Registration successful"),
                     tint = PawMedicColors.White,
                     modifier = Modifier.size(64.dp)
                 )
             }
             Spacer(modifier = Modifier.height(28.dp))
             Text(
-                text = "¡Registro exitoso!",
-                color = PawMedicColors.Gray900,
+                text = language.text("¡Registro exitoso!", "Registration successful!"),
+                color = PawMedicSemanticColors.current.text,
                 fontSize = 26.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Tu cuenta está lista para comenzar.",
-                color = PawMedicColors.Gray600,
+                text = language.text("Tu cuenta está lista para comenzar.", "Your account is ready."),
+                color = PawMedicSemanticColors.current.secondaryText,
                 fontSize = 16.sp
             )
             Spacer(modifier = Modifier.height(32.dp))
             PawMedicPrimaryButton(
-                text = "Ir al inicio",
+                text = language.text("Ir al inicio", "Go to home"),
                 onClick = onContinue
             )
         }

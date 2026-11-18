@@ -39,6 +39,9 @@ import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.medical_records.domain.model.MedicalRecord
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 
 @Composable
 fun MedicalHistoryScreen(
@@ -46,18 +49,19 @@ fun MedicalHistoryScreen(
     onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = "Historial Clínico",
+            title = language.text("Historial Clínico", "Medical history"),
             onBackClick = onBackClick
         )
 
@@ -69,8 +73,8 @@ fun MedicalHistoryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicColors.White)
-                    .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
+                    .background(PawMedicSemanticColors.current.surface)
+                    .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(16.dp))
                     .clickable { dropdownExpanded = true }
                     .padding(14.dp)
             ) {
@@ -84,20 +88,20 @@ fun MedicalHistoryScreen(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(PawMedicColors.Teal50),
+                                .background(PawMedicSemanticColors.current.softAccent),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(text = "🐾", fontSize = 20.sp)
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Mostrando historial de: ${uiState.selectedPetName}",
+                            text = language.text("Mostrando historial de: ${uiState.selectedPetName}", "Showing history for: ${if (uiState.selectedPetName == "Todas") "All" else uiState.selectedPetName}"),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
+                            color = PawMedicSemanticColors.current.text
                         )
                     }
-                    Text(text = "▼", fontSize = 14.sp, color = PawMedicColors.Gray500)
+                    Text(text = "▼", fontSize = 14.sp, color = PawMedicSemanticColors.current.hint)
                 }
             }
 
@@ -108,7 +112,7 @@ fun MedicalHistoryScreen(
             ) {
                 uiState.availablePetNames.forEach { name ->
                     DropdownMenuItem(
-                        text = { Text(text = name, fontWeight = FontWeight.Medium) },
+                        text = { Text(text = if (name == "Todas") language.text(name, "All") else name, fontWeight = FontWeight.Medium) },
                         onClick = {
                             viewModel.onPetSelected(name)
                             dropdownExpanded = false
@@ -126,22 +130,22 @@ fun MedicalHistoryScreen(
             onValueChange = viewModel::onSearchQueryChanged,
             placeholder = {
                 Text(
-                    text = "Buscar vacunas, diagnósticos, doctores...",
-                    color = PawMedicColors.Gray400,
+                    text = language.text("Buscar vacunas, diagnósticos, doctores...", "Search vaccines, diagnoses, doctors..."),
+                    color = PawMedicSemanticColors.current.hint,
                     fontSize = 14.sp
                 )
             },
             leadingIcon = {
-                Text(text = "🔍", fontSize = 16.sp, color = PawMedicColors.Gray400)
+                Text(text = "🔍", fontSize = 16.sp, color = PawMedicSemanticColors.current.hint)
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PawMedicColors.Teal600,
-                unfocusedBorderColor = PawMedicColors.Gray300,
-                focusedContainerColor = PawMedicColors.White,
-                unfocusedContainerColor = PawMedicColors.White
+                unfocusedBorderColor = PawMedicSemanticColors.current.border,
+                focusedContainerColor = PawMedicSemanticColors.current.surface,
+                unfocusedContainerColor = PawMedicSemanticColors.current.surface
             )
         )
 
@@ -156,9 +160,12 @@ fun MedicalHistoryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No se encontraron registros médicos para tus mascotas.",
+                    text = language.text(
+                        "No se encontraron registros médicos para tus mascotas.",
+                        "No medical records found for your pets."
+                    ),
                     fontSize = 14.sp,
-                    color = PawMedicColors.Gray500
+                    color = PawMedicSemanticColors.current.hint
                 )
             }
         } else {
@@ -172,12 +179,13 @@ fun MedicalHistoryScreen(
 
 @Composable
 private fun MedicalRecordCard(record: MedicalRecord) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
+            .background(PawMedicSemanticColors.current.surface)
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(20.dp))
             .padding(18.dp)
     ) {
         Column {
@@ -191,20 +199,20 @@ private fun MedicalRecordCard(record: MedicalRecord) {
                     text = record.date,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Teal600
+                    color = PawMedicSemanticColors.current.accent
                 )
 
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFE6F4EA))
+                        .background(PawMedicSemanticColors.current.softAccent)
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = record.clinicName,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
+                        color = PawMedicSemanticColors.current.accent
                     )
                 }
             }
@@ -215,32 +223,32 @@ private fun MedicalRecordCard(record: MedicalRecord) {
                 text = "${record.petName}: ${record.title}",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900
+                color = PawMedicSemanticColors.current.text
             )
 
             Spacer(modifier = Modifier.height(2.dp))
 
             Text(
-                text = "Atendido por: ${record.doctorName}",
+                text = language.text("Atendido por: ${record.doctorName}", "Attended by: ${record.doctorName}"),
                 fontSize = 13.sp,
-                color = PawMedicColors.Gray500
+                color = PawMedicSemanticColors.current.hint
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
             // DIAGNOSTICO
             Text(
-                text = "DIAGNÓSTICO",
+                text = language.text("DIAGNÓSTICO", "DIAGNOSIS"),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray400,
+                color = PawMedicSemanticColors.current.hint,
                 letterSpacing = 0.5.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = record.diagnosis,
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray700,
+                color = PawMedicSemanticColors.current.text,
                 lineHeight = 20.sp
             )
 
@@ -248,17 +256,17 @@ private fun MedicalRecordCard(record: MedicalRecord) {
 
             // TRATAMIENTO
             Text(
-                text = "TRATAMIENTO",
+                text = language.text("TRATAMIENTO", "TREATMENT"),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray400,
+                color = PawMedicSemanticColors.current.hint,
                 letterSpacing = 0.5.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = record.treatment,
                 fontSize = 14.sp,
-                color = PawMedicColors.Gray700,
+                color = PawMedicSemanticColors.current.text,
                 lineHeight = 20.sp
             )
 
@@ -270,22 +278,22 @@ private fun MedicalRecordCard(record: MedicalRecord) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFECFDF5))
+                        .background(PawMedicSemanticColors.current.softAccent)
                         .padding(12.dp)
                 ) {
                     Column {
                         Text(
-                            text = "NOTAS DEL VETERINARIO",
+                            text = language.text("NOTAS DEL VETERINARIO", "VETERINARIAN'S NOTES"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Teal600,
+                            color = PawMedicSemanticColors.current.accent,
                             letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = record.vetNotes,
                             fontSize = 13.sp,
-                            color = PawMedicColors.Gray800,
+                            color = PawMedicSemanticColors.current.text,
                             lineHeight = 18.sp
                         )
                     }

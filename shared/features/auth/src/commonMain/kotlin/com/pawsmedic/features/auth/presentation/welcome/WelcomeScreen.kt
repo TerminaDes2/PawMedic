@@ -24,6 +24,9 @@ import com.pawsmedic.features.auth.presentation.components.AuthLogo
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 
 @Composable
 fun WelcomeScreen(
@@ -31,10 +34,11 @@ fun WelcomeScreen(
     onNavigateToRegister: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .systemBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 32.dp),
@@ -58,17 +62,17 @@ fun WelcomeScreen(
                 text = "PawsMedic",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Teal600
+                color = PawMedicSemanticColors.current.accent
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Title & Description
             Text(
-                text = "Cuidamos a quienes más amas",
+                text = language.text("Cuidamos a quienes más amas", "We care for those you love most"),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Gray900,
+                color = PawMedicSemanticColors.current.text,
                 textAlign = TextAlign.Center,
                 lineHeight = 34.sp
             )
@@ -76,10 +80,10 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Encuentra veterinarias, gestiona citas y lleva el historial médico de tus mascotas en un solo lugar.",
+                text = language.text("Encuentra veterinarias, gestiona citas y lleva el historial médico de tus mascotas en un solo lugar.", "Find veterinary clinics, manage appointments and keep your pets' medical records in one place."),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
-                color = PawMedicColors.Gray600,
+                color = PawMedicSemanticColors.current.secondaryText,
                 textAlign = TextAlign.Center,
                 lineHeight = 22.sp,
                 modifier = Modifier.padding(horizontal = 12.dp)
@@ -94,23 +98,23 @@ fun WelcomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             PawMedicPrimaryButton(
-                text = "Iniciar sesión",
+                text = language.text("Iniciar sesión", "Sign in"),
                 onClick = onNavigateToLogin
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             PawMedicSecondaryButton(
-                text = "Registrarse",
+                text = language.text("Registrarse", "Sign up"),
                 onClick = onNavigateToRegister
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Al continuar, aceptas nuestros Términos y Políticas de Privacidad",
+                text = language.text("Al continuar, aceptas nuestros Términos y Políticas de Privacidad", "By continuing, you agree to our Terms and Privacy Policy"),
                 fontSize = 12.sp,
-                color = PawMedicColors.Gray400,
+                color = PawMedicSemanticColors.current.hint,
                 textAlign = TextAlign.Center
             )
         }

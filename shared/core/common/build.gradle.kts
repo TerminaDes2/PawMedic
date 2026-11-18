@@ -19,11 +19,6 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
         }
-        val desktopMain by getting {
-            dependencies {
-                implementation(compose.desktop.common)
-            }
-        }
         commonTest.dependencies {
             implementation(kotlin("test"))
         }

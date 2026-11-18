@@ -11,6 +11,10 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+sourceSets.main {
+    resources.srcDir(rootProject.file("config"))
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
@@ -28,10 +32,31 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
+    testImplementation(kotlin("test"))
 }
 
 application { mainClass.set("com.pawsmedic.desktop.admin.MainKt") }
 
 tasks.withType<JavaExec>().configureEach {
     jvmArgs("--enable-native-access=ALL-UNNAMED")
+    val argos = rootProject.layout.projectDirectory.dir("apps/desktop-veterinary/build")
+    if (argos.file("argos-dist/pawmedic-argos-worker/pawmedic-argos-worker.exe").asFile.isFile) {
+        systemProperty("pawmedic.argos.executable", argos.file("argos-dist/pawmedic-argos-worker/pawmedic-argos-worker.exe").asFile.absolutePath)
+        systemProperty("pawmedic.argos.packages", argos.dir("argos-models").asFile.absolutePath)
+    }
+}
+
+tasks.register<Sync>("installWithTranslation") {
+    dependsOn("installDist")
+    val argos = rootProject.layout.projectDirectory.dir("apps/desktop-veterinary/build")
+    doFirst {
+        check(argos.file("argos-dist/pawmedic-argos-worker/pawmedic-argos-worker.exe").asFile.isFile &&
+            argos.file("argos-models/translate-es_en-1_9/metadata.json").asFile.isFile) {
+            "Run python apps\\desktop-veterinary\\translation\\prepare_argos.py first."
+        }
+    }
+    from(layout.buildDirectory.dir("install/${project.name}"))
+    from(argos.dir("argos-dist/pawmedic-argos-worker")) { into("argos/worker") }
+    from(argos.dir("argos-models")) { into("argos/models") }
+    into(layout.buildDirectory.dir("install-with-translation/${project.name}"))
 }

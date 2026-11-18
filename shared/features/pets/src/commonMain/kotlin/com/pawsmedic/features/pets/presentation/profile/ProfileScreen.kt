@@ -52,6 +52,10 @@ import com.pawsmedic.shared.core.common.rememberPhotoPicker
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.features.pets.presentation.localizePetMessage
 import io.github.jan.supabase.SupabaseClient
 
 @Composable
@@ -69,6 +73,7 @@ fun ProfileScreen(
     showSidebar: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val state by viewModel.uiState.collectAsState()
     val profile = state.profile
     var isEditingUsername by remember(profile?.username) { mutableStateOf(false) }
@@ -84,7 +89,7 @@ fun ProfileScreen(
     Row(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .windowInsetsPadding(WindowInsets.statusBars)
             .windowInsetsPadding(WindowInsets.navigationBars)
     ) {
@@ -93,7 +98,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .width(if (drawerOnly) 300.dp else 132.dp)
                 .fillMaxSize()
-                .background(PawMedicColors.White)
+                .background(PawMedicSemanticColors.current.surface)
                 .padding(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
@@ -102,13 +107,13 @@ fun ProfileScreen(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Teal600
+                color = PawMedicSemanticColors.current.accent
             )
-            ProfileSidebarItem(Icons.Default.Person, "Perfil", selected = !drawerOnly) { onProfileClick() }
-            ProfileSidebarItem(Icons.Default.Notifications, "Notificaciones") { onNotificationsClick() }
-            ProfileSidebarItem(Icons.Default.Settings, "Configuración") { onSettingsClick() }
+            ProfileSidebarItem(Icons.Default.Person, language.text("Perfil", "Profile"), selected = !drawerOnly) { onProfileClick() }
+            ProfileSidebarItem(Icons.Default.Notifications, language.text("Notificaciones", "Notifications")) { onNotificationsClick() }
+            ProfileSidebarItem(Icons.Default.Settings, language.text("Configuración", "Settings")) { onSettingsClick() }
             Spacer(modifier = Modifier.weight(1f))
-            ProfileSidebarItem(Icons.AutoMirrored.Filled.Logout, "Salir", onClick = onSignOut)
+            ProfileSidebarItem(Icons.AutoMirrored.Filled.Logout, language.text("Salir", "Sign out"), onClick = onSignOut)
         }
 
         // Contenido principal del perfil
@@ -120,7 +125,7 @@ fun ProfileScreen(
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             PawMedicTopBar(
-                title = "Mi perfil",
+                title = language.text("Mi perfil", "My profile"),
                 onBackClick = onBackClick
             )
 
@@ -132,7 +137,7 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicColors.White)
+                    .background(PawMedicSemanticColors.current.surface)
                     .padding(vertical = 16.dp, horizontal = 12.dp)
             ) {
                 Box(
@@ -150,8 +155,8 @@ fun ProfileScreen(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Cambiar foto",
-                    color = PawMedicColors.Teal600,
+                    text = language.text("Cambiar foto", "Change photo"),
+                    color = PawMedicSemanticColors.current.accent,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
                     modifier = Modifier.clickable { photoPicker() }
@@ -161,10 +166,10 @@ fun ProfileScreen(
                     text = listOf(profile?.firstName.orEmpty(), profile?.lastName.orEmpty())
                         .joinToString(" ")
                         .trim()
-                        .ifBlank { profile?.displayName?.ifBlank { "Usuario" } ?: "Usuario" },
+                        .ifBlank { profile?.displayName?.ifBlank { language.text("Usuario", "User") } ?: language.text("Usuario", "User") },
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900,
+                    color = PawMedicSemanticColors.current.text,
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -189,8 +194,8 @@ fun ProfileScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "Guardar username",
-                                tint = PawMedicColors.Teal600
+                                contentDescription = language.text("Guardar username", "Save username"),
+                                tint = PawMedicSemanticColors.current.accent
                             )
                         }
                     }
@@ -198,7 +203,7 @@ fun ProfileScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "@${profile?.username?.ifBlank { "usuario" } ?: "usuario"}",
-                            color = PawMedicColors.Teal600,
+                            color = PawMedicSemanticColors.current.accent,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -208,8 +213,8 @@ fun ProfileScreen(
                         }) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
-                                contentDescription = "Editar username",
-                                tint = PawMedicColors.Teal600,
+                                contentDescription = language.text("Editar username", "Edit username"),
+                                tint = PawMedicSemanticColors.current.accent,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -224,8 +229,8 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                ProfileStat("Mascotas", pets.size, Modifier.weight(1f))
-                ProfileStat("Citas", appointmentsCount, Modifier.weight(1f))
+                ProfileStat(language.text("Mascotas", "Pets"), pets.size, Modifier.weight(1f))
+                ProfileStat(language.text("Citas", "Appointments"), appointmentsCount, Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -235,32 +240,32 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicColors.White)
+                    .background(PawMedicSemanticColors.current.surface)
                     .padding(horizontal = 14.dp, vertical = 14.dp)
             ) {
                 Text(
-                    text = "Información de la cuenta",
+                    text = language.text("Información de la cuenta", "Account information"),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
+                    color = PawMedicSemanticColors.current.text
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-                ProfileInfoRow("Correo electrónico", profile?.email.orEmpty())
-                HorizontalDivider(color = PawMedicColors.Gray100, modifier = Modifier.padding(vertical = 6.dp))
-                ProfileInfoRow("Teléfono", profile?.phone ?: "No registrado")
-                HorizontalDivider(color = PawMedicColors.Gray100, modifier = Modifier.padding(vertical = 6.dp))
+                ProfileInfoRow(language.text("Correo electrónico", "Email address"), profile?.email.orEmpty())
+                HorizontalDivider(color = PawMedicSemanticColors.current.mutedSurface, modifier = Modifier.padding(vertical = 6.dp))
+                ProfileInfoRow(language.text("Teléfono", "Phone"), profile?.phone ?: language.text("No registrado", "Not recorded"))
+                HorizontalDivider(color = PawMedicSemanticColors.current.mutedSurface, modifier = Modifier.padding(vertical = 6.dp))
                 ProfileInfoRow(
-                    "Fecha de registro",
-                    profile?.createdAt?.takeIf { it.isNotBlank() }?.substringBefore("T") ?: "No disponible"
+                    language.text("Fecha de registro", "Registration date"),
+                    profile?.createdAt?.takeIf { it.isNotBlank() }?.substringBefore("T") ?: language.text("No disponible", "Not available")
                 )
-                HorizontalDivider(color = PawMedicColors.Gray100, modifier = Modifier.padding(vertical = 6.dp))
-                ProfileInfoRow("Ubicación", "No disponible")
+                HorizontalDivider(color = PawMedicSemanticColors.current.mutedSurface, modifier = Modifier.padding(vertical = 6.dp))
+                ProfileInfoRow(language.text("Ubicación", "Location"), language.text("No disponible", "Not available"))
             }
 
             if (state.errorMessage != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = state.errorMessage.orEmpty(),
+                    text = localizePetMessage(state.errorMessage.orEmpty(), language),
                     color = PawMedicColors.Error,
                     fontSize = 12.sp,
                     modifier = Modifier.fillMaxWidth(),
@@ -284,20 +289,20 @@ private fun ProfileSidebarItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .background(if (selected) PawMedicColors.Teal50 else PawMedicColors.White)
+            .background(if (selected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (selected) PawMedicColors.Teal600 else PawMedicColors.Gray600,
+            tint = if (selected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.secondaryText,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = label,
-            color = if (selected) PawMedicColors.Teal700 else PawMedicColors.Gray700,
+            color = if (selected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.text,
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
         )
@@ -306,14 +311,15 @@ private fun ProfileSidebarItem(
 
 @Composable
 private fun ProfileInfoRow(label: String, value: String) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, fontSize = 11.sp, color = PawMedicColors.Gray500)
+        Text(label, fontSize = 11.sp, color = PawMedicSemanticColors.current.hint)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
-            text = value.ifBlank { "No disponible" },
+            text = value.ifBlank { language.text("No disponible", "Not available") },
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            color = PawMedicColors.Gray900
+            color = PawMedicSemanticColors.current.text
         )
     }
 }
@@ -323,7 +329,7 @@ private fun ProfileStat(label: String, value: Int, modifier: Modifier = Modifier
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(PawMedicColors.White)
+            .background(PawMedicSemanticColors.current.surface)
             .padding(vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -331,14 +337,14 @@ private fun ProfileStat(label: String, value: Int, modifier: Modifier = Modifier
             text = value.toString(),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            color = PawMedicColors.Teal600
+            color = PawMedicSemanticColors.current.accent
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
-            color = PawMedicColors.Gray600
+            color = PawMedicSemanticColors.current.secondaryText
         )
     }
 }

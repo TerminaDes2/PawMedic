@@ -1,6 +1,7 @@
 package com.pawsmedic.features.products.data.datasource
 
 import com.pawsmedic.features.products.data.dto.ProductDto
+import com.pawsmedic.features.products.data.dto.ProductInsertDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 
@@ -17,7 +18,7 @@ class SupabaseProductDataSource(
             }
             .decodeList<ProductDto>()
 
-    override suspend fun addProduct(product: ProductDto): ProductDto =
+    override suspend fun addProduct(product: ProductInsertDto): ProductDto =
         supabase.postgrest["products"]
             .insert(product) {
                 select()

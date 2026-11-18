@@ -1,13 +1,13 @@
 package com.pawsmedic.desktop.veterinary.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,11 +15,74 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.desktop.admin.ui.AppearanceButton
+import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
+import com.pawsmedic.desktop.veterinary.supabase
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import java.net.URI
+import javax.imageio.ImageIO
+
+@Serializable
+private data class ProfileAvatar(
+    @SerialName("avatar_url") val url: String? = null,
+    @SerialName("display_name") val displayName: String? = null
+)
+
+private class HeaderProfile {
+    var name by mutableStateOf("")
+    var avatar by mutableStateOf<ImageBitmap?>(null)
+    var revision by mutableIntStateOf(0)
+}
+
+private val LocalHeaderProfile = staticCompositionLocalOf { HeaderProfile() }
+
+@Composable
+internal fun HeaderProfileProvider(sessionKey: String, content: @Composable () -> Unit) {
+    val state = remember(sessionKey) { HeaderProfile() }
+    LaunchedEffect(sessionKey, state.revision) {
+        if (sessionKey.isBlank()) return@LaunchedEffect
+        try {
+            val userId = supabase.auth.currentUserOrNull()?.id ?: return@LaunchedEffect
+            val profile = supabase.postgrest["profiles"].select { filter { eq("id", userId) } }
+                .decodeSingle<ProfileAvatar>()
+            state.name = profile.displayName.orEmpty()
+            val url = profile.url
+            if (url.isNullOrBlank()) {
+                state.avatar = null
+            } else {
+                state.avatar = withContext(Dispatchers.IO) {
+                    val uri = URI(url)
+                    require(uri.scheme == "https") { "La foto debe usar HTTPS." }
+                    val connection = uri.toURL().openConnection().apply {
+                        connectTimeout = 5000
+                        readTimeout = 5000
+                    }
+                    connection.getInputStream().use { input -> ImageIO.read(input)?.toComposeImageBitmap() }
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            System.err.println("No se pudo cargar el perfil o su foto.")
+        }
+    }
+    CompositionLocalProvider(LocalHeaderProfile provides state, content = content)
+}
 
 @Composable
 fun VetAppLayout(
@@ -30,12 +93,14 @@ fun VetAppLayout(
     userEmail: String = "",
     content: @Composable BoxScope.() -> Unit
 ) {
+    val english = LocalDesktopAppearance.current.english
     var showAdminModal by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
 
     var adminUsername by remember { mutableStateOf("") }
     var adminPassword by remember { mutableStateOf("") }
     var loginError by remember { mutableStateOf(false) }
+    var showProfile by remember(userEmail) { mutableStateOf(false) }
+    val headerProfile = LocalHeaderProfile.current
 
     Box(
         modifier = Modifier
@@ -48,8 +113,7 @@ fun VetAppLayout(
                 modifier = Modifier
                     .width(260.dp)
                     .fillMaxHeight()
-                    .background(CardWhite)
-                    .border(1.dp, BorderLight)
+                    .background(DarkSlate)
                     .padding(vertical = 20.dp, horizontal = 16.dp)
             ) {
                 // Header Marca PawsMedic
@@ -77,7 +141,7 @@ fun VetAppLayout(
                             text = "Paws",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            color = Color.White
                         )
                         Text(
                             text = "Medic",
@@ -88,14 +152,17 @@ fun VetAppLayout(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(30.dp))
+                Text(if (english) "WORKSPACE" else "ESPACIO DE TRABAJO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 1.sp)
+                Spacer(modifier = Modifier.height(12.dp))
 
                 val menuItems = listOf(
-                    Triple("Agenda", "Agenda y Citas", Icons.Default.CalendarMonth),
-                    Triple("Horarios", "Horarios de atención", Icons.Default.Schedule),
-                    Triple("Consultas", "Consultas Clínicas", Icons.Default.Healing),
-                    Triple("Expedientes", "Expedientes Clínicos", Icons.Default.FolderShared),
-                    Triple("Catalog", "Catálogo de Servicios", Icons.Default.ShoppingCart)
+                    Triple("Agenda", if (english) "Appointments" else "Agenda y Citas", Icons.Default.CalendarMonth),
+                    Triple("Horarios", if (english) "Opening hours" else "Horarios de atención", Icons.Default.Schedule),
+                    Triple("Consultas", if (english) "Clinical consultations" else "Consultas Clínicas", Icons.Default.Healing),
+                    Triple("Expedientes", if (english) "Medical records" else "Expedientes Clínicos", Icons.Default.FolderShared),
+                    Triple("Catalog", if (english) "Catalog" else "Catálogo de Servicios", Icons.Default.ShoppingCart),
+                    Triple("Reports", if (english) "Operational reports" else "Reportes operativos", Icons.Default.Assessment)
                 )
 
                 Column(
@@ -108,9 +175,9 @@ fun VetAppLayout(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) EmeraldLightBg else Color.Transparent)
+                                .height(46.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) ClinicalEmerald else Color.Transparent)
                                 .clickable { onNavigate(id) }
                                 .padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -118,7 +185,7 @@ fun VetAppLayout(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = if (isSelected) ClinicalEmerald else TextSecondary,
+                                tint = if (isSelected) Color.White else Color(0xFFCBD5E1),
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -126,7 +193,7 @@ fun VetAppLayout(
                                 text = label,
                                 fontSize = 14.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) ClinicalEmerald else TextSecondary
+                                color = if (isSelected) Color.White else Color(0xFFCBD5E1)
                             )
                         }
                     }
@@ -146,28 +213,30 @@ fun VetAppLayout(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = title,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
+                    Column {
+                        Text(text = if (english) "VETERINARY DASHBOARD" else "PANEL VETERINARIO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald, letterSpacing = 1.sp)
+                        Spacer(Modifier.height(3.dp))
+                        Text(text = if (english) when (currentScreen) {
+                            "Agenda" -> "Appointments"
+                            "Horarios" -> "Opening hours"
+                            "Expedientes" -> "Medical records"
+                            "Catalog" -> "Services and products"
+                            "Reports" -> "Operational reports"
+                            else -> title
+                        } else title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Buscador
-                        AlignedSearchBox(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = "Buscar paciente, dueño, folio...",
-                            modifier = Modifier.width(300.dp)
-                        )
-
+                        AppearanceButton()
+                        NavigationLanguageButton()
                         // Perfil Usuario (Muestra icono y nombre antes de @)
-                        val displayName = if (userEmail.isNotBlank()) userEmail.substringBefore("@") else "Dr. Valdez"
+                        val displayName = headerProfile.name.ifBlank { if (english) "Veterinary account" else "Cuenta veterinaria" }
                         Row(
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                .clickable { showProfile = true }.padding(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
@@ -182,12 +251,13 @@ fun VetAppLayout(
                                         .background(EmeraldLightBg),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = ClinicalEmerald,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    val image = headerProfile.avatar
+                                    if (image == null) {
+                                        Icon(imageVector = Icons.Default.Person, contentDescription = null,
+                                            tint = ClinicalEmerald, modifier = Modifier.size(20.dp))
+                                    } else {
+                                        Image(image, contentDescription = if (english) "Profile photo" else "Foto de perfil", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                    }
                                 }
 
                                 Column {
@@ -198,42 +268,13 @@ fun VetAppLayout(
                                         color = TextPrimary
                                     )
                                     Text(
-                                        text = userEmail.ifBlank { "Clínica Principal" },
+                                        text = if (english) "My profile" else "Mi perfil",
                                         fontSize = 11.sp,
                                         color = TextMuted
                                     )
                                 }
                             }
 
-                            // Botón Cerrar Sesión
-                            Box(
-                                modifier = Modifier
-                                    .height(36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(OffWhiteBg)
-                                    .border(1.dp, BorderLight, RoundedCornerShape(8.dp))
-                                    .clickable { onLogout() }
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                        contentDescription = null,
-                                        tint = Color(0xFFDC2626),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "Cerrar Sesión",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFDC2626)
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -247,6 +288,16 @@ fun VetAppLayout(
                     content()
                 }
             }
+        }
+
+        if (showProfile) {
+            AccountSidebar(
+                avatar = headerProfile.avatar,
+                onClose = { showProfile = false },
+                onLogout = { showProfile = false; onLogout() },
+                onProfileLoaded = { headerProfile.name = it },
+                onProfileSaved = { name -> headerProfile.name = name; headerProfile.revision++ }
+            )
         }
 
         // MODAL DE AUTENTICACIÓN ADMIN

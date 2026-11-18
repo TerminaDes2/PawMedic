@@ -1,7 +1,9 @@
-package com.pawsmedic.features.businesses.presentation
+    package com.pawsmedic.features.businesses.presentation
 
 import com.pawsmedic.features.businesses.domain.model.Business
 import com.pawsmedic.features.businesses.domain.repository.BusinessRepository
+import com.pawsmedic.features.businesses.data.datasource.PublicProduct
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,20 +46,23 @@ class VeterinaryListViewModel(
     }
 
     fun onSearchQueryChanged(q: String) {
+        val normalizedQuery = q.trim().replace(Regex("\\s+"), " ")
+        if (normalizedQuery == _uiState.value.searchQuery && !_uiState.value.isLoading) return
+
         _uiState.update { curr ->
-            curr.copy(searchQuery = q, isLoading = true, errorMessage = null)
+            curr.copy(searchQuery = normalizedQuery, isLoading = true, errorMessage = null)
         }
         scope.launch {
-            repository.searchBusinesses(q)
+            repository.searchBusinesses(normalizedQuery)
                 .onSuccess { list ->
                     _uiState.update { curr ->
-                        if (curr.searchQuery == q) curr.copy(clinics = list, isLoading = false)
+                        if (curr.searchQuery == normalizedQuery) curr.copy(clinics = list, isLoading = false)
                         else curr
                     }
                 }
                 .onFailure { error ->
                     _uiState.update { curr ->
-                        if (curr.searchQuery == q) {
+                        if (curr.searchQuery == normalizedQuery) {
                             curr.copy(isLoading = false, errorMessage = error.message)
                         } else {
                             curr
@@ -77,12 +82,16 @@ class VeterinaryListViewModel(
 data class VeterinaryDetailUiState(
     val clinic: Business? = null,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val products: List<PublicProduct> = emptyList(),
+    val productsLoading: Boolean = false,
+    val productsError: Boolean = false
 )
 
 class VeterinaryDetailViewModel(
     private val repository: BusinessRepository,
     private val clinicId: String,
+    private val loadProducts: suspend (String) -> List<PublicProduct>,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 ) {
     private val _uiState = MutableStateFlow(VeterinaryDetailUiState())
@@ -98,10 +107,25 @@ class VeterinaryDetailViewModel(
             repository.getBusinessById(clinicId)
                 .onSuccess { b ->
                     _uiState.update { curr -> curr.copy(clinic = b, isLoading = false) }
+                    if (b != null) refreshProducts()
                 }
                 .onFailure { err ->
                     _uiState.update { curr -> curr.copy(isLoading = false, errorMessage = err.message) }
                 }
+        }
+    }
+
+    fun refreshProducts() {
+        scope.launch {
+            _uiState.update { it.copy(productsLoading = true, productsError = false, products = emptyList()) }
+            try {
+                val products = loadProducts(clinicId)
+                _uiState.update { it.copy(products = products, productsLoading = false) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(productsLoading = false, productsError = true) }
+            }
         }
     }
 }

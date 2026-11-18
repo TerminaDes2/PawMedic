@@ -18,6 +18,7 @@ class SupabaseAppointmentDataSource(
         require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para consultar las citas." }
         return supabase.postgrest.rpc(function = "get_owned_appointments")
             .decodeList<OwnedAppointmentRecord>()
+            .filter { it.status.uppercase() != "COMPLETED" }
             .map { row ->
                 AppointmentDto(
                     id = row.id,
@@ -148,6 +149,7 @@ private data class ServiceRecord(
 private fun String.toDisplayStatus(): String = when (uppercase()) {
     "REQUESTED" -> "Pendiente de confirmación"
     "CONFIRMED" -> "Confirmada"
+    "IN_PROGRESS" -> "En progreso"
     "CANCELLED" -> "Cancelada"
     "COMPLETED" -> "Completada"
     "NO_SHOW" -> "No asistió"
