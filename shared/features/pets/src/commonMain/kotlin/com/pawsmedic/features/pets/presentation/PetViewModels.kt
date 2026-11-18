@@ -135,11 +135,7 @@ val DEFAULT_SPECIES_OPTIONS = listOf(
     SpeciesOption(3, "Ave"),
     SpeciesOption(4, "Reptil"),
     SpeciesOption(5, "Conejo"),
-    SpeciesOption(6, "Cobaya / Cuy"),
-    SpeciesOption(7, "Hámster"),
-    SpeciesOption(8, "Hurón"),
-    SpeciesOption(9, "Erizo"),
-    SpeciesOption(10, "Chinchilla y Degú")
+    SpeciesOption(7, "Hámster")
 )
 
 val DEFAULT_BREED_OPTIONS = listOf(
