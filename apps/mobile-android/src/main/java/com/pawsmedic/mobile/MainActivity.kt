@@ -206,7 +206,10 @@ class MainActivity : ComponentActivity() {
                     registerUseCase = registerUseCase,
                     verifyOtpUseCase = verifyOtpUseCase,
                     resendOtpUseCase = resendOtpUseCase,
-                    loginWithGoogleUseCase = loginWithGoogleUseCase
+                    loginWithGoogleUseCase = loginWithGoogleUseCase,
+                    recordLegalAcceptance = { termsVersion, privacyVersion ->
+                        repository.recordLegalAcceptance(termsVersion, privacyVersion)
+                    }
                 )
             }
 

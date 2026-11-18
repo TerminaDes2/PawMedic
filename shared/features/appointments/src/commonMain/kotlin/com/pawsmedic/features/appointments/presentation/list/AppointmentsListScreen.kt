@@ -91,6 +91,53 @@ class AppointmentsListViewModel(
                 }
         }
     }
+
+    fun cancelAppointment(appointment: Appointment, onSuccess: () -> Unit = {}) {
+        if (!appointment.isPending()) return
+        scope.launch {
+            repository.cancelAppointment(appointment.id)
+                .onSuccess {
+                    loadAppointments()
+                    onSuccess()
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(errorMessage = friendlyErrorMessage(err)) }
+                }
+        }
+    }
+
+    fun editAppointment(appointment: Appointment, date: String, time: String, onSuccess: () -> Unit) {
+        if (!appointment.isPending()) return
+        scope.launch {
+            repository.editAppointment(appointment.id, date.trim(), time.trim())
+                .onSuccess {
+                    loadAppointments()
+                    onSuccess()
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(errorMessage = friendlyErrorMessage(err)) }
+                }
+        }
+    }
+
+    fun loadAvailableSlots(
+        appointment: Appointment,
+        date: String,
+        onResult: (List<com.pawsmedic.features.appointments.domain.model.AvailableAppointmentSlot>) -> Unit
+    ) {
+        scope.launch {
+            repository.getAvailableSlots(
+                appointment.businessId,
+                appointment.serviceId,
+                date,
+                appointment.id
+            ).onSuccess(onResult)
+                .onFailure { err ->
+                    _uiState.update { it.copy(errorMessage = friendlyErrorMessage(err)) }
+                    onResult(emptyList())
+                }
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -124,6 +171,7 @@ private fun categoryLabel(category: String): String = when (category) {
 fun AppointmentsListScreen(
     viewModel: AppointmentsListViewModel,
     onStartBooking: () -> Unit,
+    onAppointmentClick: (Appointment) -> Unit = {},
     onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -283,7 +331,7 @@ fun AppointmentsListScreen(
                     }
                 } else {
                     filtered.forEach { app ->
-                        AppointmentDetailCard(app = app)
+                        AppointmentDetailCard(app = app, onClick = { onAppointmentClick(app) })
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
@@ -365,7 +413,7 @@ private fun FilterDropdownChip(
 }
 
 @Composable
-private fun AppointmentDetailCard(app: Appointment) {
+private fun AppointmentDetailCard(app: Appointment, onClick: () -> Unit = {}) {
     val isPending = app.isPending()
     val isConfirmed = app.isAccepted()
     val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
@@ -373,6 +421,7 @@ private fun AppointmentDetailCard(app: Appointment) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .clip(RoundedCornerShape(20.dp))
             .background(PawMedicSemanticColors.current.surface)
             .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(20.dp))

@@ -1,6 +1,7 @@
 package com.pawsmedic.features.businesses.data.datasource
 
 import com.pawsmedic.features.businesses.data.dto.BusinessDto
+import com.pawsmedic.features.businesses.data.dto.BusinessScheduleDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.SerialName
@@ -18,7 +19,7 @@ class SupabaseBusinessDataSource(
         supabase.postgrest["business_directory"]
             .select()
             .decodeList<BusinessDirectoryRecord>()
-            .map { it.toDto(getHours(it.id)) }
+            .map { it.toDto(getSchedules(it.id), getTimeZone(it.id)) }
 
     override suspend fun getBusinessById(id: String): BusinessDto? {
         val business = supabase.postgrest["business_directory"]
@@ -27,19 +28,30 @@ class SupabaseBusinessDataSource(
             }
             .decodeList<BusinessDirectoryRecord>()
             .singleOrNull()
-        return business?.toDto(getHours(id))
+        return business?.toDto(getSchedules(id), getTimeZone(id))
     }
 
-    private suspend fun getHours(tenantId: String): List<String> =
+    private suspend fun getSchedules(tenantId: String): List<BusinessScheduleDto> =
         supabase.postgrest["business_schedules"]
             .select {
-                filter { eq("tenant_id", tenantId) }
+                filter {
+                    eq("tenant_id", tenantId)
+                    eq("is_active", true)
+                }
             }
-            .decodeList<BusinessScheduleRecord>()
-            .sortedBy(BusinessScheduleRecord::dayOfWeek)
-            .map { schedule ->
-                "${schedule.dayOfWeek.toWeekdayName()}: ${schedule.openTime.take(5)}–${schedule.closeTime.take(5)}"
+            .decodeList<BusinessScheduleDto>()
+            .sortedWith(compareBy<BusinessScheduleDto> { it.dayOfWeek }.thenBy { it.openTime })
+
+    private suspend fun getTimeZone(tenantId: String): String {
+        val zones = supabase.postgrest["tenants"]
+            .select {
+                filter { eq("id", tenantId) }
             }
+            .decodeList<BusinessTimeZoneRecord>()
+        return zones.firstOrNull()?.timeZone?.takeIf { it.isNotBlank() }
+            ?: "America/Mexico_City"
+    }
+
 }
 
 @Serializable
@@ -51,20 +63,22 @@ private data class BusinessDirectoryRecord(
     val address: String? = null,
     val phone: String? = null
 ) {
-    fun toDto(hours: List<String>) = BusinessDto(
+    fun toDto(schedules: List<com.pawsmedic.features.businesses.data.dto.BusinessScheduleDto>, timeZone: String) = BusinessDto(
         id = id,
         name = name.ifBlank { publicName.ifBlank { legalName } },
         address = address,
         phone = phone,
-        hours = hours
+        hours = schedules.map { schedule ->
+            "${schedule.dayOfWeek.toWeekdayName()}: ${schedule.openTime.take(5)}–${schedule.closeTime.take(5)}"
+        },
+        schedules = schedules,
+        timeZone = timeZone
     )
 }
 
 @Serializable
-private data class BusinessScheduleRecord(
-    @SerialName("day_of_week") val dayOfWeek: Int,
-    @SerialName("open_time") val openTime: String,
-    @SerialName("close_time") val closeTime: String
+private data class BusinessTimeZoneRecord(
+    @SerialName("time_zone") val timeZone: String = "America/Mexico_City"
 )
 
 private fun Int.toWeekdayName() = when (this) {

@@ -124,6 +124,16 @@ class SupabaseAuthDataSourceImpl(
         return toAuthoritativeDto(session)
     }
 
+    override suspend fun recordLegalAcceptance(termsVersion: String, privacyVersion: String) {
+        supabaseClient.postgrest.rpc(
+            "record_legal_acceptance",
+            kotlinx.serialization.json.buildJsonObject {
+                put("p_terms_version", termsVersion)
+                put("p_privacy_version", privacyVersion)
+            }
+        )
+    }
+
     override suspend fun resendEmailOtp(email: String) {
         supabaseClient.auth.resendEmail(
             type = OtpType.Email.SIGNUP,

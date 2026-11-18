@@ -20,7 +20,7 @@ internal fun speciesIconFor(name: String): SpeciesIcon {
     return when {
         "canino" in n || "perro" in n || "dog" in n -> SpeciesIcon.DOG
         "felino" in n || "gato" in n || "cat" in n -> SpeciesIcon.CAT
-        "roedor" in n || "conejo" in n || "peque" in n || "rodent" in n -> SpeciesIcon.RODENT
+        "roedor" in n || "conejo" in n || "hamster" in n || "hámster" in n || "peque" in n || "rodent" in n -> SpeciesIcon.RODENT
         n == "ave" || n == "aves" || "pájaro" in n || "pajaro" in n || "bird" in n -> SpeciesIcon.BIRD
         "pez" in n || "peces" in n || "fish" in n -> SpeciesIcon.FISH
         "reptil" in n || "reptiles" in n || "reptil" in n -> SpeciesIcon.REPTIL

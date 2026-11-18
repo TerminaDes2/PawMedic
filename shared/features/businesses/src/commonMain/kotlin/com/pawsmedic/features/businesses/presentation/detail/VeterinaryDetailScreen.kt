@@ -23,15 +23,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,9 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.businesses.presentation.VeterinaryDetailViewModel
-import com.pawsmedic.features.products.domain.model.Product
-import com.pawsmedic.features.products.domain.model.formattedPrice
-import com.pawsmedic.features.products.domain.repository.ProductRepository
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
@@ -54,42 +46,15 @@ import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 @Composable
 fun VeterinaryDetailScreen(
     viewModel: VeterinaryDetailViewModel,
-    productRepository: ProductRepository? = null,
     supabaseClient: SupabaseClient? = null,
     onBackClick: () -> Unit,
-
     onStartBooking: (String) -> Unit,
+    onOpenProductCatalog: (String, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
     val clinic = uiState.clinic
-    var products by remember(clinic?.id) {
-        mutableStateOf<List<Product>>(emptyList())
-    }
-    var productsLoading by remember(clinic?.id) {
-        mutableStateOf(false)
-    }
-    var productsError by remember(clinic?.id) {
-        mutableStateOf<String?>(null)
-    }
-
-    LaunchedEffect(clinic?.id, productRepository) {
-        val tenantId = clinic?.id ?: return@LaunchedEffect
-        val repository = productRepository ?: return@LaunchedEffect
-        productsLoading = true
-        productsError = null
-        try {
-            products = repository.getProductsByTenant(tenantId)
-        } catch (error: kotlinx.coroutines.CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            productsError = error.message ?: "No se pudo cargar el catálogo."
-        } finally {
-            productsLoading = false
-        }
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -245,50 +210,10 @@ fun VeterinaryDetailScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- HORARIOS DE ATENCION CARD ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicSemanticColors.current.warningSurface)
-                    .border(1.dp, Color(0xFFFDE047), RoundedCornerShape(16.dp))
-                    .padding(16.dp)
-            ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = PawMedicSemanticColors.current.text,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = language.text("Horarios de Atención", "Opening hours"),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicSemanticColors.current.text
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (clinic.hours.isEmpty()) {
-                        Text(
-                            text = language.text("Horario no registrado.", "Opening hours not recorded."),
-                            fontSize = 13.sp,
-                            color = PawMedicSemanticColors.current.text
-                        )
-                    } else {
-                        clinic.hours.forEach { hour ->
-                            Text(
-                                text = "• $hour",
-                                fontSize = 13.sp,
-                                color = PawMedicSemanticColors.current.text,
-                                modifier = Modifier.padding(vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-            }
+            OpeningHoursCard(
+                schedules = clinic.schedules,
+                timeZone = clinic.timeZone
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -350,6 +275,8 @@ fun VeterinaryDetailScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
+            Spacer(modifier = Modifier.height(28.dp))
+
             Text(
                 text = language.text("Productos disponibles", "Available products"),
                 fontSize = 18.sp,
@@ -360,94 +287,46 @@ fun VeterinaryDetailScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             when {
-                productsLoading -> Text(
-                    text = language.text("Cargando catálogo...", "Loading catalog..."),
+                uiState.productsLoading -> Text(
+                    language.text("Cargando productos…", "Loading products…"),
                     color = PawMedicSemanticColors.current.secondaryText
                 )
-                productsError != null -> Text(
-                    text = if (productsError == "No se pudo cargar el catálogo.")
-                        language.text("No se pudo cargar el catálogo.", "Could not load the catalog.")
-                    else productsError.orEmpty(),
-                    color = Color(0xFFB91C1C)
-                )
-                products.isEmpty() -> Text(
-                    text = language.text("No hay productos disponibles.", "No products available."),
-                    color = PawMedicSemanticColors.current.secondaryText
-                )
-                else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    products.forEach { product ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(PawMedicSemanticColors.current.surface)
-                                .border(
-                                    1.dp,
-                                    PawMedicSemanticColors.current.separator,
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .padding(14.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = product.name,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PawMedicSemanticColors.current.text
-                                )
-                                if (!product.description.isNullOrBlank()) {
-                                    Text(
-                                        text = product.description.orEmpty(),
-                                        fontSize = 13.sp,
-                                        color = PawMedicSemanticColors.current.secondaryText,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    )
-                                }
-                                Text(
-                                    text = product.formattedPrice(),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PawMedicSemanticColors.current.accent,
-                                    modifier = Modifier.padding(top = 8.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Text("Productos disponibles", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
-            Spacer(modifier = Modifier.height(12.dp))
-            when {
-                uiState.productsLoading -> Text("Cargando productos…", color = PawMedicColors.Gray600)
                 uiState.productsError -> {
-                    Text("No se pudieron cargar los productos.", color = PawMedicColors.Error)
-                    PawMedicPrimaryButton(text = "Reintentar", onClick = viewModel::refreshProducts)
+                    Text(language.text("No se pudieron cargar los productos.", "Could not load products."), color = PawMedicColors.Error)
+                    PawMedicPrimaryButton(text = language.text("Reintentar", "Retry"), onClick = viewModel::refreshProducts)
                 }
-                uiState.products.isEmpty() -> Text("No hay productos disponibles.", color = PawMedicColors.Gray600)
-                else -> uiState.products.forEach { product ->
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PawMedicColors.White)
-                            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(12.dp))
-                            .padding(12.dp)
-                    ) {
-                        if (product.imageUrl.isNotBlank()) {
-                            ProductImage(product.imageUrl, Modifier.size(100.dp).clip(RoundedCornerShape(8.dp)))
-                            Spacer(modifier = Modifier.height(8.dp))
+                uiState.products.isEmpty() -> Text(
+                    language.text("No hay productos disponibles.", "No products available."),
+                    color = PawMedicSemanticColors.current.secondaryText
+                )
+                else -> {
+                    PawMedicPrimaryButton(
+                        text = language.text("Ver catálogo de productos", "View product catalog"),
+                        onClick = { onOpenProductCatalog(clinic.id, clinic.name) }
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    uiState.products.take(3).forEach { product ->
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(PawMedicColors.White)
+                                .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            if (product.imageUrl.isNotBlank()) {
+                                ProductImage(product.imageUrl, Modifier.size(100.dp).clip(RoundedCornerShape(8.dp)))
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                            Text(product.name, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
+                            if (product.description.isNotBlank()) {
+                                Text(product.description, color = PawMedicColors.Gray600)
+                            }
+                            Text(
+                                "$${product.priceCents / 100}.${(product.priceCents % 100).toString().padStart(2, '0')} MXN",
+                                color = PawMedicColors.Teal600,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                        Text(product.name, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
-                        if (product.description.isNotBlank()) {
-                            Text(product.description, color = PawMedicColors.Gray600)
-                        }
-                        Text(
-                            "$${product.priceCents / 100}.${(product.priceCents % 100).toString().padStart(2, '0')} MXN",
-                            color = PawMedicColors.Teal600,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
             }

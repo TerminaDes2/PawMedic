@@ -34,6 +34,7 @@ fun PetAvatarImage(
             species?.contains("Gato", true) == true || species?.contains("Felino", true) == true -> "🐱"
             species?.contains("Perro", true) == true || species?.contains("Canino", true) == true -> "🐕"
             species?.contains("Conejo", true) == true -> "🐰"
+            species?.contains("Hámster", true) == true || species?.contains("Hamster", true) == true -> "🐹"
             species?.contains("Ave", true) == true || species?.contains("Pájaro", true) == true -> "🦜"
             else -> "🐾"
         }

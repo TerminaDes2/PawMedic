@@ -41,6 +41,7 @@ class RegisterViewModel(
     private val verifyOtpUseCase: VerifyOtpUseCase? = null,
     private val resendOtpUseCase: ResendOtpUseCase? = null,
     private val loginWithGoogleUseCase: LoginWithGoogleUseCase? = null,
+    private val recordLegalAcceptance: (suspend (String, String) -> Unit)? = null,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 ) {
     private val _uiState = MutableStateFlow(RegisterUiState())
@@ -155,6 +156,18 @@ class RegisterViewModel(
                 )
             }.onSuccess { result ->
                 if (result.isVerified && result.session != null) {
+                    val persisted = if (recordLegalAcceptance == null) true else runCatching {
+                        recordLegalAcceptance.invoke("1.0", "1.0")
+                    }.isSuccess
+                    if (!persisted) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "No se pudo guardar la aceptación de los términos. Inténtalo nuevamente."
+                            )
+                        }
+                        return@onSuccess
+                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -205,6 +218,18 @@ class RegisterViewModel(
             runCatching {
                 verifyOtpUseCase.invoke(email = s.email, code = code)
             }.onSuccess { session ->
+                val persisted = if (recordLegalAcceptance == null) true else runCatching {
+                    recordLegalAcceptance.invoke("1.0", "1.0")
+                }.isSuccess
+                if (!persisted) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "No se pudo guardar la aceptación de los términos. Inténtalo nuevamente."
+                        )
+                    }
+                    return@onSuccess
+                }
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -258,6 +283,10 @@ class RegisterViewModel(
     }
 
     fun registerWithGoogle(idToken: String, rawNonce: String? = null) {
+        if (!_uiState.value.termsAccepted) {
+            _uiState.update { it.copy(errorMessage = "Debes aceptar los Términos y Condiciones") }
+            return
+        }
         if (loginWithGoogleUseCase == null) {
             _uiState.update { it.copy(errorMessage = "El registro con Google no está configurado") }
             return
@@ -267,6 +296,18 @@ class RegisterViewModel(
             runCatching {
                 loginWithGoogleUseCase.invoke(idToken, rawNonce)
             }.onSuccess { session ->
+                val persisted = if (recordLegalAcceptance == null) true else runCatching {
+                    recordLegalAcceptance.invoke("1.0", "1.0")
+                }.isSuccess
+                if (!persisted) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "No se pudo guardar la aceptación de los términos. Inténtalo nuevamente."
+                        )
+                    }
+                    return@onSuccess
+                }
                 _uiState.update {
                     it.copy(
                         isLoading = false,

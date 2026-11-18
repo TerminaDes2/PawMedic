@@ -28,5 +28,15 @@ fun authModule() = module {
     factory { AuthViewModel(get(), get()) }
     factory { SplashViewModel(get()) }
     factory { LoginViewModel(get(), getOrNull()) }
-    factory { RegisterViewModel(get(), getOrNull(), getOrNull(), getOrNull()) }
+    factory {
+        RegisterViewModel(
+            registerUseCase = get(),
+            verifyOtpUseCase = getOrNull(),
+            resendOtpUseCase = getOrNull(),
+            loginWithGoogleUseCase = getOrNull(),
+            recordLegalAcceptance = { termsVersion, privacyVersion ->
+                get<AuthRepository>().recordLegalAcceptance(termsVersion, privacyVersion)
+            }
+        )
+    }
 }

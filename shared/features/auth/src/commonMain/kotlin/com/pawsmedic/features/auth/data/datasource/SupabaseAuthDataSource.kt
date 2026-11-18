@@ -28,6 +28,7 @@ interface SupabaseAuthDataSource {
     )
     suspend fun verifyEmailOtp(email: String, code: String): AuthSessionDto
     suspend fun resendEmailOtp(email: String)
+    suspend fun recordLegalAcceptance(termsVersion: String, privacyVersion: String)
     suspend fun signInWithGoogleIdToken(idToken: String, rawNonce: String? = null): AuthSessionDto
     suspend fun signOut()
 }
