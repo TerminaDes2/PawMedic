@@ -25,6 +25,7 @@ import com.pawsmedic.desktop.admin.ui.DesktopAppearanceProvider
 import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import com.pawsmedic.desktop.admin.ui.AppearanceButton
 import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
+import com.pawsmedic.desktop.admin.ui.SupportFooter
 import com.pawsmedic.desktop.admin.translation.translateLocally
 import com.pawsmedic.desktop.veterinary.ui.AgendaScreen
 import com.pawsmedic.desktop.veterinary.ui.CatalogScreen
@@ -283,9 +284,12 @@ fun main() = application {
                         },
                         onBackToLogin = { currentScreen = "Login" }
                     )
-                    "Register" -> RegisterScreen(
-                        onNavigateToLogin = { currentScreen = "Login" }
-                    )
+                    "Register" -> Column(Modifier.fillMaxSize()) {
+                        Box(Modifier.weight(1f).fillMaxWidth()) {
+                            RegisterScreen(onNavigateToLogin = { currentScreen = "Login" })
+                        }
+                        SupportFooter(modifier = Modifier.padding(start = 16.dp, bottom = 12.dp))
+                    }
                     "Agenda" -> AgendaScreen(
                         userEmail = activeUserEmail,
                         onNavigate = { currentScreen = it },
@@ -316,10 +320,12 @@ fun main() = application {
                         onLogout = { handleLogout() },
                         supabaseClient = supabase
                     )
-                    "AccessStatus" -> AccessStatusScreen(
-                        message = statusMessage,
-                        onBackToLogin = { handleLogout() }
-                    )
+                    "AccessStatus" -> Column(Modifier.fillMaxSize()) {
+                        Box(Modifier.weight(1f).fillMaxWidth()) {
+                            AccessStatusScreen(message = statusMessage, onBackToLogin = { handleLogout() })
+                        }
+                        SupportFooter(modifier = Modifier.padding(start = 16.dp, bottom = 12.dp))
+                    }
                 }
 
                 // DIÁLOGO DE CONFIRMACIÓN DE SALIDA CON SESIÓN ACTIVA
@@ -432,10 +438,10 @@ fun main() = application {
                                 }
                             }
                         }
-                            }
-                        }
                     }
                 }
+            }
+            }
             }
         }
     }

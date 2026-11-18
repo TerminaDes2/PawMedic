@@ -37,6 +37,7 @@ import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
 import com.pawsmedic.desktop.admin.ui.AppearanceButton
+import com.pawsmedic.desktop.admin.ui.SupportFooter
 import com.pawsmedic.shared.core.model.ProfileRole
 import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
@@ -302,32 +303,35 @@ fun LoginScreen(
                 }
 
                 // 3. Footer: Textos en Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = tr("© 2026 PawsMedic. Cuidado conectado.", "© 2026 PawsMedic. Connected care."),
-                        fontSize = 12.sp,
-                        color = TextMuted
-                    )
-
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SupportFooter(labelColor = Color(0xFF94A3B8), contactColor = Color(0xFFCBD5E1))
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(ClinicalEmerald)
-                        )
                         Text(
-                            text = tr("Plataforma operativa", "Platform operational"),
+                            text = tr("© 2026 PawsMedic. Cuidado conectado.", "© 2026 PawsMedic. Connected care."),
                             fontSize = 12.sp,
                             color = TextMuted
                         )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(ClinicalEmerald)
+                            )
+                            Text(
+                                text = tr("Plataforma operativa", "Platform operational"),
+                                fontSize = 12.sp,
+                                color = TextMuted
+                            )
+                        }
                     }
                 }
             }

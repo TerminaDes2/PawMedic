@@ -97,6 +97,22 @@ tasks.register<Sync>("installWithTranslation") {
 }
 
 val portableConfig = layout.buildDirectory.dir("portable-config")
+val windowsLauncher = layout.buildDirectory.file("windows-launcher/Iniciar PawMedic.exe")
+val buildWindowsLauncher = tasks.register<Exec>("buildWindowsLauncher") {
+    val source = layout.projectDirectory.file("windows-launcher/PawMedicLauncher.cs")
+    inputs.file(source)
+    outputs.file(windowsLauncher)
+    doFirst {
+        val compiler = file("${System.getenv("SystemRoot")}\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe")
+        check(compiler.isFile) { "Windows .NET Framework C# compiler not found." }
+        windowsLauncher.get().asFile.parentFile.mkdirs()
+        commandLine(
+            compiler.absolutePath, "/nologo", "/target:winexe", "/platform:anycpu",
+            "/reference:System.Windows.Forms.dll", "/out:${windowsLauncher.get().asFile.absolutePath}",
+            source.asFile.absolutePath
+        )
+    }
+}
 val preparePortableConfig = tasks.register("preparePortableConfig") {
     outputs.dir(portableConfig)
     outputs.upToDateWhen { false }
@@ -123,10 +139,10 @@ val preparePortableConfig = tasks.register("preparePortableConfig") {
 }
 
 tasks.register<Zip>("portableWindowsZip") {
-    dependsOn("installWithTranslation", preparePortableConfig)
+    dependsOn("installWithTranslation", preparePortableConfig, buildWindowsLauncher)
     val runtime = providers.environmentVariable("JAVA_HOME").map { file(it) }
     doFirst {
-        check(runtime.isPresent && runtime.get().resolve("bin/java.exe").isFile) {
+        check(runtime.isPresent && runtime.get().resolve("bin/javaw.exe").isFile) {
             "Set JAVA_HOME to a Windows Java runtime before building the portable ZIP."
         }
     }
@@ -136,6 +152,6 @@ tasks.register<Zip>("portableWindowsZip") {
         from(layout.buildDirectory.dir("install-with-translation/${project.name}"))
         from(runtime) { into("runtime") }
         from(portableConfig)
-        from("distribution")
+        from(windowsLauncher)
     }
 }

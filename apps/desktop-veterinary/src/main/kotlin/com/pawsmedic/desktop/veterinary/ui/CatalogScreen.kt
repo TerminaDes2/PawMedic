@@ -229,7 +229,7 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo cargar el catálogo desde Supabase.", "Could not load the catalog from Supabase.")
+            errorMessage = tr("No se pudo cargar el catálogo. Inténtalo de nuevo.", "Could not load the catalog. Please try again.")
         } finally {
             isLoading = false
         }
@@ -250,25 +250,30 @@ fun CatalogScreen(
         }
         val cleanName = name.trim()
         if (cleanName.isBlank()) { errorMessage = tr("El nombre es obligatorio.", "Name is required."); return }
+        val minutes = duration.toIntOrNull()?.takeIf { it > 0 }
+        val cleanSku = sku.trim()
+        val quantity = stock.toIntOrNull()?.takeIf { it >= 0 }
+        val categoryId = selectedCategoryId
+        if (selectedTab == "Servicios" && minutes == null) {
+            errorMessage = tr("La duración debe ser un entero mayor que cero.", "Duration must be a positive whole number."); return
+        }
+        if (selectedTab != "Servicios") {
+            if (cleanSku.isBlank()) { errorMessage = tr("El SKU es obligatorio para los productos.", "SKU is required for products."); return }
+            if (quantity == null) { errorMessage = tr("La existencia debe ser un entero no negativo.", "Stock must be a non-negative whole number."); return }
+            if (!productRequirementsMet(categoryId, categories, selectedPhoto != null || !editingProduct?.imageUrl.isNullOrBlank())) {
+                errorMessage = tr("Selecciona una categoría disponible y una imagen para el producto.", "Select an available category and an image for the product."); return
+            }
+        }
         isSaving = true
         errorMessage = null
         try {
             if (selectedTab == "Servicios") {
-                val minutes = duration.toIntOrNull()?.takeIf { it > 0 }
-                    ?: error(tr("La duración debe ser un entero mayor que cero.", "Duration must be a positive whole number."))
                 supabase.postgrest["services"].insert(
-                    NewCatalogService(clinicId, cleanName, description.trim(), minutes, priceCents)
+                    NewCatalogService(clinicId, cleanName, description.trim(), checkNotNull(minutes), priceCents)
                 )
             } else {
-                val cleanSku = sku.trim()
-                if (cleanSku.isBlank()) error(tr("El SKU es obligatorio para los productos.", "SKU is required for products."))
-                val quantity = stock.toIntOrNull()?.takeIf { it >= 0 }
-                    ?: error(tr("La existencia debe ser un entero no negativo.", "Stock must be a non-negative whole number."))
-                val categoryId = selectedCategoryId
-                if (!productRequirementsMet(categoryId, categories, selectedPhoto != null || !editingProduct?.imageUrl.isNullOrBlank())) {
-                    error(tr("Selecciona una categoría disponible y una imagen para el producto.", "Select an available category and an image for the product."))
-                }
                 checkNotNull(categoryId)
+                checkNotNull(quantity)
                 val imageUrl = selectedPhoto?.let { photo ->
                     val bucket = supabase.storage.from("product-images")
                     val key = "$clinicId/${UUID.randomUUID()}.${photo.extension}"
@@ -310,7 +315,7 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo guardar el elemento en Supabase.", "Could not save the item in Supabase.")
+            errorMessage = tr("No se pudo guardar el elemento. Inténtalo de nuevo.", "Could not save the item. Please try again.")
         } finally {
             isSaving = false
         }
@@ -334,7 +339,7 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo actualizar el estado del elemento.", "Could not update the item status.")
+            errorMessage = tr("No se pudo actualizar el estado del elemento.", "Could not update the item status.")
         } finally {
             isSaving = false
         }
@@ -357,7 +362,7 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudieron actualizar los servicios.", "Could not update the services.")
+            errorMessage = tr("No se pudieron actualizar los servicios.", "Could not update the services.")
         } finally {
             isSaving = false
         }
@@ -379,7 +384,7 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo actualizar la publicación del producto.", "Could not update the product publication status.")
+            errorMessage = tr("No se pudo actualizar la publicación del producto.", "Could not update the product publication status.")
         }
     }
 
@@ -654,7 +659,7 @@ fun CatalogScreen(
                                 } catch (e: CancellationException) {
                                     throw e
                                 } catch (e: Exception) {
-                                    errorMessage = e.message ?: "No se pudo leer la imagen."
+                                    errorMessage = tr("No se pudo leer la imagen. Selecciona un archivo JPG o PNG válido.", "Could not read the image. Select a valid JPG or PNG file.")
                                 }
                             }
                         }, enabled = !isSaving) { Text(tr("Seleccionar imagen obligatoria (JPG o PNG)", "Choose required image (JPG or PNG)")) }

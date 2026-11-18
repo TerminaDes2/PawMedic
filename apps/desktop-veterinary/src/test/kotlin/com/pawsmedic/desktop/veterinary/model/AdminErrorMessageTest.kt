@@ -7,15 +7,19 @@ import kotlin.test.assertFalse
 
 class AdminErrorMessageTest {
     @Test
-    fun categoryFailureIsHelpfulWithoutExposingHeaders() {
+    fun arbitraryExceptionDetailsAreNotDisplayed() {
+        val message = adminErrorMessage(IllegalStateException("database detail 12345"), "Inténtalo de nuevo.")
+        assertEquals("Inténtalo de nuevo.", message)
+        assertFalse(message.contains("database detail"))
+    }
+
+    @Test
+    fun categoryFailureDoesNotExposeTechnicalDetails() {
         val error = IllegalStateException(
             "null value in column category of relation services violates not-null constraint\nHeaders: Authorization=Bearer secret"
         )
         val message = adminErrorMessage(error, "Error")
-        assertEquals(
-            "No se pudo aprobar: el servicio inicial necesita una categoría. Revisa la configuración de servicios en Supabase.",
-            message
-        )
+        assertEquals("Error", message)
         assertFalse(message.contains("secret"))
     }
 

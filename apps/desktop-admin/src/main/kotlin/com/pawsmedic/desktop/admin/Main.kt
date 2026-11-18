@@ -1,6 +1,7 @@
 package com.pawsmedic.desktop.admin
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,6 +38,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.pawsmedic.desktop.admin.ui.SuperadminDashboardScreen
 import com.pawsmedic.desktop.admin.ui.DesktopAppearanceProvider
+import com.pawsmedic.desktop.admin.ui.SupportFooter
 import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import com.pawsmedic.shared.core.model.ProfileRole
 import com.pawsmedic.shared.core.model.UserProfile
@@ -105,7 +107,6 @@ fun main() = application {
                     rawMsg.contains("invalid_credentials", ignoreCase = true) ||
                     rawMsg.contains("invalid login", ignoreCase = true) ->
                         "Correo o contraseña incorrectos, o la cuenta no ha sido verificada."
-                    e is IllegalStateException -> rawMsg.lineSequence().firstOrNull().orEmpty()
                     else -> "No se pudo iniciar sesión. Revisa tu conexión e inténtalo de nuevo."
                 }
             } finally {
@@ -133,6 +134,7 @@ fun main() = application {
                 }
             }
 
+            Box(modifier = Modifier.fillMaxSize()) {
             if (authorizedEmail != null) {
                 SuperadminDashboardScreen(
                     userEmail = authorizedEmail.orEmpty(),
@@ -223,6 +225,8 @@ fun main() = application {
                         Spacer(modifier = Modifier.height(4.dp))
                     }
                 }
+                SupportFooter(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp))
+            }
             }
         }
     }

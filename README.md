@@ -86,6 +86,11 @@ After consulting a report, use **PDF** to save its current date range, totals,
 completed appointments and services. The PDF contains clinic and patient
 information; save it only in an authorized location.
 
+The superadmin audit report requires
+`supabase/migrations/20261118000000_superadmin_audit_read.sql` to let
+superadmins read audit events. The report includes events recorded in the
+selected period; the migration does not reconstruct missing history.
+
 Products and services are entered individually; TXT import is no longer available.
 
 Apply `supabase/migrations/20261116000000_operational_reports.sql` and
@@ -110,7 +115,9 @@ interfaces, the local translation worker and a Windows Java runtime, set
 `JAVA_HOME` to that runtime and run
 `gradlew.bat :apps:desktop-veterinary:portableWindowsZip`. The ZIP is created in
 `apps\desktop-veterinary\build\distributions`. Extract it and run
-`Iniciar PawMedic.bat`; superadmin access is available on the login screen.
+`Iniciar PawMedic.exe`; it opens without a console window, and superadmin access
+is available on the login screen. Building the launcher requires the Windows
+.NET Framework C# compiler.
 Only the Supabase URL and public publishable/anon key are included from `.env`
 or environment variables. Never distribute a service-role or secret key.
 The application still needs network access to Supabase, although Argos
