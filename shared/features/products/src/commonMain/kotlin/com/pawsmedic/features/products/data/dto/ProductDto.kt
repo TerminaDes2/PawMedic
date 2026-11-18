@@ -8,36 +8,51 @@ import kotlinx.serialization.Serializable
 data class ProductDto(
     val id: Int? = null,
     @SerialName("tenant_id") val tenantId: String,
+    val name: String,
+    @SerialName("type_id") val typeId: Int? = null,
+    val description: String? = null,
+    @SerialName("price_cents") val priceCents: Int,
     val sku: String? = null,
-    @SerialName("nombre") val name: String,
-    @SerialName("descripcion") val description: String,
-    @SerialName("precio_centavos") val priceCents: Int,
-    @SerialName("cantidad") val stockQuantity: Int = 0,
-    @SerialName("estado") val status: String = "ACTIVO",
-    @SerialName("activo") val active: Boolean = true
+    @SerialName("stock_quantity") val stockQuantity: Int = 0,
+    @SerialName("image_url") val imageUrl: String? = null,
+    val active: Boolean = true,
+    val published: Boolean = true,
+    @SerialName("product_types") val productType: ProductTypeDto? = null
 ) {
     fun toDomain() = Product(
         id = id,
         tenantId = tenantId,
         name = name,
+        typeId = typeId,
+        typeName = productType?.name,
         description = description,
         priceCents = priceCents,
         sku = sku.orEmpty(),
         stockQuantity = stockQuantity,
-        active = active
+        imageUrl = imageUrl,
+        active = active,
+        published = published
     )
 
     companion object {
         fun fromDomain(product: Product, tenantId: String) = ProductDto(
             id = product.id,
             tenantId = tenantId,
-            sku = product.sku.ifBlank { "P-${product.name.hashCode().toUInt()}" },
             name = product.name,
-            description = product.description.orEmpty(),
+            typeId = product.typeId,
+            sku = product.sku.ifBlank { "P-${product.name.hashCode().toUInt()}" },
+            description = product.description,
             priceCents = product.priceCents,
             stockQuantity = product.stockQuantity,
-            status = if (product.active) "ACTIVO" else "INACTIVO",
-            active = product.active
+            imageUrl = product.imageUrl,
+            active = product.active,
+            published = product.published
         )
     }
 }
+
+@Serializable
+data class ProductTypeDto(
+    val id: Int? = null,
+    val name: String
+)

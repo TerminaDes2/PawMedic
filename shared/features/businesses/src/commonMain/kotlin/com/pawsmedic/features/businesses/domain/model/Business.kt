@@ -14,5 +14,14 @@ data class Business(
     val reviewCount: String = "Sin reseñas",
     val specialties: List<String> = emptyList(),
     val hours: List<String> = emptyList(),
+    val schedules: List<BusinessSchedule> = emptyList(),
     val imageUrl: String? = null
+)
+
+@Serializable
+data class BusinessSchedule(
+    val dayOfWeek: Int,
+    val openTime: String,
+    val closeTime: String,
+    val isActive: Boolean = true
 )

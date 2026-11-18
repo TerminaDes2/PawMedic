@@ -4,11 +4,15 @@ data class Product(
     val id: Int? = null,
     val tenantId: String,
     val name: String,
+    val typeId: Int? = null,
+    val typeName: String? = null,
     val description: String? = null,
     val priceCents: Int,
     val sku: String = "",
     val stockQuantity: Int = 0,
-    val active: Boolean = true
+    val imageUrl: String? = null,
+    val active: Boolean = true,
+    val published: Boolean = true
 )
 
 fun Product.formattedPrice(): String {

@@ -23,5 +23,6 @@ data class ServiceModel(
     @SerialName("description") val descripcion: String = "",
     @SerialName("price_cents") val precioCentavos: Int,
     @SerialName("duration_minutes") val duracionMinutos: Int = 30,
+    @SerialName("photo_url") val photoUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 )

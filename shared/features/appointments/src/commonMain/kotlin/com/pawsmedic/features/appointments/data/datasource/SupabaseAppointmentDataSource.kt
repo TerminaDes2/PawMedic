@@ -52,7 +52,8 @@ class SupabaseAppointmentDataSource(
                     title = service.name,
                     description = service.description,
                     durationMinutes = service.durationMinutes,
-                    priceCents = service.priceCents
+                    priceCents = service.priceCents,
+                    category = service.category
                 )
             }
 
@@ -101,6 +102,26 @@ class SupabaseAppointmentDataSource(
             endsAt = result.endsAt
         )
     }
+
+    override suspend fun cancelAppointment(appointmentId: String) {
+        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para cancelar la cita." }
+        supabase.postgrest.rpc(
+            function = "cancel_owned_appointment",
+            parameters = buildJsonObject { put("p_appointment_id", appointmentId) }
+        )
+    }
+
+    override suspend fun editAppointment(appointmentId: String, date: String, time: String) {
+        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para editar la cita." }
+        supabase.postgrest.rpc(
+            function = "update_owned_appointment",
+            parameters = buildJsonObject {
+                put("p_appointment_id", appointmentId)
+                put("p_date", date)
+                put("p_time", time)
+            }
+        )
+    }
 }
 
 @Serializable
@@ -140,7 +161,8 @@ private data class ServiceRecord(
     val name: String,
     val description: String = "",
     @SerialName("duration_minutes") val durationMinutes: Int,
-    @SerialName("price_cents") val priceCents: Int = 0
+    @SerialName("price_cents") val priceCents: Int = 0,
+    val category: String = "otros"
 )
 
 private fun String.toDisplayStatus(): String = when (uppercase()) {

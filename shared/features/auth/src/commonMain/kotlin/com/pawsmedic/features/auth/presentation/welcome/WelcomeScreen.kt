@@ -14,6 +14,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -21,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.auth.presentation.components.AuthLogo
+import com.pawsmedic.features.auth.presentation.terms.TermsAndConditionsDialog
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
@@ -31,6 +37,8 @@ fun WelcomeScreen(
     onNavigateToRegister: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showTerms by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -111,8 +119,13 @@ fun WelcomeScreen(
                 text = "Al continuar, aceptas nuestros Términos y Políticas de Privacidad",
                 fontSize = 12.sp,
                 color = PawMedicColors.Gray400,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.clickable { showTerms = true }
             )
         }
+    }
+
+    if (showTerms) {
+        TermsAndConditionsDialog(onDismiss = { showTerms = false })
     }
 }
