@@ -52,3 +52,14 @@ internal fun localizeMedicalLabel(label: String, language: AppLanguage): String 
         else -> label
     }
 }
+
+internal fun localizeReproductiveStatus(value: String, language: AppLanguage): String =
+    language.text(value, when (value) {
+        "Intacto" -> "Intact"
+        "Intacta" -> "Intact"
+        "Castrado" -> "Neutered"
+        "Castrada", "Esterilizada" -> "Spayed"
+        "Esterilizado" -> "Neutered"
+        "No especificado", "No especificada" -> "Not specified"
+        else -> value
+    })

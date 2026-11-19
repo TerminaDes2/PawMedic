@@ -135,11 +135,7 @@ val DEFAULT_SPECIES_OPTIONS = listOf(
     SpeciesOption(3, "Ave"),
     SpeciesOption(4, "Reptil"),
     SpeciesOption(5, "Conejo"),
-    SpeciesOption(6, "Cobaya / Cuy"),
-    SpeciesOption(7, "Hámster"),
-    SpeciesOption(8, "Hurón"),
-    SpeciesOption(9, "Erizo"),
-    SpeciesOption(10, "Chinchilla y Degú")
+    SpeciesOption(6, "Hámster"),
 )
 
 val DEFAULT_BREED_OPTIONS = listOf(
@@ -251,8 +247,30 @@ val DEFAULT_BREED_OPTIONS = listOf(
     BreedOption(97, "Conejo Angora Inglés", 5, SpeciesOption(5, "Conejo")),
     BreedOption(98, "Conejo Cashmere Lop", 5, SpeciesOption(5, "Conejo")),
     BreedOption(99, "Conejo Americano", 5, SpeciesOption(5, "Conejo")),
-    BreedOption(100, "Conejo Silver Marten", 5, SpeciesOption(5, "Conejo"))
-)
+    BreedOption(100, "Conejo Silver Marten", 5, SpeciesOption(5, "Conejo")),
+// Hámster (speciesId = 6)
+    BreedOption(101, "Hámster Sirio (Dorado)", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(102, "Hámster Ruso (Enano de Campbell)", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(103, "Hámster Enano Ruso Blanco de Invierno", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(104, "Hámster Roborovski", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(105, "Hámster Chino", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(106, "Hámster Enano de Campbell", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(107, "Hámster Sirio de Pelo Largo", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(108, "Hámster Sirio de Pelo Corto", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(109, "Hámster Sirio Rex", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(110, "Hámster Sirio Satinado", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(111, "Hámster Panda", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(112, "Hámster Oso Negro", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(113, "Hámster Angora", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(114, "Hámster Enano de Roborovski Cara Blanca", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(115, "Hámster Ruso Perla", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(116, "Hámster Ruso Zafiro", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(117, "Hámster Sirio Crema", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(118, "Hámster Sirio Canela", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(119, "Hámster Sirio Carey", 6, SpeciesOption(6, "Hámster")),
+    BreedOption(120, "Hámster Enano de Cola Larga", 6, SpeciesOption(6, "Hámster"))
+    )
+
 
 data class PetFormUiState(
     val id: String = "",

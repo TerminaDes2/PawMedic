@@ -75,13 +75,18 @@ class RegisterViewModel(
     }
 
     fun onOtpCodeChanged(value: String) {
-        if (value.length <= 6 && value.all { it.isDigit() }) {
-            _uiState.update { it.copy(otpCode = value, errorMessage = null) }
-        }
+        val clean = value.filter(Char::isDigit).take(6)
+        _uiState.update { it.copy(otpCode = clean, errorMessage = null) }
     }
 
     fun toggleTermsAccepted() {
         _uiState.update { it.copy(termsAccepted = !it.termsAccepted, errorMessage = null) }
+    }
+
+    fun canStartGoogleRegistration(): Boolean {
+        if (_uiState.value.termsAccepted) return true
+        _uiState.update { it.copy(errorMessage = "Debes aceptar los Términos y Condiciones") }
+        return false
     }
 
     fun onOtpNavigationHandled() {
@@ -283,10 +288,7 @@ class RegisterViewModel(
     }
 
     fun registerWithGoogle(idToken: String, rawNonce: String? = null) {
-        if (!_uiState.value.termsAccepted) {
-            _uiState.update { it.copy(errorMessage = "Debes aceptar los Términos y Condiciones") }
-            return
-        }
+        if (!canStartGoogleRegistration()) return
         if (loginWithGoogleUseCase == null) {
             _uiState.update { it.copy(errorMessage = "El registro con Google no está configurado") }
             return
@@ -328,8 +330,12 @@ class RegisterViewModel(
         }
     }
 
-    fun resetAfterSignOut() {
+    fun resetForm() {
         _uiState.value = RegisterUiState()
+    }
+
+    fun resetAfterSignOut() {
+        resetForm()
     }
 
     fun onError(message: String) {

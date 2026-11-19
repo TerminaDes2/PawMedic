@@ -277,12 +277,7 @@ fun CatalogScreen(
                     val bucket = supabase.storage.from("product-images")
                     val key = "$clinicId/${UUID.randomUUID()}.${photo.extension}"
                     bucket.upload(key, photo.bytes) {
-                        upsert = false
-                        contentType = when (photo.extension.lowercase()) {
-                            "jpg", "jpeg" -> ContentType.Image.JPEG
-                            "png" -> ContentType.Image.PNG
-                            else -> error("Formato de imagen no compatible.")
-                        }
+                        contentType = ContentType.parse(if (photo.extension.lowercase() == "png") "image/png" else "image/jpeg")
                     }
                     bucket.publicUrl(key)
                 } ?: editingProduct?.imageUrl.orEmpty()

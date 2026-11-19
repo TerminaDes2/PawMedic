@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
@@ -53,6 +54,7 @@ import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import com.pawsmedic.shared.core.designsystem.language.AppLanguage
 import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.serviceCategoryLabel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -147,24 +149,30 @@ class AppointmentsListViewModel(
 private const val ALL = "todos"
 
 private enum class StatusFilter(val label: String) {
-    ALL("Todos los estados"),
+    ALL("Citas visibles"),
     PENDING("Pendientes"),
-    ACCEPTED("Aceptadas")
+    ACCEPTED("Aceptadas"),
+    CANCELLED("Canceladas")
 }
 
 private fun Appointment.isPending() = status.contains("Pendiente", ignoreCase = true)
 private fun Appointment.isAccepted() = status.equals("Confirmada", ignoreCase = true)
+private fun Appointment.isCancelled() =
+    status.contains("Cancelada", ignoreCase = true) ||
+        status.contains("Cancelled", ignoreCase = true)
+private fun Appointment.isCompleted() =
+    status.contains("Completada", ignoreCase = true) ||
+        status.contains("Completed", ignoreCase = true)
 
-private fun categoryLabel(category: String): String = when (category) {
-    ALL -> "Todas las categorías"
-    "consulta" -> "Consultas"
-    "vacunacion" -> "Vacunación"
-    "desparasitacion" -> "Desparasitación"
-    "estetica" -> "Estética"
-    "cirugia" -> "Cirugías"
-    "diagnostico" -> "Diagnóstico"
-    "otros" -> "Otros servicios"
-    else -> category.replaceFirstChar { it.uppercase() }
+private fun categoryLabel(category: String, language: AppLanguage): String =
+    if (category == ALL) language.text("Todas las categorías", "All categories")
+    else serviceCategoryLabel(category, language).replaceFirstChar { it.uppercase() }
+
+private fun StatusFilter.localized(language: AppLanguage): String = when (this) {
+    StatusFilter.ALL -> language.text(label, "Visible appointments")
+    StatusFilter.PENDING -> language.text(label, "Pending")
+    StatusFilter.ACCEPTED -> language.text(label, "Accepted")
+    StatusFilter.CANCELLED -> language.text(label, "Cancelled")
 }
 
 @Composable
@@ -184,21 +192,38 @@ fun AppointmentsListScreen(
     var selectedStatusName by rememberSaveable { mutableStateOf(StatusFilter.ALL.name) }
     val selectedStatus = StatusFilter.valueOf(selectedStatusName)
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PawMedicSemanticColors.current.background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-    ) {
-        PawMedicTopBar(
-            title = language.text("Mis Citas Médicas", "My appointments"),
-            onBackClick = onBackClick
-        )
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(PawMedicSemanticColors.current.background)
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 88.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(PawMedicColors.Teal600)
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "CITAS",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PawMedicColors.White,
+                    letterSpacing = 1.sp
+                )
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 12.dp)
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-        when {
+            when {
             uiState.isLoading -> {
                 Text(
                     text = language.text("Cargando tus citas…", "Loading your appointments…"),
@@ -245,9 +270,10 @@ fun AppointmentsListScreen(
                     (effectiveCategory == ALL || app.serviceName == effectiveCategory) &&
                             (effectivePet == ALL || app.petName == effectivePet) &&
                             when (selectedStatus) {
-                                StatusFilter.ALL -> true
+                                StatusFilter.ALL -> !app.isCancelled() && !app.isCompleted()
                                 StatusFilter.PENDING -> app.isPending()
                                 StatusFilter.ACCEPTED -> app.isAccepted()
+                                StatusFilter.CANCELLED -> app.isCancelled()
                             }
                 }
                 val hasActiveFilters = effectiveCategory != ALL ||
@@ -262,23 +288,23 @@ fun AppointmentsListScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterDropdownChip(
-                        label = categoryLabel(effectiveCategory),
+                        label = categoryLabel(effectiveCategory, language),
                         isActive = effectiveCategory != ALL,
-                        options = categoryOptions.map { it to categoryLabel(it) },
+                        options = categoryOptions.map { it to categoryLabel(it, language) },
                         selectedKey = effectiveCategory,
                         onSelected = { selectedCategory = it }
                     )
                     FilterDropdownChip(
-                        label = if (effectivePet == ALL) "Todas las mascotas" else effectivePet,
+                        label = if (effectivePet == ALL) language.text("Todas las mascotas", "All pets") else effectivePet,
                         isActive = effectivePet != ALL,
-                        options = petOptions.map { it to if (it == ALL) "Todas las mascotas" else it },
+                        options = petOptions.map { it to if (it == ALL) language.text("Todas las mascotas", "All pets") else it },
                         selectedKey = effectivePet,
                         onSelected = { selectedPet = it }
                     )
                     FilterDropdownChip(
-                        label = selectedStatus.label,
+                        label = selectedStatus.localized(language),
                         isActive = selectedStatus != StatusFilter.ALL,
-                        options = StatusFilter.entries.map { it.name to it.label },
+                        options = StatusFilter.entries.map { it.name to it.localized(language) },
                         selectedKey = selectedStatus.name,
                         onSelected = { selectedStatusName = it }
                     )
@@ -291,7 +317,7 @@ fun AppointmentsListScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (filtered.size == 1) "1 cita" else "${filtered.size} citas",
+                        text = if (filtered.size == 1) language.text("1 cita", "1 appointment") else language.text("${filtered.size} citas", "${filtered.size} appointments"),
                         modifier = Modifier.weight(1f),
                         fontSize = 13.sp,
                         color = PawMedicColors.Gray600
@@ -305,7 +331,7 @@ fun AppointmentsListScreen(
                             }
                         ) {
                             Text(
-                                text = "Limpiar filtros",
+                                text = language.text("Limpiar filtros", "Clear filters"),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PawMedicColors.Teal600
@@ -324,7 +350,7 @@ fun AppointmentsListScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No hay citas que coincidan con los filtros.",
+                            text = language.text("No hay citas que coincidan con los filtros.", "No appointments match the filters."),
                             fontSize = 14.sp,
                             color = PawMedicColors.Gray500
                         )
@@ -337,15 +363,23 @@ fun AppointmentsListScreen(
                 }
             }
         }
+        }
+        }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        PawMedicPrimaryButton(
-            text = language.text("Agendar nueva cita", "Book an appointment"),
-            onClick = onStartBooking
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            color = PawMedicSemanticColors.current.background,
+            shadowElevation = 8.dp,
+            tonalElevation = 2.dp
+        ) {
+            PawMedicPrimaryButton(
+                text = language.text("Agendar nueva cita", "Book an appointment"),
+                onClick = onStartBooking,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+            )
+        }
     }
 }
 

@@ -51,6 +51,8 @@ import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import com.pawsmedic.shared.core.designsystem.language.AppLanguage
 import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.petCatalogLabel
+import com.pawsmedic.shared.core.designsystem.language.petAgeLabel
 
 @Composable
 fun MedicalRecordDetailScreen(
@@ -265,12 +267,12 @@ private fun PetSummaryCard(record: PetMedicalRecord) {
                             color = PawMedicSemanticColors.current.text
                         )
                         Text(
-                            text = "${record.petSpecies} • ${record.petBreed} • ${record.petSex}",
+                            text = "${petCatalogLabel(record.petSpecies, language)} • ${petCatalogLabel(record.petBreed, language)} • ${petCatalogLabel(record.petSex, language)}",
                             fontSize = 13.sp,
                             color = PawMedicSemanticColors.current.secondaryText
                         )
                         Text(
-                            text = language.text("Edad: ${record.petAgeCalculated} • Peso: ${(record.petWeightGrams ?: 4200) / 1000.0} kg", "Age: ${record.petAgeCalculated} • Weight: ${(record.petWeightGrams ?: 4200) / 1000.0} kg"),
+                            text = language.text("Edad: ${record.petAgeCalculated} • Peso: ${(record.petWeightGrams ?: 4200) / 1000.0} kg", "Age: ${petAgeLabel(record.petAgeCalculated, language)} • Weight: ${(record.petWeightGrams ?: 4200) / 1000.0} kg"),
                             fontSize = 12.sp,
                             color = PawMedicSemanticColors.current.hint
                         )
@@ -301,7 +303,7 @@ private fun PetSummaryCard(record: PetMedicalRecord) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = language.text("Propietario: ${record.ownerName}", "Owner: ${record.ownerName}"), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PawMedicSemanticColors.current.text)
-                Text(text = language.text("Estado: ${record.petReproductiveStatus}", "Status: ${record.petReproductiveStatus}"), fontSize = 12.sp, color = PawMedicSemanticColors.current.secondaryText)
+                Text(text = language.text("Estado: ${record.petReproductiveStatus}", "Status: ${localizeReproductiveStatus(record.petReproductiveStatus, language)}"), fontSize = 12.sp, color = PawMedicSemanticColors.current.secondaryText)
             }
         }
     }
@@ -315,13 +317,13 @@ private fun GeneralSummaryTab(record: PetMedicalRecord) {
         DetailSectionCard(title = language.text("📌 Datos Principales de la Mascota", "📌 Pet details")) {
             InfoRow("Número de Expediente", record.recordNumber)
             InfoRow("Nombre de Mascota", record.petName)
-            InfoRow("Especie", record.petSpecies)
-            InfoRow("Raza", record.petBreed)
-            InfoRow("Sexo", record.petSex)
+            InfoRow("Especie", petCatalogLabel(record.petSpecies, language))
+            InfoRow("Raza", petCatalogLabel(record.petBreed, language))
+            InfoRow("Sexo", petCatalogLabel(record.petSex, language))
             InfoRow("Fecha de Nacimiento", record.petDateOfBirth ?: language.text("No registrada", "Not recorded"))
-            InfoRow("Edad Calculada", record.petAgeCalculated)
+            InfoRow("Edad Calculada", petAgeLabel(record.petAgeCalculated, language))
             InfoRow("Color / Señas", "${record.petColor} • ${record.petSpecialMarks}")
-            InfoRow("Estado Reproductivo", record.petReproductiveStatus)
+            InfoRow("Estado Reproductivo", localizeReproductiveStatus(record.petReproductiveStatus, language))
             InfoRow("Propietario", "${record.ownerName} (${record.ownerPhone})")
             InfoRow("Fecha Registro Expediente", record.createdAt)
         }
@@ -400,7 +402,7 @@ private fun BackgroundTab(
             InfoRow("Enfermedades Anteriores", bg.pastDiseases.ifBlank { language.text("Ninguna", "None") })
             InfoRow("Cirugías Anteriores", bg.pastSurgeries.ifBlank { language.text("Ninguna", "None") })
             InfoRow("Antecedentes Familiares", bg.familyHistory.ifBlank { language.text("Sin datos relevantes", "No relevant information") })
-            InfoRow("Estado Reproductivo", bg.reproductiveStatus.ifBlank { record.petReproductiveStatus })
+            InfoRow("Estado Reproductivo", localizeReproductiveStatus(bg.reproductiveStatus.ifBlank { record.petReproductiveStatus }, language))
         }
     }
 }

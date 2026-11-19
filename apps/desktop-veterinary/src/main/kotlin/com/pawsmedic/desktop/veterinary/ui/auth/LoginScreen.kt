@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     onNavigateToVetMain: (String) -> Unit = {},
+    onNavigateToAdminMain: (String) -> Unit = {},
     onNavigateToAdminLogin: () -> Unit = {},
     onNavigateToAccessStatus: (String) -> Unit = {},
     onNavigateToRegister: () -> Unit = {}
@@ -103,7 +104,7 @@ fun LoginScreen(
                     }
                 }
                 when (profile.role) {
-                    ProfileRole.SUPERADMIN -> onNavigateToAdminLogin()
+                    ProfileRole.SUPERADMIN -> onNavigateToAdminMain(cleanEmail)
                     ProfileRole.VETERINARY_BUSINESS -> {
                         val application = veterinaryAccessStatus(supabase, userId)
                         when (application?.status) {

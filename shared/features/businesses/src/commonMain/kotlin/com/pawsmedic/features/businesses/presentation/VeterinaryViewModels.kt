@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 data class VeterinaryListUiState(
     val clinics: List<Business> = emptyList(),
     val searchQuery: String = "",
-    val selectedFilter: String = "Cerca de mí",
+    val selectedFilter: String = "Todos",
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
@@ -27,6 +27,7 @@ class VeterinaryListViewModel(
 ) {
     private val _uiState = MutableStateFlow(VeterinaryListUiState())
     val uiState: StateFlow<VeterinaryListUiState> = _uiState.asStateFlow()
+    private var allClinics: List<Business> = emptyList()
 
     init {
         loadClinics()
@@ -37,6 +38,7 @@ class VeterinaryListViewModel(
             _uiState.update { curr -> curr.copy(isLoading = true, errorMessage = null) }
             repository.getBusinesses()
                 .onSuccess { list ->
+                    allClinics = list
                     _uiState.update { curr -> curr.copy(clinics = list, isLoading = false) }
                 }
                 .onFailure { err ->
@@ -50,32 +52,50 @@ class VeterinaryListViewModel(
         if (normalizedQuery == _uiState.value.searchQuery && !_uiState.value.isLoading) return
 
         _uiState.update { curr ->
-            curr.copy(searchQuery = normalizedQuery, isLoading = true, errorMessage = null)
-        }
-        scope.launch {
-            repository.searchBusinesses(normalizedQuery)
-                .onSuccess { list ->
-                    _uiState.update { curr ->
-                        if (curr.searchQuery == normalizedQuery) curr.copy(clinics = list, isLoading = false)
-                        else curr
-                    }
-                }
-                .onFailure { error ->
-                    _uiState.update { curr ->
-                        if (curr.searchQuery == normalizedQuery) {
-                            curr.copy(isLoading = false, errorMessage = error.message)
-                        } else {
-                            curr
-                        }
-                    }
-                }
+            curr.copy(
+                searchQuery = normalizedQuery,
+                clinics = applyLocalFilters(normalizedQuery, curr.selectedFilter)
+            )
         }
     }
 
     fun retrySearch() = onSearchQueryChanged(_uiState.value.searchQuery)
 
     fun onFilterSelected(filter: String) {
-        _uiState.update { curr -> curr.copy(selectedFilter = filter) }
+        _uiState.update { curr ->
+            curr.copy(
+                selectedFilter = filter,
+                clinics = applyLocalFilters(curr.searchQuery, filter)
+            )
+        }
+    }
+
+    private fun applyLocalFilters(query: String, categoryFilter: String): List<Business> =
+        allClinics.filter { clinic ->
+            val matchesQuery = query.isBlank() ||
+                clinic.name.contains(query, ignoreCase = true) ||
+                clinic.address?.contains(query, ignoreCase = true) == true ||
+                clinic.specialties.any { it.contains(query, ignoreCase = true) } ||
+                clinic.serviceCategories.any { it.contains(query, ignoreCase = true) }
+
+            val matchesCategory = categoryFilter == "Todos" ||
+                clinic.serviceCategories.any { normalizeCategory(it) == normalizeCategory(categoryFilter) }
+
+            matchesQuery && matchesCategory
+        }
+
+    private fun normalizeCategory(category: String): String {
+        val normalized = category.trim().lowercase()
+            .replace("á", "a").replace("é", "e").replace("í", "i")
+            .replace("ó", "o").replace("ú", "u")
+        return when {
+            normalized.contains("vacun") -> "vacunacion"
+            normalized.contains("despar") -> "desparasitacion"
+            normalized.contains("cirug") -> "cirugia"
+            normalized.contains("estet") -> "estetica"
+            normalized.contains("consulta") -> "consulta"
+            else -> normalized
+        }
     }
 }
 

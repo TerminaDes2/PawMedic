@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.medical_records.domain.model.MedicalRecord
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
-import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import com.pawsmedic.shared.core.designsystem.language.AppLanguage
 import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
@@ -142,7 +141,7 @@ fun MedicalHistoryScreen(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PawMedicColors.Teal600,
+                focusedBorderColor = PawMedicSemanticColors.current.accent,
                 unfocusedBorderColor = PawMedicSemanticColors.current.border,
                 focusedContainerColor = PawMedicSemanticColors.current.surface,
                 unfocusedContainerColor = PawMedicSemanticColors.current.surface

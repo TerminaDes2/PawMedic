@@ -87,21 +87,13 @@ fun VeterinaryDetailScreen(
 
         if (clinic != null) {
             // --- GALLERY IMAGE BANNER ---
-            Box(
+            ClinicBannerImage(
+                imageUrl = clinic.imageUrl,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(PawMedicSemanticColors.current.softAccent),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocalHospital,
-                    contentDescription = null,
-                    tint = PawMedicSemanticColors.current.accent,
-                    modifier = Modifier.size(64.dp)
-                )
-            }
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -114,44 +106,6 @@ fun VeterinaryDetailScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // --- RATING CARD ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicSemanticColors.current.surface)
-                    .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(16.dp))
-                    .padding(14.dp)
-            ) {
-                Column {
-                    Text(
-                        text = language.text("Calificación", "Rating"),
-                        fontSize = 12.sp,
-                        color = PawMedicSemanticColors.current.hint
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFF59E0B),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = if (clinic.rating > 0) {
-                                "${clinic.rating} (${clinic.reviewCount})"
-                            } else {
-                                clinic.reviewCount
-                            },
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PawMedicSemanticColors.current.text,
-                            modifier = Modifier.padding(start = 6.dp)
-                        )
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -277,6 +231,7 @@ fun VeterinaryDetailScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
+            // - - - PRODUCTOS - - -
             Text(
                 text = language.text("Productos disponibles", "Available products"),
                 fontSize = 18.sp,
@@ -292,7 +247,10 @@ fun VeterinaryDetailScreen(
                     color = PawMedicSemanticColors.current.secondaryText
                 )
                 uiState.productsError -> {
-                    Text(language.text("No se pudieron cargar los productos.", "Could not load products."), color = PawMedicColors.Error)
+                    Text(
+                        language.text("No se pudieron cargar los productos.", "Could not load products."),
+                        color = PawMedicSemanticColors.current.secondaryText
+                    )
                     PawMedicPrimaryButton(text = language.text("Reintentar", "Retry"), onClick = viewModel::refreshProducts)
                 }
                 uiState.products.isEmpty() -> Text(
@@ -306,26 +264,47 @@ fun VeterinaryDetailScreen(
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     uiState.products.take(3).forEach { product ->
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(PawMedicColors.White)
-                                .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(12.dp))
-                                .padding(12.dp)
+                                .background(PawMedicSemanticColors.current.surface)
+                                .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(12.dp))
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (product.imageUrl.isNotBlank()) {
-                                ProductImage(product.imageUrl, Modifier.size(100.dp).clip(RoundedCornerShape(8.dp)))
-                                Spacer(modifier = Modifier.height(8.dp))
+                                ProductImage(
+                                    product.imageUrl,
+                                    Modifier.size(76.dp).clip(RoundedCornerShape(8.dp))
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
                             }
-                            Text(product.name, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray900)
-                            if (product.description.isNotBlank()) {
-                                Text(product.description, color = PawMedicColors.Gray600)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    product.name,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PawMedicSemanticColors.current.text
+                                )
+                                if (product.description.isNotBlank()) {
+                                    Text(
+                                        product.description,
+                                        fontSize = 12.sp,
+                                        color = PawMedicSemanticColors.current.secondaryText,
+                                        maxLines = 2,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
+                                Text(
+                                    "$${product.priceCents / 100}.${(product.priceCents % 100).toString().padStart(2, '0')} MXN",
+                                    fontSize = 15.sp,
+                                    color = PawMedicSemanticColors.current.accent,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(top = 6.dp)
+                                )
                             }
-                            Text(
-                                "$${product.priceCents / 100}.${(product.priceCents % 100).toString().padStart(2, '0')} MXN",
-                                color = PawMedicColors.Teal600,
-                                fontWeight = FontWeight.Bold
-                            )
                         }
                     }
                 }

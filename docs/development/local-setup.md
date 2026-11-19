@@ -51,6 +51,15 @@ Auth provider in Supabase and keep the Google client secret in Supabase's
 provider settings, never in the Android app or Git. The phone must have Google
 Play Services and a Google account available.
 
+Google registration records acceptance through `record_legal_acceptance`; apply
+`supabase\migrations\20261118000000_legal_acceptances.sql` before testing it.
+For the mobile clinic directory and product categories, apply
+`20261118000001_clinic_directory_image.sql` and
+`20261118000002_public_product_categories.sql` after the preceding migrations.
+The latter replaces the existing public products function to add its category.
+The mobile English interface translates fixed labels and known catalog options;
+clinical notes and other user-entered content remain in their original language.
+
 The checked-in Android `google-services.json` is the public client configuration
 for the shared development Firebase project, not a service-account key.
 When targeting a different Firebase project, replace it locally with that

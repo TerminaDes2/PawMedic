@@ -114,11 +114,18 @@ fun RegisterScreen(
         when (uiState.step) {
             1 -> {
                 if (onGoogleSignInClick != null) {
+                    TermsAcceptance(
+                        accepted = uiState.termsAccepted,
+                        onToggle = viewModel::toggleTermsAccepted,
+                        onOpenLegal = { legalSection = it }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     GoogleSocialButton(
-                        onClick = onGoogleSignInClick,
+                        onClick = { if (viewModel.canStartGoogleRegistration()) onGoogleSignInClick() },
                         isLoading = uiState.isLoading,
                         text = language.text("Registrarse con Google", "Sign up with Google")
                     )
+                    StepError(uiState.errorMessage?.let { localizeAuthMessage(it, language) })
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         HorizontalDivider(modifier = Modifier.weight(1f), color = PawMedicSemanticColors.current.border)
@@ -144,7 +151,7 @@ fun RegisterScreen(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = PawMedicSemanticColors.current.accent, modifier = Modifier.size(20.dp)) }
                 )
-                StepError(uiState.errorMessage?.let { localizeAuthMessage(it, language) })
+                if (onGoogleSignInClick == null) StepError(uiState.errorMessage?.let { localizeAuthMessage(it, language) })
                 Spacer(modifier = Modifier.height(24.dp))
                 PawMedicPrimaryButton(
                     text = language.text("Continuar", "Continue"),
@@ -208,39 +215,11 @@ fun RegisterScreen(
                     }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().clickable { viewModel.toggleTermsAccepted() }
-                ) {
-                    Checkbox(
-                        checked = uiState.termsAccepted,
-                        onCheckedChange = { viewModel.toggleTermsAccepted() },
-                        colors = CheckboxDefaults.colors(checkedColor = PawMedicColors.Teal600, uncheckedColor = PawMedicSemanticColors.current.hint)
-                    )
-                    Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                        Text(
-                            text = language.text("He leído y acepto:", "I have read and accept:"),
-                            fontSize = 13.sp,
-                            color = PawMedicSemanticColors.current.text,
-                            modifier = Modifier.clickable { viewModel.toggleTermsAccepted() }
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = language.text("Términos de servicio", "Terms of service"),
-                                fontSize = 12.sp,
-                                color = PawMedicSemanticColors.current.accent,
-                                modifier = Modifier.clickable { legalSection = LegalSection.TERMS }
-                            )
-                            Text("·", fontSize = 12.sp, color = PawMedicSemanticColors.current.hint)
-                            Text(
-                                text = language.text("Política de privacidad", "Privacy policy"),
-                                fontSize = 12.sp,
-                                color = PawMedicSemanticColors.current.accent,
-                                modifier = Modifier.clickable { legalSection = LegalSection.PRIVACY }
-                            )
-                        }
-                    }
-                }
+                TermsAcceptance(
+                    accepted = uiState.termsAccepted,
+                    onToggle = viewModel::toggleTermsAccepted,
+                    onOpenLegal = { legalSection = it }
+                )
                 StepError(uiState.errorMessage?.let { localizeAuthMessage(it, language) })
                 Spacer(modifier = Modifier.height(24.dp))
                 PawMedicPrimaryButton(
@@ -269,6 +248,33 @@ fun RegisterScreen(
                 color = PawMedicSemanticColors.current.accent,
                 modifier = Modifier.clickable { onNavigateToLogin() }
             )
+        }
+    }
+}
+
+@Composable
+private fun TermsAcceptance(accepted: Boolean, onToggle: () -> Unit, onOpenLegal: (LegalSection) -> Unit) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Checkbox(
+            checked = accepted,
+            onCheckedChange = { onToggle() },
+            colors = CheckboxDefaults.colors(checkedColor = PawMedicColors.Teal600, uncheckedColor = PawMedicSemanticColors.current.hint)
+        )
+        Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+            Text(
+                text = language.text("He leído y acepto:", "I have read and accept:"),
+                fontSize = 13.sp,
+                color = PawMedicSemanticColors.current.text,
+                modifier = Modifier.clickable { onToggle() }
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(language.text("Términos de servicio", "Terms of service"), fontSize = 12.sp,
+                    color = PawMedicSemanticColors.current.accent, modifier = Modifier.clickable { onOpenLegal(LegalSection.TERMS) })
+                Text("·", fontSize = 12.sp, color = PawMedicSemanticColors.current.hint)
+                Text(language.text("Política de privacidad", "Privacy policy"), fontSize = 12.sp,
+                    color = PawMedicSemanticColors.current.accent, modifier = Modifier.clickable { onOpenLegal(LegalSection.PRIVACY) })
+            }
         }
     }
 }

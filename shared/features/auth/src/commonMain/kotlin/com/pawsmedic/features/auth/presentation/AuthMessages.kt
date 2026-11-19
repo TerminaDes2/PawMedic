@@ -28,6 +28,7 @@ internal fun localizeAuthMessage(message: String, language: AppLanguage): String
         "Ingresa un teléfono válido de 10 dígitos" -> "Enter a valid 10-digit phone number"
         "La contraseña debe tener al menos 6 caracteres" -> "Your password must be at least 6 characters"
         "Debes aceptar los Términos y Condiciones" -> "You must accept the terms and conditions"
+        "No se pudo guardar la aceptación de los términos. Inténtalo nuevamente." -> "Could not save your acceptance of the terms. Please try again."
         "Este correo electrónico ya está registrado. Intenta iniciar sesión." -> "This email address is already registered. Try signing in."
         "Error al registrarse. Inténtalo de nuevo." -> "Registration failed. Try again."
         "Ingresa el código completo de 6 dígitos" -> "Enter the complete 6-digit code"
