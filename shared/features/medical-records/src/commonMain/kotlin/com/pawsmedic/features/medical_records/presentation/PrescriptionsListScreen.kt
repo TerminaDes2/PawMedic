@@ -33,14 +33,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.medical_records.domain.model.PrescriptionRecord
 import com.pawsmedic.shared.core.common.formatIsoToDisplayDate
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
-import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
 fun PrescriptionsListScreen(
@@ -54,7 +53,7 @@ fun PrescriptionsListScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PawMedicColors.BackgroundScreen)
+            .background(PawMedicSemanticColors.current.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -71,8 +70,8 @@ fun PrescriptionsListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicColors.White)
-                    .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(16.dp))
+                    .background(PawMedicSemanticColors.current.surface)
+                    .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(16.dp))
                     .clickable { dropdownExpanded = true }
                     .padding(14.dp)
             ) {
@@ -86,7 +85,7 @@ fun PrescriptionsListScreen(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(PawMedicColors.Teal50),
+                                .background(PawMedicSemanticColors.current.softAccent),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(text = "💊", fontSize = 20.sp)
@@ -96,10 +95,10 @@ fun PrescriptionsListScreen(
                             text = "Mostrando recetas de: ${uiState.selectedPetName}",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Gray900
+                            color = PawMedicSemanticColors.current.text
                         )
                     }
-                    Text(text = "▼", fontSize = 14.sp, color = PawMedicColors.Gray500)
+                    Text(text = "▼", fontSize = 14.sp, color = PawMedicSemanticColors.current.hint)
                 }
             }
 
@@ -129,21 +128,21 @@ fun PrescriptionsListScreen(
             placeholder = {
                 Text(
                     text = "Buscar medicamentos, doctores, mascotas...",
-                    color = PawMedicColors.Gray400,
+                    color = PawMedicSemanticColors.current.hint,
                     fontSize = 14.sp
                 )
             },
             leadingIcon = {
-                Text(text = "🔍", fontSize = 16.sp, color = PawMedicColors.Gray400)
+                Text(text = "🔍", fontSize = 16.sp, color = PawMedicSemanticColors.current.hint)
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PawMedicColors.Teal600,
-                unfocusedBorderColor = PawMedicColors.Gray300,
-                focusedContainerColor = PawMedicColors.White,
-                unfocusedContainerColor = PawMedicColors.White
+                focusedBorderColor = PawMedicSemanticColors.current.accent,
+                unfocusedBorderColor = PawMedicSemanticColors.current.border,
+                focusedContainerColor = PawMedicSemanticColors.current.surface,
+                unfocusedContainerColor = PawMedicSemanticColors.current.surface
             )
         )
 
@@ -164,13 +163,13 @@ fun PrescriptionsListScreen(
                         text = "No tienes recetas activas en este momento.",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Gray800
+                        color = PawMedicSemanticColors.current.text
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Las recetas con fecha de caducidad vencida solo están disponibles en el expediente completo de cada mascota.",
                         fontSize = 12.sp,
-                        color = PawMedicColors.Gray500,
+                        color = PawMedicSemanticColors.current.hint,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
@@ -190,8 +189,8 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(PawMedicColors.White)
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(20.dp))
+            .background(PawMedicSemanticColors.current.surface)
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(20.dp))
             .padding(18.dp)
     ) {
         Column {
@@ -204,14 +203,14 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFE6F4EA))
+                        .background(PawMedicSemanticColors.current.softAccent)
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "🟢 RECETA ACTIVA",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
+                        color = PawMedicSemanticColors.current.accent
                     )
                 }
 
@@ -219,7 +218,7 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
                     text = "Vence: ${prescription.endDate?.let { formatIsoToDisplayDate(it) } ?: "Sin fecha"}",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFD97706)
+                    color = PawMedicSemanticColors.current.accent
                 )
             }
 
@@ -235,21 +234,21 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
                     text = prescription.drugName,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
+                    color = PawMedicSemanticColors.current.text
                 )
 
                 if (prescription.petName.isNotBlank()) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(PawMedicColors.Teal50)
+                            .background(PawMedicSemanticColors.current.mediumAccent)
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = "🐾 ${prescription.petName}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicColors.Teal600
+                            color = PawMedicSemanticColors.current.accent
                         )
                     }
                 }
@@ -260,22 +259,22 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
             Text(
                 text = "Prescrita por: ${prescription.prescribingVetName.ifBlank { "Dr. Veterinario" }} • ${prescription.clinicName}",
                 fontSize = 12.sp,
-                color = PawMedicColors.Gray500
+                color = PawMedicSemanticColors.current.hint
             )
 
             Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = PawMedicColors.Gray100)
+            HorizontalDivider(color = PawMedicSemanticColors.current.separator)
             Spacer(modifier = Modifier.height(12.dp))
 
             // Dosis & Vía & Frecuencia
             Row(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("DOSIS Y UNIDAD", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray400)
-                    Text("${prescription.dosage} ${prescription.unit}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray800)
+                    Text("DOSIS Y UNIDAD", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                    Text("${prescription.dosage} ${prescription.unit}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("VÍA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray400)
-                    Text(prescription.route, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray800)
+                    Text("VÍA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                    Text(prescription.route, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 }
             }
 
@@ -283,12 +282,12 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("FRECUENCIA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray400)
-                    Text(prescription.frequency, fontSize = 14.sp, color = PawMedicColors.Gray800)
+                    Text("FRECUENCIA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                    Text(prescription.frequency, fontSize = 14.sp, color = PawMedicSemanticColors.current.text)
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("DURACIÓN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicColors.Gray400)
-                    Text(prescription.duration, fontSize = 14.sp, color = PawMedicColors.Gray800)
+                    Text("DURACIÓN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                    Text(prescription.duration, fontSize = 14.sp, color = PawMedicSemanticColors.current.text)
                 }
             }
 
@@ -299,8 +298,8 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFFEF9C3))
-                        .border(1.dp, Color(0xFFFDE047), RoundedCornerShape(12.dp))
+                        .background(PawMedicSemanticColors.current.warningSurface)
+                        .border(1.dp, PawMedicSemanticColors.current.border, RoundedCornerShape(12.dp))
                         .padding(12.dp)
                 ) {
                     Column {
@@ -308,14 +307,14 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
                             text = "📌 INSTRUCCIONES VETERINARIAS",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF854D0E),
+                            color = PawMedicSemanticColors.current.accent,
                             letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = prescription.notes,
                             fontSize = 13.sp,
-                            color = Color(0xFF713F12),
+                            color = PawMedicSemanticColors.current.text,
                             lineHeight = 18.sp
                         )
                     }

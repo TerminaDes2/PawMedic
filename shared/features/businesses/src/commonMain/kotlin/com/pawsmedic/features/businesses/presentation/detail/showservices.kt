@@ -22,6 +22,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,7 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -128,15 +129,15 @@ fun ShowServices(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         when {
-            isLoading -> Text("Cargando servicios...", color = PawMedicColors.Gray600)
+            isLoading -> Text("Cargando servicios...", color = PawMedicSemanticColors.current.secondaryText)
             errorMessage != null -> Text(
                 text = errorMessage.orEmpty(),
-                color = PawMedicColors.Error,
+                color = MaterialTheme.colorScheme.error,
                 fontSize = 13.sp
             )
             services.isEmpty() -> Text(
                 text = "No hay servicios disponibles.",
-                color = PawMedicColors.Gray600
+                color = PawMedicSemanticColors.current.secondaryText
             )
             else -> {
                 val categoryOptions = listOf("todos") +
@@ -153,14 +154,14 @@ fun ShowServices(
                     text = "Selecciona una categoría",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray700
+                    color = PawMedicSemanticColors.current.text
                 )
                 Box {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(PawMedicColors.White, RoundedCornerShape(12.dp))
-                            .border(1.dp, PawMedicColors.Gray300, RoundedCornerShape(12.dp))
+                            .background(PawMedicSemanticColors.current.surface, RoundedCornerShape(12.dp))
+                            .border(1.dp, PawMedicSemanticColors.current.border, RoundedCornerShape(12.dp))
                             .clickable { categoryMenuExpanded = true }
                             .padding(horizontal = 14.dp, vertical = 13.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -170,12 +171,12 @@ fun ShowServices(
                             modifier = Modifier.weight(1f),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = PawMedicColors.Gray900
+                            color = PawMedicSemanticColors.current.text
                         )
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = "Mostrar categorías",
-                            tint = PawMedicColors.Teal600
+                            tint = PawMedicSemanticColors.current.accent
                         )
                     }
                     DropdownMenu(
@@ -203,7 +204,7 @@ fun ShowServices(
                                             text = services.count {
                                                 category == "todos" || it.service.category == category
                                             }.toString(),
-                                            color = PawMedicColors.Gray500,
+                                            color = PawMedicSemanticColors.current.hint,
                                             fontSize = 12.sp
                                         )
                                     }
@@ -228,7 +229,7 @@ fun ShowServices(
                 if (visibleServices.isEmpty()) {
                     Text(
                         text = "No hay servicios en esta categoría.",
-                        color = PawMedicColors.Gray600,
+                        color = PawMedicSemanticColors.current.secondaryText,
                         fontSize = 13.sp
                     )
                 }
@@ -271,8 +272,8 @@ private fun ServiceCard(item: ShowService, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(PawMedicColors.White, RoundedCornerShape(14.dp))
-            .border(1.dp, PawMedicColors.Gray200, RoundedCornerShape(14.dp))
+            .background(PawMedicSemanticColors.current.surface, RoundedCornerShape(14.dp))
+            .border(1.dp, PawMedicSemanticColors.current.separator, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(14.dp)
     ) {
@@ -280,13 +281,13 @@ private fun ServiceCard(item: ShowService, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(PawMedicColors.Teal50, RoundedCornerShape(12.dp)),
+                    .background(PawMedicSemanticColors.current.softAccent, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.MedicalServices,
                     contentDescription = null,
-                    tint = PawMedicColors.Teal600
+                    tint = PawMedicSemanticColors.current.accent
                 )
             }
             Spacer(modifier = Modifier.size(12.dp))
@@ -294,18 +295,18 @@ private fun ServiceCard(item: ShowService, onClick: () -> Unit) {
                 Text(
                     text = item.service.name,
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
+                    color = PawMedicSemanticColors.current.text
                 )
                 Text(
                     text = item.species.joinToString().ifBlank { "Todas las especies" },
                     fontSize = 12.sp,
-                    color = PawMedicColors.Gray600
+                    color = PawMedicSemanticColors.current.secondaryText
                 )
             }
             Text(
                 text = formatPrice(item.service.priceCents),
                 fontWeight = FontWeight.Bold,
-                color = PawMedicColors.Teal600
+                color = PawMedicSemanticColors.current.accent
             )
         }
     }
@@ -326,7 +327,7 @@ private fun ServiceDetailDialog(item: ShowService, onDismiss: () -> Unit) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Cerrar",
-                    tint = PawMedicColors.Gray600,
+                    tint = PawMedicSemanticColors.current.secondaryText,
                     modifier = Modifier.clickable(onClick = onDismiss)
                 )
             }
@@ -335,30 +336,30 @@ private fun ServiceDetailDialog(item: ShowService, onDismiss: () -> Unit) {
             Column {
                 Text(
                     text = service.description.ifBlank { "Sin descripción disponible." },
-                    color = PawMedicColors.Gray700
+                    color = PawMedicSemanticColors.current.secondaryText
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Especies atendidas",
                     fontWeight = FontWeight.Bold,
-                    color = PawMedicColors.Gray900
+                    color = PawMedicSemanticColors.current.text
                 )
                 Text(
                     text = item.species.joinToString().ifBlank { "Todas las especies" },
-                    color = PawMedicColors.Gray700
+                    color = PawMedicSemanticColors.current.secondaryText
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.AccessTime,
                         contentDescription = null,
-                        tint = PawMedicColors.Teal600,
+                        tint = PawMedicSemanticColors.current.accent,
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
                         text = " ${service.durationMinutes} minutos · ${formatPrice(service.priceCents)}",
                         fontWeight = FontWeight.Bold,
-                        color = PawMedicColors.Teal600
+                        color = PawMedicSemanticColors.current.accent
                     )
                 }
             }
