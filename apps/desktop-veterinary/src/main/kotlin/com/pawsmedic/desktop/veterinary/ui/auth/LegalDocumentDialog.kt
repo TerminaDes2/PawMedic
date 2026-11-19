@@ -1,7 +1,6 @@
 package com.pawsmedic.desktop.veterinary.ui.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,9 +35,7 @@ internal fun parseLegalDocument(source: String): LegalDocument {
     val lines = source.lines()
     val terms = lines.indexOfFirst { it.startsWith("## PARTE I.") }
     val privacy = lines.indexOfFirst { it.startsWith("## PARTE II.") }
-    require(terms >= 0 && privacy > terms && lines.drop(privacy + 1).any { it.isNotBlank() }) {
-        "El documento legal no contiene las secciones esperadas."
-    }
+
     return LegalDocument(lines.take(terms), lines.subList(terms, privacy), lines.drop(privacy))
 }
 
@@ -102,14 +99,7 @@ internal fun LegalDocumentDialog(initialSection: LegalSection, onDismiss: () -> 
                                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 28.dp, vertical = 20.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    if (english) "Original document in Spanish · Pending legal and technical review"
-                                    else "Documento original en español · Pendiente de revisión legal y técnica",
-                                    modifier = Modifier.fillMaxWidth().background(EmeraldLightBg, RoundedCornerShape(8.dp))
-                                        .border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(12.dp),
-                                    color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium
-                                )
-                                val lines = legal.introduction + if (section == LegalSection.TERMS) legal.terms else legal.privacy
+                                val lines = if (section == LegalSection.TERMS) legal.terms else legal.privacy
                                 lines.forEach { LegalDocumentLine(it) }
                             }
                         }
