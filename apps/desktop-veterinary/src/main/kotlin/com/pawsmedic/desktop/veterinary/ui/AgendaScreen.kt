@@ -2,6 +2,7 @@ package com.pawsmedic.desktop.veterinary.ui
 
 import com.pawsmedic.desktop.admin.translation.translateBatchLocally
 import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
+import com.pawsmedic.desktop.veterinary.model.PatientRow
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.shared.core.model.ProfileRole
@@ -81,6 +82,11 @@ fun AgendaScreen(
     var formError by remember { mutableStateOf<String?>(null) }
     var clinicZone by remember { mutableStateOf<ZoneId?>(null) }
     var clinicToday by remember { mutableStateOf<LocalDate?>(null) }
+
+    // Filtros de búsqueda y estado
+    var statusFilter by remember { mutableStateOf("Todos") } // Todos, Pendientes, Confirmadas, En proceso
+    var searchQuery by remember { mutableStateOf("") }
+
     val translations = remember(userEmail) { mutableStateMapOf<String, String>() }
     var showOriginal by remember { mutableStateOf(false) }
     var translating by remember { mutableStateOf(false) }
@@ -144,7 +150,7 @@ fun AgendaScreen(
                 function = "get_completed_appointments_missing_records",
                 parameters = buildJsonObject { put("p_tenant_id", tenantId) }
             ).decodeList<String>()
-            appointments = loadedAppointments
+            appointments = loadedAppointments.filter { it.status.uppercase() in setOf("REQUESTED", "CONFIRMED", "IN_PROGRESS") }
             clinicZone = zone
             clinicToday = LocalDate.now(zone)
             missingRecords = missing.toSet()
@@ -231,6 +237,19 @@ fun AgendaScreen(
         }
     }
 
+    val filteredAppointments = appointments.filter { appt ->
+        val matchesStatus = when (statusFilter) {
+            "Pendientes" -> appt.status.uppercase() == "REQUESTED"
+            "Confirmadas" -> appt.status.uppercase() == "CONFIRMED"
+            "En proceso" -> appt.status.uppercase() == "IN_PROGRESS"
+            else -> true
+        }
+        val matchesSearch = searchQuery.isBlank() ||
+            appt.petName.contains(searchQuery, ignoreCase = true) ||
+            appt.serviceName.contains(searchQuery, ignoreCase = true)
+        matchesStatus && matchesSearch
+    }
+
     VetAppLayout(
         currentScreen = "Agenda",
         onNavigate = onNavigate,
@@ -267,6 +286,36 @@ fun AgendaScreen(
                     }
                 }
             }
+
+            Spacer(Modifier.height(12.dp))
+
+            // BARRA DE BÚSQUEDA Y FILTROS POR ESTADO
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text(tr("Buscar por mascota o servicio...", "Search by pet or service..."), fontSize = 12.sp) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr("Estado:", "Status:"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                    listOf("Todos", "Pendientes", "Confirmadas", "En proceso").forEach { statusOpt ->
+                        FilterChip(
+                            selected = statusFilter == statusOpt,
+                            onClick = { statusFilter = statusOpt },
+                            label = { Text(statusOpt, fontSize = 11.sp) }
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(12.dp))
             errorMessage?.let {
                 Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp, modifier = Modifier.fillMaxWidth().background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp)).padding(10.dp))
@@ -274,23 +323,23 @@ fun AgendaScreen(
             }
             Row(Modifier.fillMaxWidth().background(OffWhiteBg, RoundedCornerShape(8.dp)).border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(12.dp)) {
                 Text(tr("FECHA Y HORA", "DATE AND TIME"), Modifier.weight(0.23f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
-                Text(tr("MASCOTA / ID", "PET / ID"), Modifier.weight(0.28f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
-                Text(tr("SERVICIO", "SERVICE"), Modifier.weight(0.22f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                Text(tr("MASCOTA", "PET"), Modifier.weight(0.28f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                Text(tr("SERVICIO / TIPO", "SERVICE / TYPE"), Modifier.weight(0.22f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
                 Text(tr("ESTADO", "STATUS"), Modifier.weight(0.12f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
                 Text(tr("ACCIONES", "ACTIONS"), Modifier.weight(0.15f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
             }
             Spacer(Modifier.height(8.dp))
-            if (!isLoading && appointments.isEmpty() && errorMessage == null) {
-                Text(tr("No hay citas para esta clínica.", "There are no appointments for this clinic."), color = TextSecondary, fontSize = 14.sp, modifier = Modifier.padding(16.dp))
+            if (!isLoading && filteredAppointments.isEmpty() && errorMessage == null) {
+                Text(tr("No hay citas que coincidan con los filtros.", "No appointments match the filters."), color = TextSecondary, fontSize = 14.sp, modifier = Modifier.padding(16.dp))
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-                items(appointments, key = { it.id }) { appointment ->
+                items(filteredAppointments, key = { it.id }) { appointment ->
                     Row(
                         Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(appointment.displayTime, Modifier.weight(0.23f), fontSize = 12.sp, color = TextPrimary)
-                        Text("${appointment.petName} (${appointment.petId})", Modifier.weight(0.28f), fontSize = 11.sp, color = TextSecondary)
+                        Text(appointment.petName, Modifier.weight(0.28f), fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
                         Text(displayService(appointment.serviceName), Modifier.weight(0.22f), fontSize = 12.sp, color = TextPrimary)
                         Text(agendaStatus(appointment.status, english), Modifier.weight(0.12f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                         Column(Modifier.weight(0.15f)) {
@@ -301,50 +350,66 @@ fun AgendaScreen(
                                 }
                                 "CONFIRMED" -> if (clinicZone != null && clinicToday != null &&
                                     appointmentDayReached(appointment.startsAt, clinicZone!!, clinicToday!!)) {
-                                    TextButton(enabled = busyAppointmentId != appointment.id, onClick = { coroutineScope.launch { transition(appointment, "IN_PROGRESS") } }) { Text(tr("Iniciar consulta", "Start consultation"), fontSize = 10.sp) }
+                                    TextButton(enabled = busyAppointmentId != appointment.id, onClick = {
+                                        coroutineScope.launch {
+                                            busyAppointmentId = appointment.id
+                                            try {
+                                                supabase.postgrest.rpc(
+                                                    function = "transition_appointment_status",
+                                                    parameters = buildJsonObject {
+                                                        put("p_appointment_id", appointment.id)
+                                                        put("p_expected_status", appointment.status)
+                                                        put("p_next_status", "IN_PROGRESS")
+                                                    }
+                                                )
+                                                val userId = supabase.auth.currentSessionOrNull()?.user?.id ?: ""
+                                                val profile = supabase.postgrest["profiles"].select { filter { eq("id", userId) } }.decodeSingle<UserProfile>()
+                                                val tenantId = com.pawsmedic.desktop.veterinary.model.resolveTenantId(supabase, userId, profile)
+                                                val pet = supabase.postgrest["pets"].select { filter { eq("id", appointment.petId) } }.decodeSingleOrNull<PatientRow>()
+
+                                                VeterinaryCareContext.appointmentId = appointment.id
+                                                VeterinaryCareContext.serviceName = appointment.serviceName
+                                                VeterinaryCareContext.categoryType = VeterinaryCareContext.inferCategory(appointment.serviceName)
+                                                VeterinaryCareContext.tenantId = tenantId
+                                                VeterinaryCareContext.vetUserId = userId
+                                                VeterinaryCareContext.vetUserName = profile.displayName.ifBlank { "Dr. Veterinario" }
+                                                VeterinaryCareContext.patient = pet ?: PatientRow(id = appointment.petId, name = appointment.petName)
+                                                VeterinaryCareContext.prefilledReason = appointment.serviceName
+
+                                                onNavigate("VeterinaryCare")
+                                            } catch (e: Exception) {
+                                                errorMessage = tr("No se pudo iniciar la consulta.", "Could not start consultation.")
+                                            } finally {
+                                                busyAppointmentId = null
+                                            }
+                                        }
+                                    }) { Text(tr("Iniciar consulta", "Start consultation"), fontSize = 10.sp) }
                                 }
                                 "IN_PROGRESS" -> if (clinicZone != null && clinicToday != null &&
                                     appointmentDayReached(appointment.startsAt, clinicZone!!, clinicToday!!)) {
-                                    TextButton(enabled = busyAppointmentId != appointment.id, onClick = { openRecord(appointment) }) { Text(tr("Terminar consulta", "Finish consultation"), fontSize = 10.sp) }
-                                }
-                                "COMPLETED" -> if (appointment.id in missingRecords) {
-                                    TextButton(enabled = busyAppointmentId != appointment.id, onClick = { openRecord(appointment) }) { Text(tr("Registrar expediente", "Create record"), fontSize = 10.sp) }
-                                } else {
-                                    Text(tr("En expediente", "Record saved"), color = TextSecondary, fontSize = 10.sp)
-                                }
-                            }
-                            completing?.takeIf { it.id == appointment.id }?.let { appointment ->
-                                Dialog(onDismissRequest = { if (busyAppointmentId == null) completing = null }) {
-                                    Card(Modifier.width(620.dp).heightIn(max = 850.dp), shape = RoundedCornerShape(16.dp)) {
-                                        Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                            Text(if (appointment.status == "COMPLETED") tr("Registrar expediente anterior", "Create previous record") else tr("Terminar consulta", "Finish consultation"),
-                                                fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                                            Text("${appointment.petName} · ${displayService(appointment.serviceName)}", color = TextSecondary)
-                                            if (english) {
-                                                Text("Service name may be machine translated. Verify the original before clinical decisions.", color = TextSecondary, fontSize = 12.sp)
-                                                TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
-                                                if (translating) Text("Translating…", color = TextSecondary, fontSize = 12.sp)
-                                                if (translationError) Text("Some services could not be translated; the original is shown.", color = Color(0xFFB91C1C), fontSize = 12.sp)
-                                                Text("The editable reason starts with the original service name and is saved as entered.", color = TextSecondary, fontSize = 12.sp)
-                                            }
-                                            Text(tr("El diagnóstico y tratamiento se guardarán en el expediente de la mascota.", "The diagnosis and treatment will be saved in the pet's record."), color = TextSecondary, fontSize = 12.sp)
-                                            OutlinedTextField(reason, { reason = it }, label = { Text(tr("Motivo de consulta *", "Reason for consultation *")) }, modifier = Modifier.fillMaxWidth())
-                                            OutlinedTextField(symptoms, { symptoms = it }, label = { Text(tr("Síntomas *", "Symptoms *")) }, modifier = Modifier.fillMaxWidth())
-                                            OutlinedTextField(diagnosis, { diagnosis = it }, label = { Text(tr("Diagnóstico *", "Diagnosis *")) }, modifier = Modifier.fillMaxWidth())
-                                            OutlinedTextField(treatment, { treatment = it }, label = { Text(tr("Tratamiento *", "Treatment *")) }, modifier = Modifier.fillMaxWidth())
-                                            OutlinedTextField(observations, { observations = it }, label = { Text(tr("Observaciones *", "Observations *")) }, modifier = Modifier.fillMaxWidth())
-                                            OutlinedTextField(weight, { weight = it }, label = { Text(tr("Peso en gramos *", "Weight in grams *")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                            OutlinedTextField(medication, { medication = it }, label = { Text(tr("Medicamento (opcional)", "Medication (optional)")) }, modifier = Modifier.fillMaxWidth())
-                                            OutlinedTextField(dosage, { dosage = it }, label = { Text(tr("Dosis (opcional)", "Dosage (optional)")) }, modifier = Modifier.fillMaxWidth())
-                                            formError?.let { Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp) }
-                                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                                TextButton(onClick = { completing = null }, enabled = busyAppointmentId == null) { Text(tr("Cancelar", "Cancel")) }
-                                                Button(onClick = { coroutineScope.launch { finish(appointment) } }, enabled = busyAppointmentId == null) {
-                                                    Text(if (busyAppointmentId != null) tr("Guardando…", "Saving…") else tr("Guardar expediente", "Save record"))
-                                                }
+                                    TextButton(enabled = busyAppointmentId != appointment.id, onClick = {
+                                        coroutineScope.launch {
+                                            try {
+                                                val userId = supabase.auth.currentSessionOrNull()?.user?.id ?: ""
+                                                val profile = supabase.postgrest["profiles"].select { filter { eq("id", userId) } }.decodeSingle<UserProfile>()
+                                                val tenantId = com.pawsmedic.desktop.veterinary.model.resolveTenantId(supabase, userId, profile)
+                                                val pet = supabase.postgrest["pets"].select { filter { eq("id", appointment.petId) } }.decodeSingleOrNull<PatientRow>()
+
+                                                VeterinaryCareContext.appointmentId = appointment.id
+                                                VeterinaryCareContext.serviceName = appointment.serviceName
+                                                VeterinaryCareContext.categoryType = VeterinaryCareContext.inferCategory(appointment.serviceName)
+                                                VeterinaryCareContext.tenantId = tenantId
+                                                VeterinaryCareContext.vetUserId = userId
+                                                VeterinaryCareContext.vetUserName = profile.displayName.ifBlank { "Dr. Veterinario" }
+                                                VeterinaryCareContext.patient = pet ?: PatientRow(id = appointment.petId, name = appointment.petName)
+                                                VeterinaryCareContext.prefilledReason = appointment.serviceName
+
+                                                onNavigate("VeterinaryCare")
+                                            } catch (e: Exception) {
+                                                errorMessage = tr("No se pudo abrir la atención.", "Could not open care session.")
                                             }
                                         }
-                                    }
+                                    }) { Text(tr("Terminar consulta", "Finish consultation"), fontSize = 10.sp) }
                                 }
                             }
                         }

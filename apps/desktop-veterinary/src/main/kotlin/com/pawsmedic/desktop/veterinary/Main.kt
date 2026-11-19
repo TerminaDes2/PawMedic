@@ -32,6 +32,7 @@ import com.pawsmedic.desktop.veterinary.ui.CatalogScreen
 import com.pawsmedic.desktop.veterinary.ui.CatalogTranslationProvider
 import com.pawsmedic.desktop.veterinary.ui.ConsultasScreen
 import com.pawsmedic.desktop.veterinary.ui.ExpedientesScreen
+import com.pawsmedic.desktop.veterinary.ui.VeterinaryCareScreen
 import com.pawsmedic.desktop.veterinary.ui.HeaderProfileProvider
 import com.pawsmedic.desktop.veterinary.ui.ScheduleScreen
 import com.pawsmedic.desktop.veterinary.ui.ReportsScreen
@@ -292,6 +293,11 @@ fun main() = application {
                         onLogout = { handleLogout() }
                     )
                     "Consultas" -> ConsultasScreen(
+                        userEmail = activeUserEmail,
+                        onNavigate = { currentScreen = it },
+                        onLogout = { handleLogout() }
+                    )
+                    "VeterinaryCare" -> VeterinaryCareScreen(
                         userEmail = activeUserEmail,
                         onNavigate = { currentScreen = it },
                         onLogout = { handleLogout() }

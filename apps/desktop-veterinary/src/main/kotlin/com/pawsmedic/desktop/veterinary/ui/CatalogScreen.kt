@@ -1,7 +1,6 @@
 package com.pawsmedic.desktop.veterinary.ui
 
 import com.pawsmedic.desktop.admin.translation.translateBatchLocally
-
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
@@ -124,6 +123,9 @@ fun CatalogScreen(
     var selectedTab by remember { mutableStateOf("Servicios") }
     var showCreateDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<CatalogProduct?>(null) }
+    var editingService by remember { mutableStateOf<CatalogService?>(null) }
+    var serviceFilter by remember { mutableStateOf("Todos") } // Todos, Activos, Inactivos
+    var productFilter by remember { mutableStateOf("Todos") } // Todos, Activos, Inactivos
     var detailProduct by remember { mutableStateOf<CatalogProduct?>(null) }
     var detailImage by remember { mutableStateOf<ImageBitmap?>(null) }
     var imageError by remember { mutableStateOf<String?>(null) }
@@ -253,9 +255,21 @@ fun CatalogScreen(
         errorMessage = null
         try {
             if (selectedTab == "Servicios") {
-                supabase.postgrest["services"].insert(
-                    NewCatalogService(clinicId, cleanName, description.trim(), checkNotNull(minutes), priceCents)
-                )
+                val existingService = editingService
+                if (existingService == null) {
+                    supabase.postgrest["services"].insert(
+                        NewCatalogService(clinicId, cleanName, description.trim(), checkNotNull(minutes), priceCents)
+                    )
+                } else {
+                    supabase.postgrest["services"].update({
+                        set("name", cleanName)
+                        set("description", description.trim())
+                        set("duration_minutes", checkNotNull(minutes))
+                        set("price_cents", priceCents)
+                    }) {
+                        filter { eq("id", existingService.id); eq("tenant_id", clinicId) }
+                    }
+                }
             } else {
                 checkNotNull(categoryId)
                 checkNotNull(quantity)
@@ -303,6 +317,7 @@ fun CatalogScreen(
             selectedPhoto = null
             selectedCategoryId = null
             editingProduct = null
+            editingService = null
             loadCatalog()
         } catch (e: CancellationException) {
             throw e
@@ -434,6 +449,21 @@ fun CatalogScreen(
         }
     }
 
+    val filteredServices = services.filter {
+        when (serviceFilter) {
+            "Activos" -> it.active
+            "Inactivos" -> !it.active
+            else -> true
+        }
+    }
+    val filteredProducts = products.filter {
+        when (productFilter) {
+            "Activos" -> it.active
+            "Inactivos" -> !it.active
+            else -> true
+        }
+    }
+
     VetAppLayout(
         currentScreen = "Catalog",
         onNavigate = onNavigate,
@@ -450,6 +480,7 @@ fun CatalogScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(onClick = { coroutineScope.launch { loadCatalog() } }, enabled = !isLoading) { Text(tr("Actualizar", "Refresh")) }
                     Button(onClick = {
+                        editingService = null
                         editingProduct = null
                         selectedPhoto = null
                         selectedCategoryId = null
@@ -480,6 +511,21 @@ fun CatalogScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Servicios", "Productos").forEach { tab ->
                     FilterChip(selected = selectedTab == tab, onClick = { selectedTab = tab }, label = { Text(if (english) if (tab == "Servicios") "Services" else "Products" else tab) })
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(tr("Filtrar estado:", "Filter status:"), fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Bold)
+                val filterOptions = listOf("Todos", "Activos", "Inactivos")
+                val currentFilter = if (selectedTab == "Servicios") serviceFilter else productFilter
+                filterOptions.forEach { opt ->
+                    FilterChip(
+                        selected = currentFilter == opt,
+                        onClick = {
+                            if (selectedTab == "Servicios") serviceFilter = opt else productFilter = opt
+                        },
+                        label = { Text(if (english) when(opt) { "Todos" -> "All"; "Activos" -> "Active"; else -> "Inactive" } else opt, fontSize = 11.sp) }
+                    )
                 }
             }
             if (selectedTab == "Servicios") {
@@ -516,14 +562,29 @@ fun CatalogScreen(
             Spacer(Modifier.height(8.dp))
             when {
                 isLoading -> Text(tr("Cargando catálogo…", "Loading catalog…"), color = TextSecondary, modifier = Modifier.padding(12.dp))
-                selectedTab == "Servicios" && services.isEmpty() -> Text(tr("No hay servicios registrados.", "No services registered."), color = TextSecondary, modifier = Modifier.padding(12.dp))
-                selectedTab == "Productos" && products.isEmpty() -> Text(tr("No hay productos registrados.", "No products registered."), color = TextSecondary, modifier = Modifier.padding(12.dp))
+                selectedTab == "Servicios" && filteredServices.isEmpty() -> Text(tr("No hay servicios con este filtro.", "No services with this filter."), color = TextSecondary, modifier = Modifier.padding(12.dp))
+                selectedTab == "Productos" && filteredProducts.isEmpty() -> Text(tr("No hay productos con este filtro.", "No products with this filter."), color = TextSecondary, modifier = Modifier.padding(12.dp))
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-                if (selectedTab == "Servicios") items(services, key = { it.id }) { service ->
+                if (selectedTab == "Servicios") items(filteredServices, key = { it.id }) { service ->
                     Row(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(7.dp)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(0.42f)) {
-                            Text(displayText(service.name), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(displayText(service.name), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+                                TextButton(
+                                    onClick = {
+                                        editingService = service
+                                        editingProduct = null
+                                        name = service.name
+                                        description = service.description
+                                        price = java.math.BigDecimal(service.priceCents).movePointLeft(2).toPlainString()
+                                        duration = service.durationMinutes.toString()
+                                        errorMessage = null
+                                        showCreateDialog = true
+                                    },
+                                    contentPadding = PaddingValues(0.dp)
+                                ) { Text(tr("Editar", "Edit"), fontSize = 11.sp) }
+                            }
                             if (service.description.isNotBlank()) Text(displayText(service.description), fontSize = 11.sp, color = TextSecondary)
                         }
                         Text("${service.durationMinutes} min", Modifier.weight(0.16f), fontSize = 12.sp, color = TextSecondary)
@@ -537,7 +598,7 @@ fun CatalogScreen(
                         }
                     }
                 }
-                else items(products, key = { it.id }) { product ->
+                else items(filteredProducts, key = { it.id }) { product ->
                     Row(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(7.dp)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(0.38f)) {
                             Text(product.sku.orEmpty(), fontSize = 10.sp, color = TextMuted)
@@ -594,6 +655,7 @@ fun CatalogScreen(
                 confirmButton = {
                     TextButton(onClick = {
                         editingProduct = product
+                        editingService = null
                         name = product.name; sku = product.sku.orEmpty(); description = product.description
                         selectedCategoryId = product.typeId
                         price = java.math.BigDecimal(product.priceCents).movePointLeft(2).toPlainString()
@@ -612,7 +674,15 @@ fun CatalogScreen(
             Card(Modifier.width(480.dp).wrapContentHeight(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardWhite)) {
                 Column(Modifier.heightIn(max = 700.dp).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (editingProduct != null) tr("Editar producto", "Edit product") else if (selectedTab == "Servicios") tr("Nuevo servicio", "New service") else tr("Nuevo producto", "New product"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text(
+                            if (editingProduct != null || editingService != null)
+                                tr(if (selectedTab == "Servicios") "Editar servicio" else "Editar producto", if (selectedTab == "Servicios") "Edit service" else "Edit product")
+                            else if (selectedTab == "Servicios") tr("Nuevo servicio", "New service")
+                            else tr("Nuevo producto", "New product"),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
                         IconButton(onClick = { if (!isSaving) showCreateDialog = false }) { Icon(Icons.Default.Close, contentDescription = tr("Cerrar", "Close")) }
                     }
                     if (selectedTab == "Productos") OutlinedTextField(sku, { sku = it }, label = { Text("SKU") }, singleLine = true, modifier = Modifier.fillMaxWidth())
