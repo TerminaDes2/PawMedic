@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -132,12 +134,26 @@ private fun SelectServiceStep(
     onBack: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("todos") }
     val normalizedQuery = searchQuery.trim()
-    val visibleServices = uiState.services.filter { service ->
-        normalizedQuery.isBlank() ||
+    val categories = listOf(
+        "todos" to "Todos",
+        "consulta" to "Consultas",
+        "vacunacion" to "Vacunación",
+        "desparasitacion" to "Desparasitación",
+        "estetica" to "Estética",
+        "cirugia" to "Cirugías",
+        "diagnostico" to "Diagnóstico",
+        "otros" to "Otros servicios"
+    )
+    val filteredServices = uiState.services.filter { service ->
+        val matchesCategory = selectedCategory == "todos" || service.category == selectedCategory
+        val matchesQuery = normalizedQuery.isBlank() ||
             service.title.contains(normalizedQuery, ignoreCase = true) ||
             service.description.contains(normalizedQuery, ignoreCase = true)
+        matchesCategory && matchesQuery
     }
+    val visibleServices = filteredServices
     val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Column(
         modifier = Modifier
@@ -180,6 +196,58 @@ private fun SelectServiceStep(
             placeholder = { Text("Buscar servicio") }
         )
 
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = language.text("Categorías", "Categories"),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = PawMedicSemanticColors.current.text
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        categories.chunked(2).forEach { rowCategories ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowCategories.forEach { (key, label) ->
+                    val count = if (key == "todos") uiState.services.size else uiState.services.count { it.category == key }
+                    val isSelected = selectedCategory == key
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (isSelected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.separator,
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .clickable { selectedCategory = key }
+                            .padding(12.dp)
+                    ) {
+                        Column {
+                            Icon(
+                                imageVector = Icons.Default.MedicalServices,
+                                contentDescription = null,
+                                tint = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.hint,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
+                            Text(
+                                text = language.text("$count servicios", "$count services"),
+                                fontSize = 11.sp,
+                                color = PawMedicSemanticColors.current.secondaryText
+                            )
+                        }
+                    }
+                }
+                if (rowCategories.size == 1) Spacer(modifier = Modifier.weight(1f))
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
         Spacer(modifier = Modifier.height(12.dp))
 
         if (uiState.isLoadingServices) {
@@ -192,6 +260,25 @@ private fun SelectServiceStep(
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Text(
+            text = language.text(
+                if (normalizedQuery.isBlank()) "Todos los servicios" else "Resultados",
+                if (normalizedQuery.isBlank()) "All services" else "Results"
+            ),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = PawMedicSemanticColors.current.text
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (visibleServices.isEmpty()) {
+            Text(
+                text = language.text("No encontramos servicios con estos filtros.", "No services match these filters."),
+                fontSize = 14.sp,
+                color = PawMedicSemanticColors.current.secondaryText
+            )
         }
 
         visibleServices.forEach { service ->
@@ -289,6 +376,63 @@ private fun SelectServiceStep(
 }
 
 // --- STEP 2: SELECT PET ---
+@Composable
+private fun ServiceSelectionCard(
+    service: VeterinaryService,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (isSelected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.separator,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.MedicalServices,
+                contentDescription = null,
+                tint = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.hint,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = service.title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PawMedicSemanticColors.current.text
+                )
+                if (service.description.isNotBlank()) {
+                    Text(
+                        text = service.description,
+                        fontSize = 12.sp,
+                        color = PawMedicSemanticColors.current.secondaryText,
+                        maxLines = 2
+                    )
+                }
+                Text(
+                    text = language.text(
+                        "Duración: ${service.durationMinutes} min",
+                        "Duration: ${service.durationMinutes} min"
+                    ),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PawMedicSemanticColors.current.accent
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun SelectPetStep(
     uiState: BookingUiState,

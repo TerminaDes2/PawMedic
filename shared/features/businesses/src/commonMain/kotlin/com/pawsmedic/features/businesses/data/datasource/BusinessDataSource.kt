@@ -61,13 +61,15 @@ private data class BusinessDirectoryRecord(
     @SerialName("public_name") val publicName: String = "",
     @SerialName("legal_name") val legalName: String = "",
     val address: String? = null,
-    val phone: String? = null
+    val phone: String? = null,
+    @SerialName("photo_url") val photoUrl: String? = null
 ) {
     fun toDto(schedules: List<com.pawsmedic.features.businesses.data.dto.BusinessScheduleDto>, timeZone: String) = BusinessDto(
         id = id,
         name = name.ifBlank { publicName.ifBlank { legalName } },
         address = address,
         phone = phone,
+        photoUrl = photoUrl,
         hours = schedules.map { schedule ->
             "${schedule.dayOfWeek.toWeekdayName()}: ${schedule.openTime.take(5)}–${schedule.closeTime.take(5)}"
         },

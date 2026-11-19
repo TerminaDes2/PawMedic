@@ -95,12 +95,19 @@ fun VeterinaryDetailScreen(
                     .background(PawMedicSemanticColors.current.softAccent),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.LocalHospital,
-                    contentDescription = null,
-                    tint = PawMedicSemanticColors.current.accent,
-                    modifier = Modifier.size(64.dp)
-                )
+                if (clinic.imageUrl.isNullOrBlank()) {
+                    Icon(
+                        imageVector = Icons.Default.LocalHospital,
+                        contentDescription = null,
+                        tint = PawMedicSemanticColors.current.accent,
+                        modifier = Modifier.size(64.dp)
+                    )
+                } else {
+                    ClinicImage(
+                        url = clinic.imageUrl,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
