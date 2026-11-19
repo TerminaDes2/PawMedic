@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
@@ -147,13 +148,20 @@ class AppointmentsListViewModel(
 private const val ALL = "todos"
 
 private enum class StatusFilter(val label: String) {
-    ALL("Todos los estados"),
+    ALL("Citas visibles"),
     PENDING("Pendientes"),
-    ACCEPTED("Aceptadas")
+    ACCEPTED("Aceptadas"),
+    CANCELLED("Canceladas")
 }
 
 private fun Appointment.isPending() = status.contains("Pendiente", ignoreCase = true)
 private fun Appointment.isAccepted() = status.equals("Confirmada", ignoreCase = true)
+private fun Appointment.isCancelled() =
+    status.contains("Cancelada", ignoreCase = true) ||
+        status.contains("Cancelled", ignoreCase = true)
+private fun Appointment.isCompleted() =
+    status.contains("Completada", ignoreCase = true) ||
+        status.contains("Completed", ignoreCase = true)
 
 private fun categoryLabel(category: String): String = when (category) {
     ALL -> "Todas las categorías"
@@ -184,21 +192,38 @@ fun AppointmentsListScreen(
     var selectedStatusName by rememberSaveable { mutableStateOf(StatusFilter.ALL.name) }
     val selectedStatus = StatusFilter.valueOf(selectedStatusName)
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PawMedicSemanticColors.current.background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-    ) {
-        PawMedicTopBar(
-            title = language.text("Mis Citas Médicas", "My appointments"),
-            onBackClick = onBackClick
-        )
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(PawMedicSemanticColors.current.background)
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 88.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(PawMedicColors.Teal600)
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "CITAS",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PawMedicColors.White,
+                    letterSpacing = 1.sp
+                )
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 12.dp)
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-        when {
+            when {
             uiState.isLoading -> {
                 Text(
                     text = language.text("Cargando tus citas…", "Loading your appointments…"),
@@ -245,9 +270,10 @@ fun AppointmentsListScreen(
                     (effectiveCategory == ALL || app.serviceName == effectiveCategory) &&
                             (effectivePet == ALL || app.petName == effectivePet) &&
                             when (selectedStatus) {
-                                StatusFilter.ALL -> true
+                                StatusFilter.ALL -> !app.isCancelled() && !app.isCompleted()
                                 StatusFilter.PENDING -> app.isPending()
                                 StatusFilter.ACCEPTED -> app.isAccepted()
+                                StatusFilter.CANCELLED -> app.isCancelled()
                             }
                 }
                 val hasActiveFilters = effectiveCategory != ALL ||
@@ -337,15 +363,23 @@ fun AppointmentsListScreen(
                 }
             }
         }
+        }
+        }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        PawMedicPrimaryButton(
-            text = language.text("Agendar nueva cita", "Book an appointment"),
-            onClick = onStartBooking
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            color = PawMedicSemanticColors.current.background,
+            shadowElevation = 8.dp,
+            tonalElevation = 2.dp
+        ) {
+            PawMedicPrimaryButton(
+                text = language.text("Agendar nueva cita", "Book an appointment"),
+                onClick = onStartBooking,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+            )
+        }
     }
 }
 

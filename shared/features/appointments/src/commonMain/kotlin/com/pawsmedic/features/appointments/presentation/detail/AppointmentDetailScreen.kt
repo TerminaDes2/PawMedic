@@ -2,7 +2,6 @@ package com.pawsmedic.features.appointments.presentation.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Warning
@@ -42,11 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.appointments.domain.model.Appointment
-import com.pawsmedic.features.appointments.domain.model.AvailableAppointmentSlot
 import com.pawsmedic.features.appointments.presentation.list.AppointmentsListViewModel
-import com.pawsmedic.shared.core.common.convertMillisToIsoDateString
-import com.pawsmedic.shared.core.common.formatIsoToDisplayDate
-import com.pawsmedic.shared.core.designsystem.components.DatePickerModal
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.language.AppLanguage
 import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
@@ -63,7 +57,6 @@ fun AppointmentDetailScreen(
 ) {
     val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     var currentAppointment by remember(appointment.id) { mutableStateOf(appointment) }
-    var showEditDialog by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
     val isPending = currentAppointment.status.contains("Pendiente", ignoreCase = true)
 
@@ -116,33 +109,12 @@ fun AppointmentDetailScreen(
             }
 
             Spacer(Modifier.height(18.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { showEditDialog = true }, Modifier.weight(1f)) {
-                    Icon(Icons.Default.Edit, null, tint = PawMedicColors.Teal600)
-                    Spacer(Modifier.width(8.dp))
-                    Text(language.text("Reprogramar", "Reschedule"), color = PawMedicColors.Teal600, fontWeight = FontWeight.Bold)
-                }
-                TextButton(onClick = { showCancelDialog = true }, Modifier.weight(1f)) {
-                    Icon(Icons.Default.Delete, null, tint = PawMedicColors.Error)
-                    Spacer(Modifier.width(8.dp))
-                    Text(language.text("Cancelar cita", "Cancel appointment"), color = PawMedicColors.Error, fontWeight = FontWeight.Bold)
-                }
+            TextButton(onClick = { showCancelDialog = true }, Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Delete, null, tint = PawMedicColors.Error)
+                Spacer(Modifier.width(8.dp))
+                Text(language.text("Cancelar cita", "Cancel appointment"), color = PawMedicColors.Error, fontWeight = FontWeight.Bold)
             }
         }
-    }
-
-    if (showEditDialog) {
-        AppointmentEditDialog(
-            appointment = currentAppointment,
-            viewModel = viewModel,
-            onDismiss = { showEditDialog = false },
-            onSave = { date, time ->
-                showEditDialog = false
-                viewModel.editAppointment(currentAppointment, date, time) {
-                    currentAppointment = currentAppointment.copy(date = date.trim(), time = time.trim())
-                }
-            }
-        )
     }
 
     if (showCancelDialog) {
@@ -179,105 +151,4 @@ private fun DetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector, lab
             Text(value, color = PawMedicSemanticColors.current.text, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         }
     }
-}
-
-@Composable
-private fun AppointmentEditDialog(
-    appointment: Appointment,
-    viewModel: AppointmentsListViewModel,
-    onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit
-) {
-    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
-    var date by remember { mutableStateOf(appointment.date) }
-    var time by remember { mutableStateOf(appointment.time) }
-    var dateLabel by remember { mutableStateOf(formatIsoToDisplayDate(appointment.date)) }
-    var availableSlots by remember { mutableStateOf<List<AvailableAppointmentSlot>>(emptyList()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var isLoadingSlots by remember { mutableStateOf(false) }
-    var validationMessage by remember { mutableStateOf<String?>(null) }
-
-    if (showDatePicker) {
-        DatePickerModal(
-            onDateSelected = { millis ->
-                if (millis != null) {
-                    date = convertMillisToIsoDateString(millis)
-                    dateLabel = formatIsoToDisplayDate(date)
-                    isLoadingSlots = true
-                    viewModel.loadAvailableSlots(appointment, date) {
-                        availableSlots = it
-                        isLoadingSlots = false
-                    }
-                }
-                showDatePicker = false
-            },
-            onDismiss = { showDatePicker = false }
-        )
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(language.text("Reprogramar cita", "Reschedule appointment")) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                TextButton(onClick = { showDatePicker = true }) {
-                    Text(language.text("Fecha: $dateLabel", "Date: $dateLabel"), color = PawMedicColors.Teal600)
-                }
-                TextButton(onClick = {
-                    isLoadingSlots = true
-                    viewModel.loadAvailableSlots(appointment, date) {
-                        availableSlots = it
-                        isLoadingSlots = false
-                    }
-                }) { Text(language.text("Consultar horarios disponibles", "Check available times"), color = PawMedicColors.Teal600) }
-
-                if (isLoadingSlots) {
-                    Text(language.text("Cargando horarios…", "Loading times…"), color = PawMedicSemanticColors.current.hint)
-                } else if (availableSlots.isEmpty()) {
-                    Text(language.text("No hay horarios disponibles.", "No times are available."), color = PawMedicSemanticColors.current.hint)
-                } else {
-                    val grouped = availableSlots.sortedBy { it.label }.groupBy {
-                        val hour = it.label.substringBefore(':').toIntOrNull() ?: 0
-                        when { hour < 12 -> "morning"; hour < 17 -> "midday"; else -> "afternoon" }
-                    }
-                    listOf(
-                        "morning" to language.text("Mañana", "Morning"),
-                        "midday" to language.text("Mediodía", "Midday"),
-                        "afternoon" to language.text("Tarde", "Afternoon")
-                    ).forEach { (key, title) ->
-                        val slots = grouped[key].orEmpty()
-                        if (slots.isNotEmpty()) {
-                            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            slots.chunked(3).forEach { rowSlots ->
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    rowSlots.forEach { slot ->
-                                        val selected = slot.label == time
-                                        Box(
-                                            Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
-                                                .background(if (selected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.surface)
-                                                .border(1.dp, if (selected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.separator, RoundedCornerShape(10.dp))
-                                                .clickable { time = slot.label; validationMessage = null }
-                                                .padding(vertical = 10.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) { Text(slot.label, color = if (selected) PawMedicColors.White else PawMedicSemanticColors.current.text, fontWeight = FontWeight.Bold) }
-                                    }
-                                    repeat(3 - rowSlots.size) { Spacer(Modifier.weight(1f)) }
-                                }
-                            }
-                        }
-                    }
-                }
-                validationMessage?.let { Text(it, color = PawMedicColors.Error, fontSize = 12.sp) }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                val isCurrentSlot = date == appointment.date && time == appointment.time
-                val isAvailableSlot = availableSlots.any { it.label == time }
-                if (isCurrentSlot || isAvailableSlot) onSave(date, time)
-                else validationMessage = language.text("Selecciona un horario disponible.", "Select an available time.")
-            }) { Text(language.text("Guardar", "Save")) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(language.text("Cancelar", "Cancel")) } }
-    )
 }
