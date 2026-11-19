@@ -77,6 +77,7 @@ import com.pawsmedic.features.medical_records.domain.model.VitalSigns
 import com.pawsmedic.shared.core.common.convertMillisToIsoDateString
 import com.pawsmedic.shared.core.model.ProfileRole
 import com.pawsmedic.shared.core.model.UserProfile
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.launch
@@ -87,6 +88,9 @@ fun ConsultasScreen(
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {}
 ) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
+
     var searchMedicalIdQuery by remember { mutableStateOf("") }
     var patientsList by remember { mutableStateOf<List<PatientRow>>(emptyList()) }
     var selectedPatient by remember { mutableStateOf<PatientRow?>(null) }
@@ -227,7 +231,7 @@ fun ConsultasScreen(
         currentScreen = "Consultas",
         onNavigate = onNavigate,
         onLogout = onLogout,
-        title = "Atención de Consultas Clínicas",
+        title = tr("Atención de Consultas Clínicas", "Clinical Consultations"),
         userEmail = userEmail
     ) {
         Row(
@@ -251,7 +255,7 @@ fun ConsultasScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Pacientes Registrados",
+                            text = tr("Pacientes Registrados", "Registered Patients"),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
@@ -269,7 +273,7 @@ fun ConsultasScreen(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("➕ Vincular por ID Médico (`medical_id`)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(tr("➕ Vincular por ID Médico (`medical_id`)", "➕ Link by Medical ID (`medical_id`)"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -278,7 +282,7 @@ fun ConsultasScreen(
                     OutlinedTextField(
                         value = searchMedicalIdQuery,
                         onValueChange = { searchMedicalIdQuery = it },
-                        placeholder = { Text("Buscar por ID Médico (PM-XXXX) o Nombre", fontSize = 12.sp) },
+                        placeholder = { Text(tr("Buscar por ID Médico (PM-XXXX) o Nombre", "Search by Medical ID (PM-XXXX) or Name"), fontSize = 12.sp) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -297,9 +301,9 @@ fun ConsultasScreen(
                     }
 
                     if (isLoadingPatients) {
-                        Text("Cargando pacientes…", fontSize = 13.sp, color = TextSecondary, modifier = Modifier.padding(vertical = 12.dp))
+                        Text(tr("Cargando pacientes…", "Loading patients…"), fontSize = 13.sp, color = TextSecondary, modifier = Modifier.padding(vertical = 12.dp))
                     } else if (filtered.isEmpty()) {
-                        Text("No se encontraron pacientes.", fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(vertical = 12.dp))
+                        Text(tr("No se encontraron pacientes.", "No patients found."), fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(vertical = 12.dp))
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),

@@ -87,21 +87,13 @@ fun VeterinaryDetailScreen(
 
         if (clinic != null) {
             // --- GALLERY IMAGE BANNER ---
-            Box(
+            ClinicBannerImage(
+                imageUrl = clinic.imageUrl,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(PawMedicSemanticColors.current.softAccent),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocalHospital,
-                    contentDescription = null,
-                    tint = PawMedicSemanticColors.current.accent,
-                    modifier = Modifier.size(64.dp)
-                )
-            }
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 

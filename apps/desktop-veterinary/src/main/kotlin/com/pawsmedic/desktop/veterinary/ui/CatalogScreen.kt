@@ -10,6 +10,7 @@ import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
+import io.ktor.http.ContentType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -234,7 +235,10 @@ fun CatalogScreen(
                 val imageUrl = selectedPhoto?.let { photo ->
                     val bucket = supabase.storage.from("product-images")
                     val key = "$clinicId/${UUID.randomUUID()}.${photo.extension}"
-                    bucket.upload(key, photo.bytes)
+                    val mimeType = if (photo.extension.lowercase() == "png") "image/png" else "image/jpeg"
+                    bucket.upload(key, photo.bytes) {
+                        contentType = ContentType.parse(mimeType)
+                    }
                     bucket.publicUrl(key)
                 } ?: editingProduct?.imageUrl.orEmpty()
                 val existing = editingProduct

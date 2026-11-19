@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
  * @property municipio Municipio o ciudad donde opera.
  * @property numeroTel Teléfono de atención del negocio.
  * @property estadoOperativo Estado del negocio (ej. 'ACTIVO', 'INACTIVO').
+ * @property logoUrl URL pública del logo del negocio veterinario.
  * @property createdAt Fecha de registro de la sucursal.
  */
 @Serializable
@@ -25,5 +26,6 @@ data class Tenant(
     @SerialName("city") val municipio: String = "",
     @SerialName("phone") val numeroTel: String = "",
     @SerialName("operational_status") val estadoOperativo: String = "ACTIVE",
+    @SerialName("logo_url") val logoUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 )

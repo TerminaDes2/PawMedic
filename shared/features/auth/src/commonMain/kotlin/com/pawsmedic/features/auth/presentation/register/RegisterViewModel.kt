@@ -75,9 +75,8 @@ class RegisterViewModel(
     }
 
     fun onOtpCodeChanged(value: String) {
-        if (value.length <= 6 && value.all { it.isDigit() }) {
-            _uiState.update { it.copy(otpCode = value, errorMessage = null) }
-        }
+        val clean = value.filter(Char::isDigit).take(6)
+        _uiState.update { it.copy(otpCode = clean, errorMessage = null) }
     }
 
     fun toggleTermsAccepted() {
@@ -328,8 +327,12 @@ class RegisterViewModel(
         }
     }
 
-    fun resetAfterSignOut() {
+    fun resetForm() {
         _uiState.value = RegisterUiState()
+    }
+
+    fun resetAfterSignOut() {
+        resetForm()
     }
 
     fun onError(message: String) {

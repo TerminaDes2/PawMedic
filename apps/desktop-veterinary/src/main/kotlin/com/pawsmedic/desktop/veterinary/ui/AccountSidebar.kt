@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,16 +18,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pawsmedic.desktop.admin.translation.translateBatchLocally
 import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.desktop.veterinary.verifyAccountPassword
+import com.pawsmedic.desktop.veterinary.model.resolveTenantId
+import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
+import io.ktor.http.ContentType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -52,6 +58,8 @@ internal fun AccountSidebar(
     val user = supabase.auth.currentUserOrNull()
     var profile by remember { mutableStateOf<JsonObject?>(null) }
     var clinic by remember { mutableStateOf<JsonObject?>(null) }
+    var tenantIdState by remember { mutableStateOf<String?>(null) }
+    var tenantLogoUrl by remember { mutableStateOf<String?>(null) }
     var page by remember { mutableStateOf("menu") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -60,6 +68,7 @@ internal fun AccountSidebar(
     var passwordPrompt by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var photo by remember { mutableStateOf<SelectedPhoto?>(null) }
+    var tenantLogoPhoto by remember { mutableStateOf<SelectedPhoto?>(null) }
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var reload by remember { mutableIntStateOf(0) }
@@ -108,13 +117,25 @@ internal fun AccountSidebar(
             val id = user?.id ?: error("No hay una sesión activa.")
             val loadedProfile = supabase.postgrest["profiles"].select { filter { eq("id", id) } }
                 .decodeSingle<JsonObject>()
+            val userProfileObj = supabase.postgrest["profiles"].select { filter { eq("id", id) } }
+                .decodeSingle<UserProfile>()
             val applications = supabase.postgrest["business_applications"].select {
                 filter { eq("applicant_id", id); eq("status", "APPROVED") }
             }.decodeList<JsonObject>()
+            
             profile = loadedProfile
             clinic = applications.firstOrNull()
             name = loadedProfile.value("display_name")
             phone = loadedProfile.value("phone")
+
+            runCatching {
+                val tId = resolveTenantId(supabase, id, userProfileObj)
+                tenantIdState = tId
+                val tenantRecord = supabase.postgrest["tenants"].select { filter { eq("id", tId) } }
+                    .decodeSingleOrNull<JsonObject>()
+                tenantLogoUrl = tenantRecord?.value("logo_url")
+            }
+
             onProfileLoaded(name)
         } catch (e: CancellationException) {
             throw e
@@ -148,7 +169,7 @@ internal fun AccountSidebar(
             }
             if (page != "menu") {
                 TextButton(onClick = {
-                    page = "menu"; revealed = false; photo = null; error = null
+                    page = "menu"; revealed = false; photo = null; tenantLogoPhoto = null; error = null
                 }, enabled = !busy) { Text(tr("Volver", "Back")) }
             }
             if (loading) {
@@ -222,6 +243,9 @@ internal fun AccountSidebar(
                             singleLine = true, modifier = Modifier.fillMaxWidth(), enabled = !busy)
                         OutlinedTextField(phone, { phone = it }, label = { Text(tr("Teléfono", "Phone")) },
                             singleLine = true, modifier = Modifier.fillMaxWidth(), enabled = !busy)
+                        
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        Text(tr("Fotografía personal", "Personal photo"), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
                         photo?.let {
                             Image(it.preview, tr("Vista previa de la foto", "Photo preview"), Modifier.size(90.dp).clip(CircleShape), contentScale = ContentScale.Crop)
                         }
@@ -234,6 +258,33 @@ internal fun AccountSidebar(
                         if (photo != null) TextButton(onClick = { photo = null }, enabled = !busy) {
                             Text(tr("Descartar foto seleccionada", "Discard selected photo"))
                         }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        Text(tr("Logo de la veterinaria", "Veterinary business logo"), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+                        Text(tr("Este logo aparecerá en la aplicación móvil para identificar a tu negocio.", "This logo will appear in the mobile app to identify your business."), fontSize = 11.sp, color = TextSecondary)
+                        
+                        if (tenantLogoPhoto != null) {
+                            Image(tenantLogoPhoto!!.preview, tr("Vista previa del nuevo logo", "New logo preview"), Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
+                        } else {
+                            if (!tenantLogoUrl.isNullOrBlank()) {
+                                Text(tr("Logo actual registrado en el sistema.", "Current logo registered in system."), fontSize = 12.sp, color = ClinicalEmerald)
+                            } else {
+                                Text(tr("Sin logo personalizado (se usará la imagen predeterminada).", "No custom logo (default image will be used)."), fontSize = 12.sp, color = TextSecondary)
+                            }
+                        }
+
+                        ProfilePhotoPicker(
+                            enabled = !busy,
+                            onPhotoSelected = { tenantLogoPhoto = it; error = null },
+                            onError = { error = it },
+                            onBusyChange = { busy = it }
+                        )
+                        if (tenantLogoPhoto != null) {
+                            TextButton(onClick = { tenantLogoPhoto = null }, enabled = !busy) {
+                                Text(tr("Descartar nuevo logo", "Discard new logo"))
+                            }
+                        }
+
                         Button(onClick = {
                             if (name.isBlank()) {
                                 error = tr("Escribe un nombre.", "Enter a name.")
@@ -242,14 +293,17 @@ internal fun AccountSidebar(
                                 scope.launch {
                                     try {
                                         val id = user?.id ?: error("No hay una sesión activa.")
-                                        val selected = photo
-                                        val avatarUrl = if (selected != null) {
+                                        val selectedPhoto = photo
+                                        val avatarUrl = if (selectedPhoto != null) {
                                             val bucket = supabase.storage.from("profiles")
-                                            val key = "$id/${UUID.randomUUID()}.${selected.extension}"
-                                            bucket.upload(key, selected.bytes)
+                                            val key = "$id/${UUID.randomUUID()}.${selectedPhoto.extension}"
+                                            bucket.upload(key, selectedPhoto.bytes) {
+                                                contentType = ContentType.parse(if (selectedPhoto.extension.lowercase() == "png") "image/png" else "image/jpeg")
+                                            }
                                             bucket.publicUrl(key)
                                         } else null
-                                        val updated = supabase.postgrest["profiles"].update({
+
+                                        val updatedProfile = supabase.postgrest["profiles"].update({
                                             set("display_name", name.trim())
                                             set("phone", phone.trim())
                                             if (avatarUrl != null) set("avatar_url", avatarUrl)
@@ -257,15 +311,36 @@ internal fun AccountSidebar(
                                             filter { eq("id", id) }
                                             select()
                                         }.decodeSingle<JsonObject>()
-                                        profile = updated
+
+                                        val logoSelected = tenantLogoPhoto
+                                        if (logoSelected != null && !tenantIdState.isNullOrBlank()) {
+                                            val tId = tenantIdState!!
+                                            val bucket = supabase.storage.from("product-images")
+                                            val key = "$tId/logo/${UUID.randomUUID()}.${logoSelected.extension}"
+                                            bucket.upload(key, logoSelected.bytes) {
+                                                contentType = ContentType.parse(if (logoSelected.extension.lowercase() == "png") "image/png" else "image/jpeg")
+                                            }
+                                            val newLogoUrl = bucket.publicUrl(key)
+                                            supabase.postgrest["tenants"].update({
+                                                set("logo_url", newLogoUrl)
+                                            }) {
+                                                filter { eq("id", tId) }
+                                            }
+                                            tenantLogoUrl = newLogoUrl
+                                        }
+
+                                        profile = updatedProfile
                                         photo = null
+                                        tenantLogoPhoto = null
                                         error = null
-                                        onProfileSaved(updated.value("display_name"))
+                                        onProfileSaved(updatedProfile.value("display_name"))
                                         page = "menu"
                                     } catch (e: CancellationException) {
                                         throw e
                                     } catch (e: Exception) {
-                                        error = tr("No se pudieron guardar los cambios. Revisa tu conexión y los permisos del perfil.", "Could not save changes. Check your connection and profile permissions.")
+                                        val errDetails = "${e.javaClass.simpleName}: ${e.message ?: "Error desconocido"}"
+                                        System.err.println("Error saving account/logo changes: $errDetails")
+                                        error = errDetails
                                     } finally { busy = false }
                                 }
                             }
@@ -313,7 +388,7 @@ internal fun AccountSidebar(
             dismissButton = {
                 TextButton(enabled = !busy, onClick = {
                     password = ""; error = null; passwordPrompt = false
-                }) { Text(tr("Cancelar", "Cancel")) }
+                }) { Text(tr("Cancelar", "Cancelar")) }
             }
         )
     }

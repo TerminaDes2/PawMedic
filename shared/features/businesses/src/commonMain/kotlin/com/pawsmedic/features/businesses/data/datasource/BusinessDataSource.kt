@@ -61,19 +61,26 @@ private data class BusinessDirectoryRecord(
     @SerialName("public_name") val publicName: String = "",
     @SerialName("legal_name") val legalName: String = "",
     val address: String? = null,
-    val phone: String? = null
+    val phone: String? = null,
+    @SerialName("logo_url") val logoUrl: String? = null,
+    @SerialName("photo_url") val photoUrl: String? = null
 ) {
-    fun toDto(schedules: List<com.pawsmedic.features.businesses.data.dto.BusinessScheduleDto>, timeZone: String) = BusinessDto(
-        id = id,
-        name = name.ifBlank { publicName.ifBlank { legalName } },
-        address = address,
-        phone = phone,
-        hours = schedules.map { schedule ->
-            "${schedule.dayOfWeek.toWeekdayName()}: ${schedule.openTime.take(5)}–${schedule.closeTime.take(5)}"
-        },
-        schedules = schedules,
-        timeZone = timeZone
-    )
+    fun toDto(schedules: List<com.pawsmedic.features.businesses.data.dto.BusinessScheduleDto>, timeZone: String): BusinessDto {
+        val resolvedLogo = logoUrl?.takeIf { it.isNotBlank() } ?: photoUrl
+        println("BUSINESS_LOG: id=$id, name=$name, logoUrl=$logoUrl, photoUrl=$photoUrl, resolvedLogo=$resolvedLogo")
+        return BusinessDto(
+            id = id,
+            name = name.ifBlank { publicName.ifBlank { legalName } },
+            address = address,
+            phone = phone,
+            hours = schedules.map { schedule ->
+                "${schedule.dayOfWeek.toWeekdayName()}: ${schedule.openTime.take(5)}–${schedule.closeTime.take(5)}"
+            },
+            schedules = schedules,
+            timeZone = timeZone,
+            imageUrl = resolvedLogo
+        )
+    }
 }
 
 @Serializable

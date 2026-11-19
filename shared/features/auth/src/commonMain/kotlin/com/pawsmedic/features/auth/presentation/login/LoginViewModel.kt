@@ -78,9 +78,13 @@ class LoginViewModel(
                 }
             }.onFailure { error ->
                 val message = when {
-                    error.message?.contains("Invalid login credentials", ignoreCase = true) == true ->
+                    error.message?.contains("Invalid login credentials", ignoreCase = true) == true ||
+                    error.message?.contains("invalid_credentials", ignoreCase = true) == true ||
+                    error.message?.contains("invalid_grant", ignoreCase = true) == true ||
+                    error.message?.contains("AuthRestException", ignoreCase = true) == true ->
                         "El correo o la contraseña son incorrectos"
-                    error.message?.contains("Email not confirmed", ignoreCase = true) == true ->
+                    error.message?.contains("Email not confirmed", ignoreCase = true) == true ||
+                    error.message?.contains("email_not_confirmed", ignoreCase = true) == true ->
                         "Tu correo electrónico no ha sido verificado aún. Por favor confirma tu cuenta"
                     else -> error.message ?: "Error al iniciar sesión. Verifica tu conexión e inténtalo de nuevo."
                 }
