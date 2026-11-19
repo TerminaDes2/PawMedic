@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -48,6 +49,8 @@ internal fun calendarDays(month: YearMonth): List<LocalDate?> {
 
 @Composable
 internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose: () -> Unit) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     val zone = remember(timeZone) { runCatching { ZoneId.of(timeZone) }.getOrNull() }
     val today = remember(zone) { zone?.let { LocalDate.now(it) } }
     val maxDate = remember(today) { today?.plusYears(2) }
@@ -68,7 +71,7 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
         loaded = false
         errorMessage = null
         try {
-            check(today != null && maxDate != null) { "La zona horaria de la clínica no es válida." }
+            check(today != null && maxDate != null) { tr("La zona horaria de la clínica no es válida.", "The clinic time zone is invalid.") }
             overrides = supabase.postgrest["business_schedule_overrides"]
                 .select {
                     filter {
@@ -82,7 +85,10 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = "No se pudieron cargar los horarios por fecha. Verifica que el script de disponibilidad esté instalado."
+            errorMessage = tr(
+                "No se pudieron cargar los horarios por fecha. Verifica que el script de disponibilidad esté instalado.",
+                "Date availability could not be loaded. Verify that the availability script is installed."
+            )
         } finally {
             loading = false
         }
@@ -90,7 +96,7 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
 
     suspend fun save() {
         if (selectedDates.isEmpty()) {
-            errorMessage = "Selecciona al menos una fecha."
+            errorMessage = tr("Selecciona al menos una fecha.", "Select at least one date.")
             return
         }
         saving = true
@@ -101,14 +107,14 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
                 onConflict = "tenant_id,schedule_date"
                 select()
             }.decodeList<DateAvailability>()
-            check(saved.size == rows.size) { "No se pudieron confirmar todas las fechas. Actualiza antes de volver a guardar." }
+            check(saved.size == rows.size) { tr("No se pudieron confirmar todas las fechas. Actualiza antes de volver a guardar.", "Not all dates could be confirmed. Refresh before saving again.") }
             selectedDates = emptySet()
-            notice = "Disponibilidad guardada para ${saved.size} fecha(s)."
+            notice = tr("Disponibilidad guardada para ${saved.size} fecha(s).", "Availability saved for ${saved.size} date(s).")
             load()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else "No se pudieron guardar las fechas. Revisa la conexión y los permisos."
+            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudieron guardar las fechas. Revisa la conexión y los permisos.", "Dates could not be saved. Check the connection and permissions.")
         } finally {
             saving = false
         }
@@ -125,16 +131,16 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
                 select()
             }.decodeList<DateAvailability>()
             val expected = overrides.count { it.date in dates }
-            check(removed.size == expected) { "No se pudieron restablecer todas las fechas. Actualiza e inténtalo de nuevo." }
+            check(removed.size == expected) { tr("No se pudieron restablecer todas las fechas. Actualiza e inténtalo de nuevo.", "Not all dates could be reset. Refresh and try again.") }
             selectedDates = emptySet()
             confirmReset = false
-            notice = "Se restableció el horario semanal para las fechas seleccionadas."
+            notice = tr("Se restableció el horario semanal para las fechas seleccionadas.", "The weekly schedule was restored for the selected dates.")
             load()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             confirmReset = false
-            errorMessage = if (e is IllegalStateException) e.message else "No se pudieron restablecer las fechas seleccionadas."
+            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudieron restablecer las fechas seleccionadas.", "The selected dates could not be reset.")
         } finally {
             saving = false
         }
@@ -146,13 +152,13 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
         Card(Modifier.width(760.dp).heightIn(max = 850.dp), shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Horarios por fecha", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = onClose, enabled = !saving) { Text("Cerrar") }
+                    Text(tr("Horarios por fecha", "Date availability"), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = onClose, enabled = !saving) { Text(tr("Cerrar", "Close")) }
                 }
-                Text("Selecciona fechas y las franjas de una hora. En esas fechas se sustituye el horario semanal.", color = TextSecondary, fontSize = 13.sp)
-                Text("Zona horaria: $timeZone. Las citas existentes no se cancelan.", color = TextSecondary, fontSize = 12.sp)
+                Text(tr("Selecciona fechas y las franjas de una hora. En esas fechas se sustituye el horario semanal.", "Select dates and hourly slots. The weekly schedule is replaced on those dates."), color = TextSecondary, fontSize = 13.sp)
+                Text("${tr("Zona horaria", "Time zone")}: $timeZone. ${tr("Las citas existentes no se cancelan.", "Existing appointments are not canceled.")}", color = TextSecondary, fontSize = 12.sp)
                 if (zone == null || today == null || maxDate == null || month == null) {
-                    Text("La zona horaria de la clínica no es válida; no se pueden configurar fechas.", color = Color(0xFFB91C1C))
+                    Text(tr("La zona horaria de la clínica no es válida; no se pueden configurar fechas.", "The clinic time zone is invalid; dates cannot be configured."), color = Color(0xFFB91C1C))
                 } else {
                     val currentMonth = month!!
                     val firstMonth = YearMonth.from(today)
@@ -165,10 +171,10 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
                         TextButton(onClick = {
                             selectedDates = selectedDates + (1..currentMonth.lengthOfMonth()).map { currentMonth.atDay(it) }
                                 .filter { !it.isBefore(today) && !it.isAfter(maxDate) }
-                        }, enabled = !saving && !loading && loaded) { Text("Seleccionar mes") }
+                        }, enabled = !saving && !loading && loaded) { Text(tr("Seleccionar mes", "Select month")) }
                     }
                     Row(Modifier.fillMaxWidth()) {
-                        listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom").forEach {
+                        (if (english) listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun") else listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")).forEach {
                             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 Text(it, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
                             }
@@ -198,14 +204,14 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
                             }
                         }
                     }
-                    Text("${selectedDates.size} fecha(s) seleccionada(s). • indica una fecha con horario especial.", color = TextSecondary, fontSize = 12.sp)
+                    Text(tr("${selectedDates.size} fecha(s) seleccionada(s). • indica una fecha con horario especial.", "${selectedDates.size} date(s) selected. • indicates a date with special hours."), color = TextSecondary, fontSize = 12.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = selectedHours.size == 24,
                             onCheckedChange = { selectedHours = if (it) (0..23).toSet() else emptySet() },
                             enabled = !saving && !loading && loaded
                         )
-                        Text("Seleccionar todas las horas", fontWeight = FontWeight.Medium)
+                        Text(tr("Seleccionar todas las horas", "Select all hours"), fontWeight = FontWeight.Medium)
                     }
                     (0..23).toList().chunked(6).forEach { group ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -225,16 +231,16 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
                             }
                         }
                     }
-                    Text("Cada selección cubre una hora. Sin horas seleccionadas, la fecha queda cerrada. Guardar reemplaza cualquier horario especial anterior.", color = TextSecondary, fontSize = 12.sp)
-                    if (loading) Text("Cargando horarios…", color = TextSecondary)
+                    Text(tr("Cada selección cubre una hora. Sin horas seleccionadas, la fecha queda cerrada. Guardar reemplaza cualquier horario especial anterior.", "Each selection covers one hour. Without selected hours, the date is closed. Saving replaces any previous special hours."), color = TextSecondary, fontSize = 12.sp)
+                    if (loading) Text(tr("Cargando horarios…", "Loading availability…"), color = TextSecondary)
                     notice?.let { Text(it, color = Color(0xFF166534)) }
                     errorMessage?.let { Text(it, color = Color(0xFFB91C1C)) }
-                    if (!loaded && !loading) TextButton(onClick = { scope.launch { load() } }) { Text("Reintentar carga") }
+                    if (!loaded && !loading) TextButton(onClick = { scope.launch { load() } }) { Text(tr("Reintentar carga", "Retry loading")) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { confirmReset = true }, enabled = selectedDates.isNotEmpty() && !saving && !loading && loaded) { Text("Usar horario semanal") }
+                        TextButton(onClick = { confirmReset = true }, enabled = selectedDates.isNotEmpty() && !saving && !loading && loaded) { Text(tr("Usar horario semanal", "Use weekly schedule")) }
                         Spacer(Modifier.width(8.dp))
                         Button(onClick = { scope.launch { save() } }, enabled = selectedDates.isNotEmpty() && !saving && !loading && loaded) {
-                            Text(if (saving) "Guardando…" else "Guardar fechas")
+                            Text(if (saving) tr("Guardando…", "Saving…") else tr("Guardar fechas", "Save dates"))
                         }
                     }
                 }
@@ -244,10 +250,10 @@ internal fun DateAvailabilityDialog(tenantId: String, timeZone: String, onClose:
     if (confirmReset) {
         AlertDialog(
             onDismissRequest = { if (!saving) confirmReset = false },
-            title = { Text("Restablecer horario semanal") },
-            text = { Text("Se eliminarán los horarios especiales de las fechas seleccionadas. Las citas existentes no se cancelarán.") },
-            confirmButton = { TextButton(onClick = { scope.launch { reset() } }, enabled = !saving) { Text("Restablecer") } },
-            dismissButton = { TextButton(onClick = { confirmReset = false }, enabled = !saving) { Text("Cancelar") } }
+            title = { Text(tr("Restablecer horario semanal", "Reset weekly schedule")) },
+            text = { Text(tr("Se eliminarán los horarios especiales de las fechas seleccionadas. Las citas existentes no se cancelarán.", "Special hours for the selected dates will be deleted. Existing appointments will not be canceled.")) },
+            confirmButton = { TextButton(onClick = { scope.launch { reset() } }, enabled = !saving) { Text(tr("Restablecer", "Reset")) } },
+            dismissButton = { TextButton(onClick = { confirmReset = false }, enabled = !saving) { Text(tr("Cancelar", "Cancel")) } }
         )
     }
 }
@@ -262,7 +268,8 @@ private fun MonthPicker(
 ) {
     var showMonths by remember { mutableStateOf(false) }
     var showYears by remember { mutableStateOf(false) }
-    val locale = remember { Locale("es", "MX") }
+    val english = LocalDesktopAppearance.current.english
+    val locale = remember(english) { if (english) Locale.ENGLISH else Locale("es", "MX") }
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Box {
             OutlinedButton(onClick = { showMonths = true }, enabled = enabled) {

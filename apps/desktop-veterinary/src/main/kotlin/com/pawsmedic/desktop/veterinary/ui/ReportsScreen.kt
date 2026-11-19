@@ -272,21 +272,6 @@ fun ReportsScreen(userEmail: String, onNavigate: (String) -> Unit, onLogout: () 
                 }
             }
             report?.let { result ->
-                if (english && serviceNames.isNotEmpty()) item {
-                    Column {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Service names may be machine translated. Verify the original; PDFs keep original names.",
-                                modifier = Modifier.weight(1f), color = TextSecondary, fontSize = 12.sp)
-                            TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
-                        }
-                        Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.CenterStart) {
-                            if (translationError) Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Some services could not be translated; the original is shown.", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                                TextButton(onClick = { translationAttempt++ }, enabled = !translating) { Text("Retry") }
-                            } else if (translating) Text("Translating…", color = TextSecondary, fontSize = 12.sp)
-                        }
-                    }
-                }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ReportStatCard(

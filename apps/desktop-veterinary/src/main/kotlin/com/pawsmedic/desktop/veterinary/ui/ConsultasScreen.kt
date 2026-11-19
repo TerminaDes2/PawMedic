@@ -31,6 +31,7 @@ import com.pawsmedic.desktop.veterinary.supabase
 import com.pawsmedic.desktop.veterinary.ui.dialog.EditPetDataDialog
 import com.pawsmedic.desktop.veterinary.ui.dialog.LinkOrRegisterPatientDialog
 import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import com.pawsmedic.features.medical_records.data.datasource.SupabaseMedicalRecordDataSource
 import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
 import com.pawsmedic.shared.core.model.ProfileRole
@@ -45,6 +46,8 @@ fun ConsultasScreen(
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {}
 ) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     var searchMedicalIdQuery by remember { mutableStateOf("") }
     var patientsList by remember { mutableStateOf<List<PatientRow>>(emptyList()) }
     var selectedPatient by remember { mutableStateOf<PatientRow?>(null) }
@@ -130,28 +133,35 @@ fun ConsultasScreen(
             Card(
                 modifier = Modifier.width(480.dp).wrapContentHeight(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = CardWhite)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Selecciona el tipo de atención", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text("Se abrirá la plantilla correspondiente para ${selectedPatient?.name ?: "la mascota"}.", fontSize = 13.sp, color = TextSecondary)
+                    Text(tr("Selecciona el tipo de atención", "Select the type of care"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text(
+                        tr(
+                            "Se abrirá la plantilla correspondiente para ${selectedPatient?.name ?: "la mascota"}.",
+                            "The corresponding template will open for ${selectedPatient?.name ?: "the pet"}."
+                        ),
+                        fontSize = 13.sp,
+                        color = TextSecondary
+                    )
 
                     Spacer(modifier = Modifier.height(4.dp))
 
                     val categories = listOf(
-                        "Consulta Médica General (SOAP)" to "CONSULTA_GENERAL",
-                        "Cirugía y Procedimientos" to "CIRUGIA",
-                        "Medicina Preventiva / Vacunación" to "VACUNACION",
-                        "Estética y Grooming" to "ESTETICA",
-                        "Diagnóstico e Imagenología" to "DIAGNOSTICO",
-                        "Hospitalización y Monitoreo" to "HOSPITALIZACION",
-                        "Gestión Administrativa" to "ADMINISTRATIVA"
+                        Triple("Consulta Médica General (SOAP)", "General medical consultation (SOAP)", "CONSULTA_GENERAL"),
+                        Triple("Cirugía y Procedimientos", "Surgery and procedures", "CIRUGIA"),
+                        Triple("Medicina Preventiva / Vacunación", "Preventive medicine / vaccination", "VACUNACION"),
+                        Triple("Estética y Grooming", "Grooming", "ESTETICA"),
+                        Triple("Diagnóstico e Imagenología", "Diagnostics and imaging", "DIAGNOSTICO"),
+                        Triple("Hospitalización y Monitoreo", "Hospitalization and monitoring", "HOSPITALIZACION"),
+                        Triple("Gestión Administrativa", "Administrative management", "ADMINISTRATIVA")
                     )
 
-                    categories.forEach { (label, code) ->
+                    categories.forEach { (label, englishLabel, code) ->
                         Button(
                             onClick = {
                                 showCategoryDialog = false
@@ -169,7 +179,7 @@ fun ConsultasScreen(
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = EmeraldLightBg)
                         ) {
-                            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                            Text(if (english) englishLabel else label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
                         }
                     }
                 }
@@ -181,7 +191,7 @@ fun ConsultasScreen(
         currentScreen = "Consultas",
         onNavigate = onNavigate,
         onLogout = onLogout,
-        title = "Atención de Consultas Clínicas",
+        title = tr("Atención de Consultas Clínicas", "Clinical consultations"),
         userEmail = userEmail
     ) {
         Row(
@@ -194,7 +204,7 @@ fun ConsultasScreen(
                     .weight(0.32f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
+                    .background(CardWhite)
                     .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
                     .padding(16.dp)
             ) {
@@ -205,7 +215,7 @@ fun ConsultasScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Pacientes Registrados",
+                            text = tr("Pacientes Registrados", "Registered patients"),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
@@ -223,7 +233,7 @@ fun ConsultasScreen(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("➕ Vincular por ID Médico (`medical_id`)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(tr("➕ Vincular por ID Médico (`medical_id`)", "➕ Link by Medical ID (`medical_id`)"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -232,7 +242,7 @@ fun ConsultasScreen(
                     OutlinedTextField(
                         value = searchMedicalIdQuery,
                         onValueChange = { searchMedicalIdQuery = it },
-                        placeholder = { Text("Buscar por ID Médico (PM-XXXX) o Nombre", fontSize = 12.sp) },
+                        placeholder = { Text(tr("Buscar por ID Médico (PM-XXXX) o Nombre", "Search by Medical ID (PM-XXXX) or name"), fontSize = 12.sp) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -251,9 +261,9 @@ fun ConsultasScreen(
                     }
 
                     if (isLoadingPatients) {
-                        Text("Cargando pacientes…", fontSize = 13.sp, color = TextSecondary, modifier = Modifier.padding(vertical = 12.dp))
+                        Text(tr("Cargando pacientes…", "Loading patients…"), fontSize = 13.sp, color = TextSecondary, modifier = Modifier.padding(vertical = 12.dp))
                     } else if (filtered.isEmpty()) {
-                        Text("No se encontraron pacientes.", fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(vertical = 12.dp))
+                        Text(tr("No se encontraron pacientes.", "No patients found."), fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(vertical = 12.dp))
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -262,15 +272,15 @@ fun ConsultasScreen(
                             items(filtered) { p ->
                                 val isSelected = selectedPatient?.id == p.id
                                 val medIdStr = p.medicalId ?: "PM-${p.id.take(4).uppercase()}"
-                                val nameStr = p.name ?: "Mascota"
-                                val speciesStr = p.species ?: "Especie"
-                                val breedStr = p.breed ?: "Mestizo"
+                                val nameStr = p.name ?: tr("Mascota", "Pet")
+                                val speciesStr = p.species ?: tr("Especie", "Species")
+                                val breedStr = p.breed ?: tr("Mestizo", "Mixed breed")
 
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSelected) SelectedBg else Color.White)
+                                        .background(if (isSelected) SelectedBg else CardWhite)
                                         .border(
                                             width = if (isSelected) 2.dp else 1.dp,
                                             color = if (isSelected) EmeraldGreen else BorderLight,
@@ -343,7 +353,7 @@ fun ConsultasScreen(
                     .weight(0.68f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
+                    .background(CardWhite)
                     .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
                     .padding(20.dp)
             ) {
@@ -355,7 +365,7 @@ fun ConsultasScreen(
                         val pSpecies = p.species ?: "Especie"
                         val pBreed = p.breed ?: "Mestizo"
                         val ownerNameStr = listOfNotNull(selectedOwner?.firstName, selectedOwner?.lastName).joinToString(" ").ifBlank {
-                            selectedOwner?.displayName ?: "Propietario Registrado"
+                            selectedOwner?.displayName ?: tr("Propietario Registrado", "Registered owner")
                         }
 
                         Box(
@@ -372,8 +382,8 @@ fun ConsultasScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(pName, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Text("ID Médico: $medId • $pSpecies • $pBreed", fontSize = 14.sp, color = TextSecondary)
-                        Text("Propietario: $ownerNameStr", fontSize = 13.sp, color = TextMuted)
+                        Text("${tr("ID Médico", "Medical ID")}: $medId • $pSpecies • $pBreed", fontSize = 14.sp, color = TextSecondary)
+                        Text("${tr("Propietario", "Owner")}: $ownerNameStr", fontSize = 13.sp, color = TextMuted)
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -385,7 +395,7 @@ fun ConsultasScreen(
                         ) {
                             Icon(Icons.Default.Healing, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Iniciar Nueva Consulta con Plantilla", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(tr("Iniciar Nueva Consulta con Plantilla", "Start new consultation with template"), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -397,15 +407,15 @@ fun ConsultasScreen(
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Editar Datos de la Mascota", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                            Text(tr("Editar Datos de la Mascota", "Edit pet details"), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
                         }
                     } else {
-                        Text("Selecciona un paciente a la izquierda para iniciar una consulta.", color = TextSecondary, fontSize = 15.sp)
+                        Text(tr("Selecciona un paciente a la izquierda para iniciar una consulta.", "Select a patient on the left to start a consultation."), color = TextSecondary, fontSize = 15.sp)
                     }
 
                     statusMessage?.let {
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp)
+                        Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
                     }
                 }
             }

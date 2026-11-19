@@ -493,21 +493,6 @@ fun CatalogScreen(
                 }
             }
             Spacer(Modifier.height(16.dp))
-            if (english) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Automatic translation; check the original.", color = TextSecondary, fontSize = 12.sp)
-                    TextButton(onClick = { showOriginal = !showOriginal }) {
-                        Text(if (showOriginal) "Show translation" else "Show original")
-                    }
-                    if (translating) Text("Translating…", color = TextSecondary, fontSize = 12.sp)
-                }
-                if (translationError) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Some text could not be translated; the original is shown.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                        TextButton(onClick = { translationAttempt++ }) { Text("Retry") }
-                    }
-                }
-            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Servicios", "Productos").forEach { tab ->
                     FilterChip(selected = selectedTab == tab, onClick = { selectedTab = tab }, label = { Text(if (english) if (tab == "Servicios") "Services" else "Products" else tab) })
@@ -638,7 +623,6 @@ fun CatalogScreen(
                         Text("${tr("Categoría", "Category")}: ${categories.find { it.id == product.typeId }?.name?.let(::displayText) ?: tr("Sin categoría", "No category")}")
                         Text("${tr("Descripción", "Description")}: ${displayText(product.description).ifBlank { "—" }}")
                         if (english) {
-                            Text("Automatic translation; check the original.", color = TextSecondary, fontSize = 11.sp)
                             TextButton(onClick = { showOriginal = !showOriginal }) {
                                 Text(if (showOriginal) "Show translation" else "Show original")
                             }

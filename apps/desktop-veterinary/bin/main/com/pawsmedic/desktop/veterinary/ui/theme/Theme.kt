@@ -1,20 +1,23 @@
 package com.pawsmedic.desktop.veterinary.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 
 // Paleta de Colores Clínica & Profesional PawsMedic
 val DarkSlate = Color(0xFF0F172A)        // Primario oscuro para headers y sidebars
 val ClinicalEmerald = Color(0xFF0D9488)  // Acento primario clínico para botones e indicadores activos
 val EmeraldHover = Color(0xFF0F766E)     // Estado pressed/hover de botones
-val EmeraldLightBg = Color(0xFFCCFBF1)   // Fondo suave para badges, chips e ítems seleccionados
-val OffWhiteBg = Color(0xFFF8FAFC)       // Fondo general de la app
-val CardWhite = Color(0xFFFFFFFF)        // Fondo de tarjetas y formularios
-val BorderLight = Color(0xFFE2E8F0)      // Bordes sutiles
-val TextPrimary = Color(0xFF1E293B)      // Texto principal
-val TextSecondary = Color(0xFF64748B)    // Texto secundario / labels
-val TextMuted = Color(0xFF94A3B8)        // Texto atenuado
+val EmeraldLightBg: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFF134E4A) else Color(0xFFCCFBF1)
+val OffWhiteBg: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+val CardWhite: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFF1E293B) else Color.White
+val BorderLight: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFF475569) else Color(0xFFE2E8F0)
+val TextPrimary: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFFF1F5F9) else Color(0xFF1E293B)
+val TextSecondary: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFFCBD5E1) else Color(0xFF64748B)
+val TextMuted: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFFCBD5E1) else Color(0xFF94A3B8)
 
 // Aliases de compatibilidad de paleta
 val EmeraldGreen = ClinicalEmerald
-val SelectedBg = EmeraldLightBg
+val SelectedBg: Color @Composable @ReadOnlyComposable get() = EmeraldLightBg
 val SelectedText = ClinicalEmerald

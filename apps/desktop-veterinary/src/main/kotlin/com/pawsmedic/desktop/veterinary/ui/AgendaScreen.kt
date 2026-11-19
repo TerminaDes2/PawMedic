@@ -270,23 +270,6 @@ fun AgendaScreen(
                     Text(if (isLoading) tr("Cargando…", "Loading…") else tr("Actualizar", "Refresh"))
                 }
             }
-            if (english) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Service names are machine translated. Verify the original before clinical decisions.", modifier = Modifier.weight(1f), color = TextSecondary, fontSize = 12.sp)
-                    TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
-                }
-                Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.CenterStart) {
-                    if (translationError) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Some services could not be translated; the original is shown.", modifier = Modifier.weight(1f), color = Color(0xFFB91C1C), fontSize = 12.sp)
-                            TextButton(onClick = { translationAttempt++ }, enabled = !translating) { Text("Retry") }
-                        }
-                    } else if (translating) {
-                        Text("Translating…", color = TextSecondary, fontSize = 12.sp)
-                    }
-                }
-            }
-
             Spacer(Modifier.height(12.dp))
 
             // BARRA DE BÚSQUEDA Y FILTROS POR ESTADO
@@ -310,7 +293,17 @@ fun AgendaScreen(
                         FilterChip(
                             selected = statusFilter == statusOpt,
                             onClick = { statusFilter = statusOpt },
-                            label = { Text(statusOpt, fontSize = 11.sp) }
+                            label = {
+                                Text(
+                                    if (english) when (statusOpt) {
+                                        "Todos" -> "All"
+                                        "Pendientes" -> "Pending"
+                                        "Confirmadas" -> "Confirmed"
+                                        else -> "In progress"
+                                    } else statusOpt,
+                                    fontSize = 11.sp
+                                )
+                            }
                         )
                     }
                 }

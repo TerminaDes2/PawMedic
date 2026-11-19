@@ -1,0 +1,380 @@
+package com.pawsmedic.desktop.veterinary.ui.auth
+
+import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.veterinary.SessionManager
+import com.pawsmedic.desktop.veterinary.SecureSessionStorage
+import com.pawsmedic.desktop.veterinary.supabase
+import com.pawsmedic.desktop.veterinary.ui.theme.*
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
+import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
+import com.pawsmedic.desktop.admin.ui.AppearanceButton
+import com.pawsmedic.desktop.admin.ui.SupportFooter
+import com.pawsmedic.shared.core.model.ProfileRole
+import com.pawsmedic.shared.core.model.UserProfile
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email as SupabaseEmail
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.launch
+
+@Composable
+fun SuperadminLoginScreen(
+    onNavigateToAdminMain: (String) -> Unit,
+    onBackToLogin: () -> Unit
+) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(false) }
+
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<AuthMessage?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    fun submitLogin() {
+        if (isLoading) return
+        isLoading = true
+        coroutineScope.launch {
+            errorMessage = null
+            try {
+                val cleanEmail = email.trim()
+                val submittedPassword = password
+                if (cleanEmail.isBlank() || submittedPassword.isBlank()) {
+                    throw IllegalArgumentException("Por favor ingrese correo y contraseña.")
+                }
+                supabase.auth.signInWith(SupabaseEmail) {
+                    this.email = cleanEmail
+                    this.password = submittedPassword
+                }
+                val session = supabase.auth.currentSessionOrNull() ?: error("No se pudo iniciar sesión.")
+                val userId = session.user?.id ?: error("La sesión no contiene un identificador de usuario.")
+                val profile = supabase.postgrest["profiles"]
+                    .select { filter { eq("id", userId) } }
+                    .decodeSingle<UserProfile>()
+                if (profile.role != ProfileRole.SUPERADMIN) {
+                    supabase.auth.signOut()
+                    error("Esta cuenta no tiene permisos de Superadmin.")
+                }
+                try {
+                    SessionManager.saveSession(email = cleanEmail, rememberMe = rememberMe)
+                    if (rememberMe) SecureSessionStorage.saveSession(session) else SecureSessionStorage.deleteSession()
+                } catch (e: Exception) {
+                    SessionManager.clearSession()
+                    SecureSessionStorage.deleteSession()
+                    throw IllegalStateException("No se pudo guardar la preferencia de sesión de forma segura.", e)
+                }
+                onNavigateToAdminMain(cleanEmail)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                System.err.println("No se pudo iniciar sesión de superadmin: ${e.javaClass.simpleName}")
+                errorMessage = signInError(e.message.orEmpty())
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(OffWhiteBg)
+    ) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            // LADO IZQUIERDO: Branding Superadmin
+            Column(
+                modifier = Modifier
+                    .weight(1.35f)
+                    .fillMaxHeight()
+                    .background(DarkSlate)
+                    .padding(48.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(ClinicalEmerald),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AdminPanelSettings,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Paws", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(text = "Admin", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                    }
+                }
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Text(
+                        text = tr("Control Central de Plataforma", "Central platform control"),
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        lineHeight = 40.sp
+                    )
+                    Text(
+                        text = tr("Supervisión general, aprobación de solicitudes de nuevas clínicas y auditoría central de operaciones veterinarias.", "Oversee clinics, approve applications, and audit veterinary operations."),
+                        fontSize = 15.sp,
+                        color = Color(0xFF94A3B8),
+                        lineHeight = 22.sp
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SupportFooter(labelColor = Color(0xFF94A3B8), contactColor = Color(0xFFCBD5E1))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "© 2026 PawsMedic. Superadmin Suite.", fontSize = 12.sp, color = TextMuted)
+                        TextButton(onClick = onBackToLogin) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = ClinicalEmerald, modifier = Modifier.size(16.dp))
+                                Text(tr("Volver al login de veterinaria", "Back to veterinary sign in"), fontSize = 12.sp, color = ClinicalEmerald, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // LADO DERECHO: Formulario de Login Superadmin
+            Box(
+                modifier = Modifier
+                    .weight(0.85f)
+                    .fillMaxHeight()
+                    .padding(start = 40.dp, end = 40.dp, top = 64.dp, bottom = 40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier.width(440.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardWhite),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(36.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(EmeraldLightBg),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = null,
+                                tint = ClinicalEmerald,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = tr("Acceso Superadmin", "Superadmin sign in"),
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = tr("Credenciales de control central requeridas", "Central control credentials required"),
+                                fontSize = 13.sp,
+                                color = TextSecondary
+                            )
+                        }
+
+                        if (errorMessage != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFFEE2E2))
+                                    .padding(10.dp)
+                            ) {
+                                Text(
+                                    text = errorMessage?.text(english).orEmpty(),
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF991B1B),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.fillMaxWidth().onPreviewKeyEvent {
+                                if (it.type == KeyEventType.KeyDown && (it.key == Key.Enter || it.key == Key.NumPadEnter)) {
+                                    submitLogin()
+                                    true
+                                } else false
+                            }
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(tr("Correo de Superadmin", "Superadmin email"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                OutlinedTextField(
+                                    value = email,
+                                    onValueChange = { email = it; errorMessage = null },
+                                    placeholder = { Text("admin@pawsmedic.com", fontSize = 13.sp, color = TextMuted) },
+                                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp)) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = ClinicalEmerald,
+                                        unfocusedBorderColor = BorderLight
+                                    )
+                                )
+                            }
+
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(tr("Contraseña", "Password"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                OutlinedTextField(
+                                    value = password,
+                                    onValueChange = { password = it; errorMessage = null },
+                                    placeholder = { Text("••••••••••••", fontSize = 13.sp, color = TextMuted) },
+                                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp)) },
+                                    trailingIcon = {
+                                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                            Icon(
+                                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                                contentDescription = null,
+                                                tint = TextMuted,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    },
+                                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = ClinicalEmerald,
+                                        unfocusedBorderColor = BorderLight
+                                    )
+                                )
+                            }
+                        }
+
+                        // Recordarme
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable { rememberMe = !rememberMe }
+                            ) {
+                                Checkbox(
+                                    checked = rememberMe,
+                                    onCheckedChange = { rememberMe = it },
+                                    colors = CheckboxDefaults.colors(checkedColor = ClinicalEmerald)
+                                )
+                                Text(tr("Recordarme", "Remember me"), fontSize = 12.sp, color = TextSecondary)
+                            }
+                        }
+
+                        Button(
+                            onClick = ::submitLogin,
+                            enabled = !isLoading,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    Text(
+                                        text = tr("Ingresar como Superadmin", "Sign in as superadmin"),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = onBackToLogin,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(42.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(tr("Volver al inicio de sesión veterinario", "Back to veterinary sign in"), fontSize = 12.sp, color = TextPrimary)
+                        }
+                    }
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            AppearanceButton()
+            NavigationLanguageButton()
+        }
+    }
+}

@@ -9,8 +9,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
@@ -26,16 +28,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.singleWindowApplication
+import com.pawsmedic.desktop.admin.model.BusinessApplicationDto
+import com.pawsmedic.desktop.admin.translation.translateBatchLocally
+import com.pawsmedic.desktop.admin.supabase
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 
-val AdminOffWhiteBg = Color(0xFFF8FAFC)
+val AdminOffWhiteBg: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
 val AdminDarkSlate = Color(0xFF0F172A)
-val AdminBorderLight = Color(0xFFE2E8F0)
-val AdminSelectedBg = Color(0xFFCCFBF1)
-val AdminSelectedText = Color(0xFF0D9488)
+val AdminBorderLight: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFF475569) else Color(0xFFE2E8F0)
+val AdminSelectedBg: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFF134E4A) else Color(0xFFCCFBF1)
+val AdminSelectedText: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFF5EEAD4) else Color(0xFF0D9488)
 val AdminEmeraldGreen = Color(0xFF0D9488)
-val AdminTextPrimary = Color(0xFF1E293B)
-val AdminTextSecondary = Color(0xFF64748B)
-val AdminTextMuted = Color(0xFF94A3B8)
+val AdminTextPrimary: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFFF1F5F9) else Color(0xFF1E293B)
+val AdminTextSecondary: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFFCBD5E1) else Color(0xFF64748B)
+val AdminTextMuted: Color @Composable @ReadOnlyComposable get() = if (LocalDesktopAppearance.current.dark) Color(0xFFCBD5E1) else Color(0xFF94A3B8)
 
 data class RegistrationRequest(
     val id: String,
@@ -44,47 +57,28 @@ data class RegistrationRequest(
     val rfc: String,
     val date: String,
     var status: String,
-    val email: String = "contacto@clinica.com",
-    val phone: String = "+52 55 1234 5678",
-    val address: String = "Av. Principal #123, Col. Centro",
-    val licenseNumber: String = "CÉD-981204-VET"
+    val email: String = "",
+    val phone: String = "",
+    val address: String = "",
+    val licenseNumber: String = "",
+    val decisionReason: String = ""
 )
 
-data class AuditLog(
-    val timestamp: String,
-    val user: String,
-    val action: String,
-    val module: String,
-    val ip: String,
-    val riskLevel: String
-)
+fun adminErrorMessage(error: Throwable, fallback: String): String {
+    System.err.println("Operación de administración no completada: ${error.javaClass.simpleName}")
+    return fallback
+}
 
 @Composable
 fun SuperadminDashboardScreen(
-    onLogout: () -> Unit = {}
+    userEmail: String = "",
+    onLogout: () -> Unit = {},
+    supabaseClient: SupabaseClient = supabase
 ) {
-    var selectedModule by remember { mutableStateOf(0) } // 0: Monitoreo, 1: Solicitudes, 2: Auditoría
-    var searchQuery by remember { mutableStateOf("") }
+    val english = LocalDesktopAppearance.current.english
+    var selectedModule by remember { mutableStateOf(0) }
 
-    val requests = remember {
-        mutableStateListOf(
-            RegistrationRequest("SOL-2026-089", "Clínica Veterinaria San Miguel", "MVZ Carlos Eduardo Ramos", "VET891204KL2", "27/09/2026", "Pendiente", "contacto@sanmiguelvet.com", "+52 55 8765 4321", "Av. San Miguel #45, Col. Jardines", "CÉD-891204-MVZ"),
-            RegistrationRequest("SOL-2026-090", "VetCare Pets & Specialty", "Dra. Patricia Solís", "VCP1203099X1", "28/09/2026", "Pendiente", "p.solis@vetcarepets.com", "+52 55 9812 3456", "Calle Del Bosque #102, Lomas", "CÉD-120309-MVZ"),
-            RegistrationRequest("SOL-2026-091", "Hospital Veterinario PetSalud", "MVZ Miguel Ángel Torres", "HVP9001153A0", "28/09/2026", "Pendiente", "m.torres@petsalud.org", "+52 55 4567 8901", "Blvd. Los Olivos #78, Centro", "CÉD-900115-MVZ"),
-            RegistrationRequest("SOL-2026-092", "Centro Veterinario Las Lomas", "Dra. Sofía Valenzuela", "CVL18042211B", "28/09/2026", "Pendiente", "s.valenzuela@laslomasvet.com", "+52 55 2345 6789", "Av. Las Lomas #310, Poniente", "CÉD-180422-MVZ"),
-            RegistrationRequest("SOL-2026-093", "AgroVet & Músculo Animal", "MVZ Fernando Castro", "AVM1105189R4", "28/09/2026", "Pendiente", "f.castro@agrovet.mx", "+52 55 3456 7890", "Carretera Nacional Km 12", "CÉD-110518-MVZ")
-        )
-    }
-
-    val auditLogs = remember {
-        listOf(
-            AuditLog("28/09/2026 18:42", "root@pawsmedic.com", "Inicio de sesión Superadmin", "Auth", "192.168.1.10", "Bajo"),
-            AuditLog("28/09/2026 17:15", "carlos.ramos@sanmiguel.com", "Registro de clínica completado", "Solicitudes", "201.140.22.8", "Bajo"),
-            AuditLog("28/09/2026 15:30", "sistema_autorun", "Verificación periódica de licencias", "Licencias", "localhost", "Bajo"),
-            AuditLog("28/09/2026 12:10", "unknown_user", "Intento fallido de autenticación admin", "Security", "187.190.45.12", "Alto"),
-            AuditLog("27/09/2026 22:05", "root@pawsmedic.com", "Suspensión preventiva de VetExpress", "Cuentas", "192.168.1.10", "Medio")
-        )
-    }
+    val requests = remember { mutableStateListOf<RegistrationRequest>() }
 
     Box(
         modifier = Modifier
@@ -97,7 +91,7 @@ fun SuperadminDashboardScreen(
                 modifier = Modifier
                     .width(260.dp)
                     .fillMaxHeight()
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .border(1.dp, AdminBorderLight)
                     .padding(vertical = 20.dp, horizontal = 16.dp)
             ) {
@@ -141,9 +135,9 @@ fun SuperadminDashboardScreen(
 
                 // LOS 3 MÓDULOS DE ADMINISTRACIÓN
                 val modules = listOf(
-                    Triple(0, "Monitoreo", Icons.Default.Monitor),
-                    Triple(1, "Solicitudes", Icons.Default.Assignment),
-                    Triple(2, "Auditoría", Icons.Default.Security)
+                    Triple(0, if (english) "Monitoring" else "Monitoreo", Icons.Default.Monitor),
+                    Triple(1, if (english) "Applications" else "Solicitudes", Icons.Default.Assignment),
+                    Triple(2, if (english) "Audit" else "Auditoría", Icons.Default.Security)
                 )
 
                 Column(
@@ -179,6 +173,7 @@ fun SuperadminDashboardScreen(
                         }
                     }
                 }
+                SupportFooter()
             }
 
             // CONTENIDO DERECHO
@@ -188,7 +183,7 @@ fun SuperadminDashboardScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(80.dp)
-                        .background(Color.White)
+                        .background(MaterialTheme.colorScheme.surface)
                         .border(1.dp, AdminBorderLight)
                         .padding(horizontal = 24.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -196,9 +191,9 @@ fun SuperadminDashboardScreen(
                 ) {
                     Text(
                         text = when (selectedModule) {
-                            0 -> "Monitoreo del Sistema & Servidores"
-                            1 -> "Solicitudes de Registro de Veterinarias"
-                            else -> "Auditoría, Licencias & Seguridad"
+                            0 -> if (english) "Veterinary monitoring" else "Supervisión de veterinarias"
+                            1 -> if (english) "Veterinary applications" else "Solicitudes de incorporación veterinaria"
+                            else -> if (english) "Administrative audit" else "Auditoría administrativa"
                         },
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
@@ -209,56 +204,10 @@ fun SuperadminDashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Buscador
-                        Box(
-                            modifier = Modifier
-                                .width(300.dp)
-                                .height(40.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(AdminOffWhiteBg)
-                                .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp))
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    Icons.Default.Search,
-                                    contentDescription = null,
-                                    tint = AdminTextMuted,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Box(
-                                    modifier = Modifier.weight(1f),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (searchQuery.isEmpty()) {
-                                        Text(
-                                            text = "Buscar clínica, folio, IP...",
-                                            fontSize = 13.sp,
-                                            color = AdminTextMuted,
-                                            maxLines = 1
-                                        )
-                                    }
-                                    androidx.compose.foundation.text.BasicTextField(
-                                        value = searchQuery,
-                                        onValueChange = { searchQuery = it },
-                                        singleLine = true,
-                                        textStyle = androidx.compose.ui.text.TextStyle(
-                                            fontSize = 13.sp,
-                                            color = AdminTextPrimary,
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-                        }
-
+                        AppearanceButton()
+                        NavigationLanguageButton()
                         // Profile Root & Cerrar Sesión
+                        val displayName = if (userEmail.isNotBlank()) userEmail.substringBefore("@") else "admin"
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -274,23 +223,23 @@ fun SuperadminDashboardScreen(
                                         .background(AdminSelectedBg),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "SA",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = AdminSelectedText
+                                    Icon(
+                                        imageVector = Icons.Default.AdminPanelSettings,
+                                        contentDescription = null,
+                                        tint = AdminSelectedText,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
 
                                 Column {
                                     Text(
-                                        text = "Sesión Activa: Root",
+                                        text = displayName,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = AdminTextPrimary
                                     )
                                     Text(
-                                        text = "Control Central",
+                                        text = userEmail.ifBlank { if (english) "Central control" else "Control Central" },
                                         fontSize = 11.sp,
                                         color = AdminTextMuted
                                     )
@@ -319,7 +268,7 @@ fun SuperadminDashboardScreen(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = "Cerrar Sesión",
+                                        text = if (english) "Sign out" else "Cerrar Sesión",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFFDC2626)
@@ -337,162 +286,219 @@ fun SuperadminDashboardScreen(
                         .padding(20.dp)
                 ) {
                     when (selectedModule) {
-                        0 -> MonitoreoModule()
-                        1 -> SolicitudesModule(requests)
-                        2 -> AuditoriaModule(auditLogs)
+                        0 -> MonitoreoModule(supabaseClient)
+                        1 -> SolicitudesModule(requests, supabaseClient)
+                        2 -> AuditoriaModule(supabaseClient, userEmail)
                     }
                 }
             }
         }
     }
+}
+
+private fun BusinessApplicationDto.toRegistrationRequest() = RegistrationRequest(
+    id = id,
+    name = publicName,
+    rep = applicantName,
+    rfc = taxId,
+    date = createdAt?.substringBefore("T") ?: "—",
+    status = when (status) {
+        "APPROVED" -> "Aprobado"
+        "REJECTED" -> "Rechazado"
+        "SUSPENDED" -> "Suspendido"
+        else -> "Pendiente"
+    },
+    email = email,
+    phone = phone,
+    address = address,
+    licenseNumber = licenseNumber,
+    decisionReason = decisionReason.orEmpty()
+)
+
+private val jsonDecoder = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+private fun Exception.isMissingDatabaseObject(): Boolean {
+    val message = message.orEmpty()
+    return message.contains("PGRST202", ignoreCase = true) ||
+        message.contains("PGRST205", ignoreCase = true) ||
+        message.contains("42P01", ignoreCase = true) ||
+        message.contains("Could not find the function", ignoreCase = true) ||
+        message.contains("Could not find the table", ignoreCase = true)
+}
+
+@Serializable
+private data class BusinessStatusRow(val id: String, val status: String)
+
+// El estado real vive en `businesses`; las solicitudes pueden conservar el estado de aprobación original.
+internal suspend fun fetchApplicationsFromDatabase(supabaseClient: SupabaseClient): List<BusinessApplicationDto> {
+    val applications = fetchApplicationsRaw(supabaseClient)
+    val statuses = try {
+        supabaseClient.postgrest["businesses"].select().decodeList<BusinessStatusRow>().associate { it.id to it.status }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        emptyMap()
+    }
+    return applications.map { app ->
+        val current = statuses[app.id]
+        if (current != null && app.status != "PENDING" && app.status != current) app.copy(status = current) else app
+    }
+}
+
+private suspend fun fetchApplicationsRaw(supabaseClient: SupabaseClient): List<BusinessApplicationDto> {
+    val result = mutableListOf<BusinessApplicationDto>()
+    var succeeded = false
+    var failure: Exception? = null
+    try {
+        val rpcResult = supabaseClient.postgrest.rpc("get_all_business_applications")
+        return jsonDecoder.decodeFromString<List<BusinessApplicationDto>>(rpcResult.data)
+    } catch (e: kotlinx.coroutines.CancellationException) { throw e
+    } catch (e: Exception) {
+        if (!e.isMissingDatabaseObject()) throw e
+        failure = e
+    }
+
+    try {
+        val list1 = supabaseClient.postgrest["business_applications"].select().decodeList<BusinessApplicationDto>()
+        result.addAll(list1.filter { item -> result.none { it.id == item.id } })
+        succeeded = true
+    } catch (e: kotlinx.coroutines.CancellationException) { throw e
+    } catch (e: Exception) {
+        if (!e.isMissingDatabaseObject()) throw e
+        failure = e
+    }
+    try {
+        val list2 = supabaseClient.postgrest["businesses"].select().decodeList<BusinessApplicationDto>()
+        for (item in list2) {
+            if (result.none { it.id == item.id }) {
+                result.add(item)
+            }
+        }
+        succeeded = true
+    } catch (e: kotlinx.coroutines.CancellationException) { throw e
+    } catch (e: Exception) {
+        if (!e.isMissingDatabaseObject()) throw e
+        failure = e
+    }
+    if (!succeeded) throw failure ?: IllegalStateException("No se pudieron consultar las solicitudes.")
+    return result
 }
 
 // MÓDULO 1: MONITOREO
 @Composable
-fun MonitoreoModule() {
-    Column(modifier = Modifier.fillMaxSize()) {
-        // TARJETAS DE MÉTRICAS (4 Columnas)
+fun MonitoreoModule(supabaseClient: SupabaseClient) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, translated: String) = if (english) translated else spanish
+    val businesses = remember { mutableStateListOf<BusinessApplicationDto>() }
+    var isLoading by remember { mutableStateOf(true) }
+    var busyBusinessId by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(supabaseClient) {
+        try {
+            businesses.clear()
+            val list = fetchApplicationsFromDatabase(supabaseClient)
+            businesses.addAll(
+                list.filter { it.status == "APPROVED" || it.status == "SUSPENDED" }
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            errorMessage = adminErrorMessage(e, "No se pudieron cargar las veterinarias.")
+        } finally {
+            isLoading = false
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        val activeCount = businesses.count { it.status == "APPROVED" }
+        val suspendedCount = businesses.count { it.status == "SUSPENDED" }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val metrics = listOf(
-                Triple("Total Veterinarias", "142", "+12 este mes"),
-                Triple("Usuarios Activos", "1,280", "Médicos & Asistentes"),
-                Triple("Solicitudes Pendientes", "18", "Requieren revisión"),
-                Triple("Salud del Sistema", "99.9%", "En línea & Operativo")
-            )
-
-            metrics.forEach { (title, valStr, sub) ->
-                Box(
+            listOf(
+                tr("Veterinarias activas", "Active clinics") to activeCount,
+                tr("Veterinarias suspendidas", "Suspended clinics") to suspendedCount
+            ).forEach { (label, count) ->
+                Column(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White)
+                        .background(AdminOffWhiteBg)
                         .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
                         .padding(16.dp)
                 ) {
-                    Column {
-                        Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AdminTextMuted)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(valStr, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                        Text(sub, fontSize = 11.sp, color = AdminSelectedText)
-                    }
+                    Text(label, fontSize = 13.sp, color = AdminTextSecondary)
+                    Text(count.toString(), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Text(tr("Supervisión de veterinarias", "Clinic monitoring"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
+        errorMessage?.let { Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp) }
+        if (isLoading) CircularProgressIndicator(color = AdminEmeraldGreen)
+        if (!isLoading && businesses.isEmpty() && errorMessage == null) {
+            Text(tr("No hay veterinarias aprobadas para mostrar.", "There are no approved clinics to display."), color = AdminTextSecondary)
+        }
 
-        Row(
+        LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Estado de Servidores / Microservicios
-            Box(
-                modifier = Modifier
-                    .weight(0.40f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
-                    .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
-                    .padding(20.dp)
-            ) {
-                Column {
-                    Text("Salud de Microservicios", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val services = listOf(
-                        "Base de Datos Principal" to "Operativo (12ms)",
-                        "Servicio de Autenticación" to "Operativo (0 errores)",
-                        "Servidor de Almacenamiento" to "Operativo (2.4 TB libre)",
-                        "Motor de Notificaciones Push" to "Operativo",
-                        "API Gateway Central" to "Operativo (99.99%)"
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        services.forEach { (sName, status) ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(AdminOffWhiteBg)
-                                    .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp))
-                                    .padding(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(8.dp)
-                                                .clip(CircleShape)
-                                                .background(AdminEmeraldGreen)
-                                        )
-                                        Text(sName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                                    }
-                                    Text(status, fontSize = 11.sp, color = AdminTextSecondary)
-                                }
-                            }
-                        }
+            items(businesses) { business ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(AdminOffWhiteBg)
+                        .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp))
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(business.publicName, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
+                        Text("${tr("Estado", "Status")}: ${business.status}", fontSize = 12.sp, color = AdminTextSecondary)
                     }
-                }
-            }
-
-            // Registro de Sesiones Activas
-            Box(
-                modifier = Modifier
-                    .weight(0.60f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
-                    .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
-                    .padding(20.dp)
-            ) {
-                Column {
-                    Text("Sesiones de Veterinarias en Tiempo Real", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val activeClinics = listOf(
-                        "PawsMedic Clínica Principal" to "Plan Enterprise · 14 usuarios",
-                        "VetCare Pets & Specialty" to "Plan Pro · 6 usuarios",
-                        "Hospital Veterinario PetSalud" to "Plan Pro · 8 usuarios",
-                        "Centro Veterinario Las Lomas" to "Plan Basic · 2 usuarios"
-                    )
-
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items(activeClinics) { (cName, detail) ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(AdminOffWhiteBg)
-                                    .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp))
-                                    .padding(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(cName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                                        Text(detail, fontSize = 12.sp, color = AdminTextSecondary)
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(AdminSelectedBg)
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Text("En Línea", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AdminSelectedText)
-                                    }
+                    val nextStatus = if (business.status == "APPROVED") "SUSPENDED" else "APPROVED"
+                    Button(
+                        enabled = busyBusinessId == null,
+                        onClick = {
+                            coroutineScope.launch {
+                                busyBusinessId = business.id
+                                errorMessage = null
+                                try {
+                                    supabaseClient.postgrest.rpc(
+                                        "set_business_status",
+                                        buildJsonObject {
+                                            put("p_business_id", business.id)
+                                            put("p_status", nextStatus)
+                                        }
+                                    )
+                                    val index = businesses.indexOf(business)
+                                    if (index >= 0) businesses[index] = business.copy(status = nextStatus)
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (e: Exception) {
+                                    errorMessage = adminErrorMessage(e, tr("No se pudo cambiar el estado. Inténtalo de nuevo.", "Could not change the status. Please try again."))
+                                } finally {
+                                    busyBusinessId = null
                                 }
                             }
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AdminEmeraldGreen)
+                    ) {
+                        Text(if (nextStatus == "SUSPENDED") tr("Suspender", "Suspend") else tr("Reactivar", "Reactivate"))
                     }
                 }
             }
@@ -500,17 +506,120 @@ fun MonitoreoModule() {
     }
 }
 
-// MÓDULO 2: SOLICITUDES CON DETALLE EN DOBLE CLICK
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
+fun SolicitudesModule(
+    requests: MutableList<RegistrationRequest>,
+    supabaseClient: SupabaseClient
+) {
+    val english = LocalDesktopAppearance.current.english
+    fun tr(spanish: String, translated: String) = if (english) translated else spanish
+    fun statusText(status: String) = if (!english) status else when (status) {
+        "Aprobado" -> "Approved"
+        "Rechazado" -> "Rejected"
+        "Suspendido" -> "Suspended"
+        "Pendiente" -> "Pending"
+        else -> status
+    }
     var selectedRequestForDetail by remember { mutableStateOf<RegistrationRequest?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isActionLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val translations = remember(supabaseClient) { mutableStateMapOf<String, String>() }
+    var showOriginal by remember { mutableStateOf(false) }
+    var translating by remember { mutableStateOf(false) }
+    var translationError by remember { mutableStateOf(false) }
+    var translationAttempt by remember { mutableIntStateOf(0) }
+    val coroutineScope = rememberCoroutineScope()
+    val visibleRequests = requests
+    val applicationTexts = (requests.map { it.name } + listOfNotNull(selectedRequestForDetail?.address))
+        .filter { it.isNotBlank() }.distinct()
+
+    LaunchedEffect(english, applicationTexts, translationAttempt) {
+        if (!english) {
+            translating = false
+            translationError = false
+            return@LaunchedEffect
+        }
+        val missing = applicationTexts.filterNot { translations.containsKey(it) }
+        val pending = missing.filter { it.length <= 4000 }
+        translationError = missing.size != pending.size
+        if (pending.isNotEmpty()) {
+            translating = true
+            try {
+                for (batch in pending.chunked(50)) {
+                    batch.zip(translateBatchLocally(batch)).forEach { (original, translated) ->
+                        translations[original] = translated
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                translationError = true
+            } finally {
+                translating = false
+            }
+        }
+    }
+    fun displayText(value: String): String =
+        if (english && !showOriginal) translations[value] ?: value else value
+    fun displayError(message: String): String = if (!english) message else when (message) {
+        "No se pudieron cargar las solicitudes." -> "Could not load applications."
+        "No se pudo guardar la decisión." -> "Could not save the decision."
+        "No se pudo aprobar: el servicio inicial necesita una categoría. Revisa la configuración de servicios en Supabase." ->
+            "Could not approve: the initial service requires a category. Check the Supabase service configuration."
+        else -> message
+    }
+
+    LaunchedEffect(supabaseClient) {
+        try {
+            val fetchedApps = fetchApplicationsFromDatabase(supabaseClient)
+            requests.clear()
+            requests.addAll(fetchedApps.map { it.toRegistrationRequest() })
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            errorMessage = adminErrorMessage(e, "No se pudieron cargar las solicitudes.")
+        } finally {
+            isLoading = false
+        }
+    }
+
+    fun updateStatus(req: RegistrationRequest, newStatus: String) {
+        coroutineScope.launch {
+            isActionLoading = true
+            errorMessage = null
+            try {
+                val parameters = buildJsonObject {
+                    put("p_business_id", req.id)
+                    put("p_application_id", req.id)
+                    put("p_id", req.id)
+                    if (newStatus == "Rechazado") put("p_reason", "")
+                }
+                val function = if (newStatus == "Aprobado") {
+                    "approve_business_application"
+                } else {
+                    "reject_business_application"
+                }
+                supabaseClient.postgrest.rpc(function, parameters)
+
+                val idx = requests.indexOf(req)
+                if (idx >= 0) requests[idx] = req.copy(status = newStatus)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                errorMessage = adminErrorMessage(e, "No se pudo guardar la decisión.")
+            } finally {
+                isActionLoading = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
             .padding(20.dp)
     ) {
@@ -521,22 +630,61 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Solicitudes de Registro Pendientes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-                    Text("Aprueba o rechaza el alta de nuevas clínicas. Haz doble clic en una fila para ver los detalles completos.", fontSize = 12.sp, color = AdminTextSecondary)
+                    Text(tr("Solicitudes de Registro Pendientes", "Pending registration applications"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
+                    Text(tr("Revisa los datos y decide la incorporación de cada clínica.", "Review each clinic's information and decide whether to approve it."), fontSize = 12.sp, color = AdminTextSecondary)
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(AdminSelectedBg)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isLoading = true
+                            errorMessage = null
+                            try {
+                                val fetchedApps = fetchApplicationsFromDatabase(supabaseClient)
+                                requests.clear()
+                                requests.addAll(fetchedApps.map { it.toRegistrationRequest() })
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                errorMessage = adminErrorMessage(e, "No se pudieron cargar las solicitudes.")
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AdminEmeraldGreen),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(36.dp)
                 ) {
-                    Text(
-                        text = "💡 Tip: Doble clic abre detalle",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AdminSelectedText
-                    )
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(tr("Refrescar", "Refresh"), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            if (errorMessage != null) {
+                Text(
+                    text = displayError(errorMessage.orEmpty()),
+                    color = Color(0xFFB91C1C),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            if (isLoading) {
+                CircularProgressIndicator(color = AdminEmeraldGreen)
+            }
+
+            if (english && applicationTexts.isNotEmpty()) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Machine-translated details may be inaccurate. Verify the original before deciding.", modifier = Modifier.weight(1f), fontSize = 12.sp, color = AdminTextSecondary)
+                    TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
+                }
+                Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.CenterStart) {
+                    if (translationError) Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Some details could not be translated; the original is shown.", modifier = Modifier.weight(1f), color = Color(0xFFB91C1C), fontSize = 12.sp)
+                        TextButton(onClick = { translationAttempt++ }, enabled = !translating) { Text("Retry") }
+                    } else if (translating) Text("Translating…", color = AdminTextSecondary, fontSize = 12.sp)
                 }
             }
 
@@ -552,12 +700,12 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("FOLIO", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.12f))
-                Text("NOMBRE VETERINARIA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.28f))
-                Text("REPRESENTANTE / MVZ", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.22f))
-                Text("RFC / CÉDULA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.15f))
-                Text("FECHA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
-                Text("ACCIONES", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.13f))
+                Text(tr("FOLIO", "REFERENCE"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
+                Text(tr("NOMBRE VETERINARIA", "CLINIC NAME"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.22f))
+                Text(tr("SOLICITANTE / MVZ", "APPLICANT / VET"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.18f))
+                Text(tr("RFC / CÉDULA", "TAX / LICENSE ID"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.13f))
+                Text(tr("FECHA", "DATE"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
+                Text(tr("ACCIONES", "ACTIONS"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.27f))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -566,12 +714,22 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(requests) { req ->
+                if (!isLoading && visibleRequests.isEmpty() && errorMessage == null) {
+                    item {
+                        Text(
+                            tr("No hay solicitudes de veterinarias para mostrar.", "There are no clinic applications to display."),
+                            color = AdminTextSecondary,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+                items(visibleRequests) { req ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color.White)
+                            .background(MaterialTheme.colorScheme.surface)
                             .border(1.dp, AdminBorderLight, RoundedCornerShape(6.dp))
                             .combinedClickable(
                                 onClick = {},
@@ -580,16 +738,27 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(req.id, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary, modifier = Modifier.weight(0.12f))
-                        Text(req.name, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary, modifier = Modifier.weight(0.28f))
-                        Text(req.rep, fontSize = 12.sp, color = AdminTextSecondary, modifier = Modifier.weight(0.22f))
-                        Text(req.rfc, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.15f))
+                        Text(req.id, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(0.10f).padding(end = 6.dp))
+                        Text(displayText(req.name), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary, modifier = Modifier.weight(0.22f))
+                        Text(req.rep, fontSize = 12.sp, color = AdminTextSecondary, modifier = Modifier.weight(0.18f))
+                        Text(req.rfc, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.13f))
                         Text(req.date, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
 
                         Row(
-                            modifier = Modifier.weight(0.13f),
+                            modifier = Modifier.weight(0.27f),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(32.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .border(1.dp, AdminEmeraldGreen, RoundedCornerShape(6.dp))
+                                    .clickable { selectedRequestForDetail = req },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(tr("Ver detalle", "View details"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AdminEmeraldGreen)
+                            }
                             if (req.status == "Pendiente") {
                                 Box(
                                     modifier = Modifier
@@ -597,13 +766,10 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                         .height(32.dp)
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(AdminEmeraldGreen)
-                                        .clickable {
-                                            val idx = requests.indexOf(req)
-                                            if (idx != -1) requests[idx] = req.copy(status = "Aprobado")
-                                        },
+                                        .clickable(enabled = !isActionLoading) { updateStatus(req, "Aprobado") },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("Aprobar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text(tr("Aprobar", "Approve"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
 
                                 Box(
@@ -611,27 +777,24 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                         .weight(1f)
                                         .height(32.dp)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(Color.White)
+                                        .background(MaterialTheme.colorScheme.surface)
                                         .border(1.dp, AdminBorderLight, RoundedCornerShape(6.dp))
-                                        .clickable {
-                                            val idx = requests.indexOf(req)
-                                            if (idx != -1) requests[idx] = req.copy(status = "Rechazado")
-                                        },
+                                        .clickable(enabled = !isActionLoading) { updateStatus(req, "Rechazado") },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("Rechazar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
+                                    Text(tr("Rechazar", "Reject"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
                                 }
                             } else {
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                        .weight(1f)
                                         .height(32.dp)
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(if (req.status == "Aprobado") AdminSelectedBg else Color(0xFFFEE2E2)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = req.status,
+                                        text = statusText(req.status),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (req.status == "Aprobado") AdminSelectedText else Color(0xFF991B1B)
@@ -652,14 +815,15 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
             Card(
                 modifier = Modifier
                     .width(660.dp)
-                    .wrapContentHeight(),
+                    .heightIn(max = 760.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                         .padding(28.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
@@ -689,13 +853,13 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                             }
                             Column {
                                 Text(
-                                    text = req.name,
+                                    text = displayText(req.name),
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = AdminTextPrimary
                                 )
                                 Text(
-                                    text = "Folio: ${req.id} · Fecha de Solicitud: ${req.date}",
+                                    text = "${tr("Folio", "Reference")}: ${req.id} · ${tr("Fecha de Solicitud", "Application date")}: ${req.date}",
                                     fontSize = 12.sp,
                                     color = AdminTextSecondary
                                 )
@@ -716,7 +880,7 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = req.status,
+                                text = statusText(req.status),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = when (req.status) {
@@ -730,6 +894,18 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
 
                     HorizontalDivider(color = AdminBorderLight)
 
+                    if (english) {
+                        Column {
+                            Text("Machine-translated details may be inaccurate. Verify the original before deciding.", color = AdminTextSecondary, fontSize = 12.sp)
+                            TextButton(onClick = { showOriginal = !showOriginal }) { Text(if (showOriginal) "Show translation" else "Show original") }
+                            if (translating) Text("Translating…", color = AdminTextSecondary, fontSize = 12.sp)
+                            if (translationError) {
+                                Text("Some details could not be translated; the original is shown.", color = Color(0xFFB91C1C), fontSize = 12.sp)
+                                TextButton(onClick = { translationAttempt++ }, enabled = !translating) { Text("Retry") }
+                            }
+                        }
+                    }
+
                     // Detalles en 2 columnas
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -740,20 +916,25 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            DetailItem(label = "RUC / ID Fiscal", value = req.rfc, icon = Icons.Default.Badge)
-                            DetailItem(label = "Dirección de la Clínica", value = req.address, icon = Icons.Default.LocationOn)
-                            DetailItem(label = "Correo Administrador", value = req.email, icon = Icons.Default.Email)
+                            DetailItem(label = tr("RUC / ID Fiscal", "Tax ID"), value = req.rfc, icon = Icons.Default.Badge)
+                            DetailItem(label = tr("Dirección Registrada", "Registered address"), value = displayText(req.address), icon = Icons.Default.LocationOn)
+                            DetailItem(label = tr("Correo Administrador", "Administrator email"), value = req.email, icon = Icons.Default.Email)
                         }
 
-                        // Columna 2: Datos Responsable Médico
+                        // Columna 2: Datos Responsable Médico / Operador
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            DetailItem(label = "Veterinario Responsable", value = req.rep, icon = Icons.Default.Person)
-                            DetailItem(label = "Cédula Profesional", value = req.licenseNumber, icon = Icons.Default.Verified)
-                            DetailItem(label = "Teléfono de Contacto", value = req.phone, icon = Icons.Default.Phone)
+                            DetailItem(label = tr("Solicitante Responsable", "Responsible applicant"), value = req.rep, icon = Icons.Default.Person)
+                            DetailItem(label = tr("Cédula / Licencia", "Professional license"), value = req.licenseNumber, icon = Icons.Default.Verified)
+                            DetailItem(label = tr("Teléfono de Contacto", "Contact phone"), value = req.phone, icon = Icons.Default.Phone)
+                            DetailItem(label = tr("Fecha de solicitud", "Application date"), value = req.date, icon = Icons.Default.CalendarMonth)
                         }
+                    }
+
+                    if (req.decisionReason.isNotBlank()) {
+                        DetailItem(label = tr("Motivo de la decisión", "Decision reason"), value = req.decisionReason, icon = Icons.Default.Info)
                     }
 
                     HorizontalDivider(color = AdminBorderLight)
@@ -768,33 +949,31 @@ fun SolicitudesModule(requests: MutableList<RegistrationRequest>) {
                             onClick = { selectedRequestForDetail = null },
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Cerrar", fontSize = 13.sp, color = AdminTextPrimary)
+                            Text(tr("Cerrar", "Close"), fontSize = 13.sp, color = AdminTextPrimary)
                         }
 
                         if (req.status == "Pendiente") {
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 OutlinedButton(
                                     onClick = {
-                                        val idx = requests.indexOf(req)
-                                        if (idx != -1) requests[idx] = req.copy(status = "Rechazado")
+                                        updateStatus(req, "Rechazado")
                                         selectedRequestForDetail = null
                                     },
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626))
                                 ) {
-                                    Text("Rechazar Solicitud", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Text(tr("Rechazar Solicitud", "Reject application"), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                                 }
 
                                 Button(
                                     onClick = {
-                                        val idx = requests.indexOf(req)
-                                        if (idx != -1) requests[idx] = req.copy(status = "Aprobado")
+                                        updateStatus(req, "Aprobado")
                                         selectedRequestForDetail = null
                                     },
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = AdminEmeraldGreen)
                                 ) {
-                                    Text("Aprobar Solicitud", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text(tr("Aprobar Habilitación", "Approve application"), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                             }
                         }
@@ -824,84 +1003,6 @@ private fun DetailItem(label: String, value: String, icon: ImageVector) {
         Column {
             Text(text = label, fontSize = 11.sp, color = AdminTextMuted)
             Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-        }
-    }
-}
-
-// MÓDULO 3: AUDITORÍA
-@Composable
-fun AuditoriaModule(logs: List<AuditLog>) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
-            .border(1.dp, AdminBorderLight, RoundedCornerShape(12.dp))
-            .padding(20.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Text("Registro de Auditoría & Seguridad", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary)
-            Text("Historial inmutable de eventos del sistema y cambios de configuración.", fontSize = 12.sp, color = AdminTextSecondary)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Encabezado Tabla
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(AdminOffWhiteBg)
-                    .border(1.dp, AdminBorderLight, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("FECHA & HORA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.18f))
-                Text("USUARIO / SISTEMA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.22f))
-                Text("ACCIÓN REALIZADA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.30f))
-                Text("MÓDULO", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.12f))
-                Text("IP ORIGEN", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
-                Text("RIESGO", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.08f))
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(logs) { log ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color.White)
-                            .border(1.dp, AdminBorderLight, RoundedCornerShape(6.dp))
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(log.timestamp, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.18f))
-                        Text(log.user, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = AdminTextPrimary, modifier = Modifier.weight(0.22f))
-                        Text(log.action, fontSize = 12.sp, color = AdminTextSecondary, modifier = Modifier.weight(0.30f))
-                        Text(log.module, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.12f))
-                        Text(log.ip, fontSize = 12.sp, color = AdminTextMuted, modifier = Modifier.weight(0.10f))
-
-                        Box(
-                            modifier = Modifier
-                                .weight(0.08f)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(if (log.riskLevel == "Alto") Color(0xFFFEE2E2) else AdminOffWhiteBg),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = log.riskLevel,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (log.riskLevel == "Alto") Color(0xFF991B1B) else AdminTextSecondary
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }

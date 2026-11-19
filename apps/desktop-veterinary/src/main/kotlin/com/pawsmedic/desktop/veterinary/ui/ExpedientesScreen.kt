@@ -293,7 +293,7 @@ fun ExpedientesScreen(
             Card(
                 modifier = Modifier.width(540.dp).wrapContentHeight(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = CardWhite)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -351,7 +351,7 @@ fun ExpedientesScreen(
                         label = { Text(tr("Plan de tratamiento", "Treatment plan")) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    errorMessage?.let { Text(it, color = Color(0xFFB91C1C), fontSize = 12.sp) }
+                    errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -409,7 +409,7 @@ fun ExpedientesScreen(
                         Text("Translating…", color = TextSecondary, fontSize = 12.sp)
                     }
                     if (translationError) {
-                        Text("Translation error", color = Color(0xFFB91C1C), fontSize = 12.sp)
+                        Text("Translation error", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                         TextButton(onClick = { translationAttempt++ }) { Text("Retry") }
                     }
                 }
@@ -425,7 +425,7 @@ fun ExpedientesScreen(
                         .weight(0.32f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White)
+                        .background(CardWhite)
                         .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
                         .padding(16.dp)
                 ) {
@@ -495,7 +495,7 @@ fun ExpedientesScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(if (isSelected) SelectedBg else Color.White)
+                                            .background(if (isSelected) SelectedBg else CardWhite)
                                             .border(
                                                 width = if (isSelected) 2.dp else 1.dp,
                                                 color = if (isSelected) EmeraldGreen else BorderLight,
@@ -571,7 +571,7 @@ fun ExpedientesScreen(
                         .weight(0.68f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White)
+                        .background(CardWhite)
                         .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
                         .padding(14.dp)
                 ) {
@@ -664,7 +664,14 @@ fun ExpedientesScreen(
 
                             if (errorMessage != null) {
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Text(errorMessage!!, color = Color(0xFFB91C1C), fontSize = 11.sp, modifier = Modifier.fillMaxWidth().background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp)).padding(6.dp))
+                                Text(
+                                    errorMessage!!,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(6.dp))
+                                        .padding(6.dp)
+                                )
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -760,7 +767,7 @@ fun ExpedientesScreen(
                                                             Box(
                                                                 modifier = Modifier
                                                                     .clip(RoundedCornerShape(4.dp))
-                                                                    .background(if (pres.isActive) Color(0xFFE6F4EA) else OffWhiteBg)
+                                                                    .background(if (pres.isActive) EmeraldLightBg else OffWhiteBg)
                                                                     .padding(horizontal = 8.dp, vertical = 2.dp)
                                                             ) {
                                                                 Text(
