@@ -16,7 +16,8 @@ data class Business(
     val hours: List<String> = emptyList(),
     val schedules: List<BusinessSchedule> = emptyList(),
     val timeZone: String = "America/Mexico_City",
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val serviceCategories: List<String> = emptyList()
 )
 
 @Serializable

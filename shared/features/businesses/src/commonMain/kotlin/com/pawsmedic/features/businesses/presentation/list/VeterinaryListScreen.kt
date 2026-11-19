@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -103,10 +104,19 @@ fun VeterinaryListScreen(
 
         // --- FILTER TAGS ROW ---
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            listOf("Cerca de mí", "Abierto 24h", "Urgencias").forEach { filter ->
+            listOf(
+                "Todos",
+                "Consultas",
+                "Vacunación",
+                "Desparasitación",
+                "Cirugías",
+                "Estética"
+            ).forEach { filter ->
                 val isSelected = filter == uiState.selectedFilter
                 Box(
                     modifier = Modifier
@@ -122,9 +132,12 @@ fun VeterinaryListScreen(
                 ) {
                     Text(
                         text = language.text(filter, when (filter) {
-                            "Cerca de mí" -> "Near me"
-                            "Abierto 24h" -> "Open 24h"
-                            "Urgencias" -> "Emergency"
+                            "Todos" -> "All"
+                            "Consultas" -> "Consultations"
+                            "Vacunación" -> "Vaccination"
+                            "Desparasitación" -> "Deworming"
+                            "Cirugías" -> "Surgeries"
+                            "Estética" -> "Aesthetics"
                             else -> filter
                         }),
                         fontSize = 13.sp,

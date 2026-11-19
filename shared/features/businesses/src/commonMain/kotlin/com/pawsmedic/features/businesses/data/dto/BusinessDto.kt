@@ -20,7 +20,8 @@ data class BusinessDto(
     val schedules: List<BusinessScheduleDto> = emptyList(),
     @SerialName("time_zone") val timeZone: String = "America/Mexico_City",
     @SerialName("photo_url")
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    val serviceCategories: List<String> = emptyList()
 ) {
     fun toDomain() = Business(
         id = id,
@@ -35,7 +36,8 @@ data class BusinessDto(
         hours = hours,
         schedules = schedules.map(BusinessScheduleDto::toDomain),
         timeZone = timeZone,
-        imageUrl = photoUrl
+        imageUrl = photoUrl,
+        serviceCategories = serviceCategories
     )
 }
 
