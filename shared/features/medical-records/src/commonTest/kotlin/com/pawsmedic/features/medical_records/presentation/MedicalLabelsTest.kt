@@ -10,5 +10,8 @@ class MedicalLabelsTest {
         assertEquals("Heart rate", localizeMedicalLabel("Frecuencia Cardíaca", AppLanguage.ENGLISH))
         assertEquals("Frecuencia Cardíaca", localizeMedicalLabel("Frecuencia Cardíaca", AppLanguage.SPANISH))
         assertEquals("Other", localizeMedicalLabel("Other", AppLanguage.ENGLISH))
+        assertEquals("Neutered", localizeReproductiveStatus("Castrado", AppLanguage.ENGLISH))
+        assertEquals("Castrado", localizeReproductiveStatus("Castrado", AppLanguage.SPANISH))
+        assertEquals("Custom", localizeReproductiveStatus("Custom", AppLanguage.ENGLISH))
     }
 }

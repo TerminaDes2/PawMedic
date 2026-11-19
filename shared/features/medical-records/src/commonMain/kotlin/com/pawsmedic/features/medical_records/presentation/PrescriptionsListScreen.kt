@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.medical_records.domain.model.PrescriptionRecord
 import com.pawsmedic.shared.core.common.formatIsoToDisplayDate
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
 @Composable
@@ -47,6 +49,7 @@ fun PrescriptionsListScreen(
     onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
     var dropdownExpanded by remember { mutableStateOf(false) }
 
@@ -58,7 +61,7 @@ fun PrescriptionsListScreen(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = "Recetas Médicas",
+            title = language.text("Recetas Médicas", "Prescriptions"),
             onBackClick = onBackClick
         )
 
@@ -92,7 +95,7 @@ fun PrescriptionsListScreen(
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Mostrando recetas de: ${uiState.selectedPetName}",
+                            text = language.text("Mostrando recetas de: ${uiState.selectedPetName}", "Showing prescriptions for: ${if (uiState.selectedPetName == "Todas") "All" else uiState.selectedPetName}"),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicSemanticColors.current.text
@@ -109,7 +112,7 @@ fun PrescriptionsListScreen(
             ) {
                 uiState.availablePetNames.forEach { name ->
                     DropdownMenuItem(
-                        text = { Text(text = name, fontWeight = FontWeight.Medium) },
+                        text = { Text(text = if (name == "Todas") language.text("Todas", "All") else name, fontWeight = FontWeight.Medium) },
                         onClick = {
                             viewModel.onPetSelected(name)
                             dropdownExpanded = false
@@ -127,7 +130,7 @@ fun PrescriptionsListScreen(
             onValueChange = viewModel::onSearchQueryChanged,
             placeholder = {
                 Text(
-                    text = "Buscar medicamentos, doctores, mascotas...",
+                    text = language.text("Buscar medicamentos, doctores, mascotas...", "Search medications, doctors, pets..."),
                     color = PawMedicSemanticColors.current.hint,
                     fontSize = 14.sp
                 )
@@ -160,14 +163,14 @@ fun PrescriptionsListScreen(
                     Text(text = "💊", fontSize = 40.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "No tienes recetas activas en este momento.",
+                        text = language.text("No tienes recetas activas en este momento.", "You have no active prescriptions right now."),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = PawMedicSemanticColors.current.text
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Las recetas con fecha de caducidad vencida solo están disponibles en el expediente completo de cada mascota.",
+                        text = language.text("Las recetas con fecha de caducidad vencida solo están disponibles en el expediente completo de cada mascota.", "Expired prescriptions are only available in each pet's full medical record."),
                         fontSize = 12.sp,
                         color = PawMedicSemanticColors.current.hint,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -185,6 +188,7 @@ fun PrescriptionsListScreen(
 
 @Composable
 private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -207,7 +211,7 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "🟢 RECETA ACTIVA",
+                        text = language.text("🟢 RECETA ACTIVA", "🟢 ACTIVE PRESCRIPTION"),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = PawMedicSemanticColors.current.accent
@@ -215,7 +219,7 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
                 }
 
                 Text(
-                    text = "Vence: ${prescription.endDate?.let { formatIsoToDisplayDate(it) } ?: "Sin fecha"}",
+                    text = language.text("Vence: ${prescription.endDate?.let { formatIsoToDisplayDate(it) } ?: "Sin fecha"}", "Expires: ${prescription.endDate?.let { formatIsoToDisplayDate(it) } ?: "No date"}"),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = PawMedicSemanticColors.current.accent
@@ -257,7 +261,7 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Prescrita por: ${prescription.prescribingVetName.ifBlank { "Dr. Veterinario" }} • ${prescription.clinicName}",
+                text = language.text("Prescrita por: ${prescription.prescribingVetName.ifBlank { "Dr. Veterinario" }} • ${prescription.clinicName}", "Prescribed by: ${prescription.prescribingVetName.ifBlank { "Veterinarian" }} • ${prescription.clinicName}"),
                 fontSize = 12.sp,
                 color = PawMedicSemanticColors.current.hint
             )
@@ -269,11 +273,11 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
             // Dosis & Vía & Frecuencia
             Row(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("DOSIS Y UNIDAD", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                    Text(language.text("DOSIS Y UNIDAD", "DOSAGE AND UNIT"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
                     Text("${prescription.dosage} ${prescription.unit}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("VÍA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                    Text(language.text("VÍA", "ROUTE"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
                     Text(prescription.route, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 }
             }
@@ -282,11 +286,11 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("FRECUENCIA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                    Text(language.text("FRECUENCIA", "FREQUENCY"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
                     Text(prescription.frequency, fontSize = 14.sp, color = PawMedicSemanticColors.current.text)
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("DURACIÓN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
+                    Text(language.text("DURACIÓN", "DURATION"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.hint)
                     Text(prescription.duration, fontSize = 14.sp, color = PawMedicSemanticColors.current.text)
                 }
             }
@@ -304,7 +308,7 @@ private fun ActivePrescriptionCard(prescription: PrescriptionRecord) {
                 ) {
                     Column {
                         Text(
-                            text = "📌 INSTRUCCIONES VETERINARIAS",
+                            text = language.text("📌 INSTRUCCIONES VETERINARIAS", "📌 VETERINARY INSTRUCTIONS"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicSemanticColors.current.accent,

@@ -84,6 +84,12 @@ class RegisterViewModel(
         _uiState.update { it.copy(termsAccepted = !it.termsAccepted, errorMessage = null) }
     }
 
+    fun canStartGoogleRegistration(): Boolean {
+        if (_uiState.value.termsAccepted) return true
+        _uiState.update { it.copy(errorMessage = "Debes aceptar los Términos y Condiciones") }
+        return false
+    }
+
     fun onOtpNavigationHandled() {
         _uiState.update { it.copy(requiresOtpVerification = false) }
     }
@@ -283,10 +289,7 @@ class RegisterViewModel(
     }
 
     fun registerWithGoogle(idToken: String, rawNonce: String? = null) {
-        if (!_uiState.value.termsAccepted) {
-            _uiState.update { it.copy(errorMessage = "Debes aceptar los Términos y Condiciones") }
-            return
-        }
+        if (!canStartGoogleRegistration()) return
         if (loginWithGoogleUseCase == null) {
             _uiState.update { it.copy(errorMessage = "El registro con Google no está configurado") }
             return

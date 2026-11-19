@@ -21,7 +21,7 @@ PawsMedic: Términos y Condiciones de Uso y Política de Privacidad
 PARTE I. TÉRMINOS Y CONDICIONES DE USO
 
 1. Aceptación de los términos
-Estos términos regulan el acceso y uso de PawMedic. Al crear una cuenta, marcar la casilla de aceptación o usar la plataforma, la persona usuaria declara que leyó, entendió y acepta estos términos y el Aviso de Privacidad. Actualmente, esta aceptación se valida únicamente durante el registro en la aplicación y no existe una tabla de consentimiento persistente o auditable.
+Estos términos regulan el acceso y uso de PawMedic. Al crear una cuenta, marcar la casilla de aceptación o usar la plataforma, la persona usuaria declara que leyó, entendió y acepta estos términos y el Aviso de Privacidad.
 
 2. Servicio
 PawMedic conecta a usuarios con negocios veterinarios y permite gestionar mascotas, citas, expedientes clínicos, catálogos informativos y reportes operativos. PawMedic no presta servicios veterinarios ni emite diagnósticos; cada negocio es responsable de sus diagnósticos, tratamientos, precios, horarios y servicios.

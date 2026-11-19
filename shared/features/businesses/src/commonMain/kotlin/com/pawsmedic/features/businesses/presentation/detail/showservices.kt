@@ -26,6 +26,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.petCatalogLabel
+import com.pawsmedic.shared.core.designsystem.language.serviceCategoryLabel
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +82,7 @@ fun ShowServices(
     supabaseClient: SupabaseClient,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     var services by remember(tenantId) { mutableStateOf<List<ShowService>>(emptyList()) }
     var isLoading by remember(tenantId) { mutableStateOf(true) }
     var errorMessage by remember(tenantId) { mutableStateOf<String?>(null) }
@@ -129,21 +134,21 @@ fun ShowServices(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         when {
-            isLoading -> Text("Cargando servicios...", color = PawMedicSemanticColors.current.secondaryText)
+            isLoading -> Text(language.text("Cargando servicios...", "Loading services..."), color = PawMedicSemanticColors.current.secondaryText)
             errorMessage != null -> Text(
                 text = errorMessage.orEmpty(),
                 color = MaterialTheme.colorScheme.error,
                 fontSize = 13.sp
             )
             services.isEmpty() -> Text(
-                text = "No hay servicios disponibles.",
+                text = language.text("No hay servicios disponibles.", "No services available."),
                 color = PawMedicSemanticColors.current.secondaryText
             )
             else -> {
                 val categoryOptions = listOf("todos") +
                     services.map { it.service.category }.distinct()
                 val effectiveCategory = selectedCategory.takeIf { it in categoryOptions } ?: "todos"
-                val selectedCategoryLabel = categoryLabel(effectiveCategory)
+                val selectedCategoryLabel = categoryLabel(effectiveCategory, language)
                 val filteredServices = if (effectiveCategory == "todos") {
                     services
                 } else {
@@ -151,7 +156,7 @@ fun ShowServices(
                 }
 
                 Text(
-                    text = "Selecciona una categoría",
+                    text = language.text("Selecciona una categoría", "Select a category"),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = PawMedicSemanticColors.current.text
@@ -175,7 +180,7 @@ fun ShowServices(
                         )
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Mostrar categorías",
+                            contentDescription = language.text("Mostrar categorías", "Show categories"),
                             tint = PawMedicSemanticColors.current.accent
                         )
                     }
@@ -192,7 +197,7 @@ fun ShowServices(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = categoryLabel(category),
+                                            text = categoryLabel(category, language),
                                             modifier = Modifier.weight(1f),
                                             fontWeight = if (category == selectedCategory) {
                                                 FontWeight.Bold
@@ -228,7 +233,7 @@ fun ShowServices(
                 }
                 if (visibleServices.isEmpty()) {
                     Text(
-                        text = "No hay servicios en esta categoría.",
+                        text = language.text("No hay servicios en esta categoría.", "No services in this category."),
                         color = PawMedicSemanticColors.current.secondaryText,
                         fontSize = 13.sp
                     )
@@ -238,7 +243,7 @@ fun ShowServices(
                 }
                 if (filteredServices.size > 5) {
                     PawMedicSecondaryButton(
-                        text = if (showAllServices) "Ver menos" else "Ver más",
+                        text = if (showAllServices) language.text("Ver menos", "Show less") else language.text("Ver más", "Show more"),
                         onClick = { showAllServices = !showAllServices }
                     )
                 }
@@ -255,20 +260,13 @@ fun ShowServices(
     }
 }
 
-private fun categoryLabel(category: String): String = when (category) {
-    "todos" -> "Todos los servicios"
-    "consulta" -> "Consultas"
-    "vacunacion" -> "Vacunación"
-    "desparasitacion" -> "Desparasitación"
-    "estetica" -> "Estética"
-    "cirugia" -> "Cirugías"
-    "diagnostico" -> "Diagnóstico"
-    "otros" -> "Otros servicios"
-    else -> category.replaceFirstChar { it.uppercase() }
-}
+private fun categoryLabel(category: String, language: AppLanguage): String =
+    if (category == "todos") language.text("Todos los servicios", "All services")
+    else serviceCategoryLabel(category, language).replaceFirstChar { it.uppercase() }
 
 @Composable
 private fun ServiceCard(item: ShowService, onClick: () -> Unit) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -298,7 +296,7 @@ private fun ServiceCard(item: ShowService, onClick: () -> Unit) {
                     color = PawMedicSemanticColors.current.text
                 )
                 Text(
-                    text = item.species.joinToString().ifBlank { "Todas las especies" },
+                    text = item.species.joinToString { petCatalogLabel(it, language) }.ifBlank { language.text("Todas las especies", "All species") },
                     fontSize = 12.sp,
                     color = PawMedicSemanticColors.current.secondaryText
                 )
@@ -314,6 +312,7 @@ private fun ServiceCard(item: ShowService, onClick: () -> Unit) {
 
 @Composable
 private fun ServiceDetailDialog(item: ShowService, onDismiss: () -> Unit) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val service = item.service
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -326,7 +325,7 @@ private fun ServiceDetailDialog(item: ShowService, onDismiss: () -> Unit) {
                 )
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Cerrar",
+                    contentDescription = language.text("Cerrar", "Close"),
                     tint = PawMedicSemanticColors.current.secondaryText,
                     modifier = Modifier.clickable(onClick = onDismiss)
                 )
@@ -335,17 +334,17 @@ private fun ServiceDetailDialog(item: ShowService, onDismiss: () -> Unit) {
         text = {
             Column {
                 Text(
-                    text = service.description.ifBlank { "Sin descripción disponible." },
+                    text = service.description.ifBlank { language.text("Sin descripción disponible.", "No description available.") },
                     color = PawMedicSemanticColors.current.secondaryText
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Especies atendidas",
+                    text = language.text("Especies atendidas", "Species treated"),
                     fontWeight = FontWeight.Bold,
                     color = PawMedicSemanticColors.current.text
                 )
                 Text(
-                    text = item.species.joinToString().ifBlank { "Todas las especies" },
+                    text = item.species.joinToString { petCatalogLabel(it, language) }.ifBlank { language.text("Todas las especies", "All species") },
                     color = PawMedicSemanticColors.current.secondaryText
                 )
                 Spacer(modifier = Modifier.height(10.dp))
@@ -357,7 +356,7 @@ private fun ServiceDetailDialog(item: ShowService, onDismiss: () -> Unit) {
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = " ${service.durationMinutes} minutos · ${formatPrice(service.priceCents)}",
+                        text = language.text(" ${service.durationMinutes} minutos · ${formatPrice(service.priceCents)}", " ${service.durationMinutes} minutes · ${formatPrice(service.priceCents)}"),
                         fontWeight = FontWeight.Bold,
                         color = PawMedicSemanticColors.current.accent
                     )
@@ -366,7 +365,7 @@ private fun ServiceDetailDialog(item: ShowService, onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+                Text(language.text("Cerrar", "Close"))
             }
         }
     )

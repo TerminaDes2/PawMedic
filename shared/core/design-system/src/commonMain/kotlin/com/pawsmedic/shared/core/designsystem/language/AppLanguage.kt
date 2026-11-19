@@ -55,16 +55,34 @@ fun petCatalogLabel(value: String, language: AppLanguage): String = language.tex
     "Cuy / Cobaya" -> "Guinea pig"
     "Conejo" -> "Rabbit"
     "Rata doméstica" -> "Domestic rat"
+    "Macho" -> "Male"
+    "Hembra" -> "Female"
     else -> value
 })
 
+fun serviceCategoryLabel(category: String, language: AppLanguage): String = when (category) {
+    "consulta" -> language.text("Consultas", "Consultations")
+    "vacunacion" -> language.text("Vacunación", "Vaccination")
+    "desparasitacion" -> language.text("Desparasitación", "Deworming")
+    "estetica" -> language.text("Estética", "Grooming")
+    "cirugia" -> language.text("Cirugías", "Surgery")
+    "diagnostico" -> language.text("Diagnóstico", "Diagnostics")
+    "otros" -> language.text("Otros servicios", "Other services")
+    else -> category
+}
+
 fun petAgeLabel(value: String, language: AppLanguage): String {
     if (language == AppLanguage.SPANISH) return value
-    val match = Regex("^(\\d+) (Semanas|Meses|Años)$").matchEntire(value) ?: return value
-    val unit = when (match.groupValues[2]) {
-        "Semanas" -> if (match.groupValues[1] == "1") "week" else "weeks"
-        "Meses" -> if (match.groupValues[1] == "1") "month" else "months"
-        else -> if (match.groupValues[1] == "1") "year" else "years"
+    if (value == "No especificada") return "Not specified"
+    val pattern = Regex("(\\d+)\\s+(semanas?|mes(?:es)?|años?)", RegexOption.IGNORE_CASE)
+    if (!Regex("^(\\d+\\s+(semanas?|mes(?:es)?|años?))(\\s+\\d+\\s+(semanas?|mes(?:es)?|años?))*$", RegexOption.IGNORE_CASE).matches(value)) return value
+    return pattern.replace(value) { match ->
+        val number = match.groupValues[1]
+        val unit = when (match.groupValues[2].lowercase()) {
+            "semana", "semanas" -> if (number == "1") "week" else "weeks"
+            "mes", "meses" -> if (number == "1") "month" else "months"
+            else -> if (number == "1") "year" else "years"
+        }
+        "$number $unit"
     }
-    return "${match.groupValues[1]} $unit"
 }

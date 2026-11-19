@@ -1,4 +1,6 @@
-create or replace function public.get_public_products(p_tenant_id uuid)
+drop function if exists public.get_public_products(uuid);
+
+create function public.get_public_products(p_tenant_id uuid)
 returns table(
     id text,
     name text,

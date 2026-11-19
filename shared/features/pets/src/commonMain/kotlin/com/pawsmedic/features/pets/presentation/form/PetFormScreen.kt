@@ -56,6 +56,9 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
+import com.pawsmedic.shared.core.designsystem.language.AppLanguage
+import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.petCatalogLabel
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import io.github.jan.supabase.SupabaseClient
@@ -71,6 +74,7 @@ fun PetFormScreen(
     onPickPhoto: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
     val defaultPhotoPicker = rememberPhotoPicker(
         supabaseClient = supabaseClient,
@@ -114,7 +118,7 @@ fun PetFormScreen(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = if (uiState.isEditMode) "Editar Mascota" else "Registrar Mascota",
+            title = if (uiState.isEditMode) language.text("Editar Mascota", "Edit pet") else language.text("Registrar Mascota", "Register pet"),
             onBackClick = ::goBack
         )
 
@@ -142,7 +146,7 @@ fun PetFormScreen(
             if (message != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = message,
+                    text = localizePetFormError(message, language),
                     fontSize = 13.sp,
                     color = PawMedicColors.Error,
                     modifier = Modifier.fillMaxWidth()
@@ -154,20 +158,31 @@ fun PetFormScreen(
         Spacer(modifier = Modifier.height(8.dp))
         PawMedicPrimaryButton(
             text = when {
-                step < TOTAL_STEPS - 1 -> "Continuar"
-                uiState.isEditMode -> "Guardar cambios"
-                else -> "Guardar mascota"
+                step < TOTAL_STEPS - 1 -> language.text("Continuar", "Continue")
+                uiState.isEditMode -> language.text("Guardar cambios", "Save changes")
+                else -> language.text("Guardar mascota", "Save pet")
             },
             onClick = ::onNext,
             isLoading = uiState.isLoading && step == TOTAL_STEPS - 1
         )
         PawMedicSecondaryButton(
-            text = if (step == 0) "Cancelar" else "Atrás",
+            text = if (step == 0) language.text("Cancelar", "Cancel") else language.text("Atrás", "Back"),
             onClick = ::goBack
         )
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
+
+private fun localizePetFormError(message: String, language: AppLanguage): String = language.text(message, when (message) {
+    "Selecciona la especie de tu mascota" -> "Select your pet's species"
+    "Selecciona la raza" -> "Select a breed"
+    "El nombre debe tener mínimo 2 letras y no incluir números ni símbolos" -> "The name must have at least 2 letters and no numbers or symbols"
+    "Selecciona el sexo de tu mascota" -> "Select your pet's sex"
+    "Ingresa una edad aproximada válida" -> "Enter a valid approximate age"
+    "Selecciona la fecha de nacimiento" -> "Select the date of birth"
+    "Ingresa un peso válido en kilos" -> "Enter a valid weight in kilograms"
+    else -> message
+})
 
 private fun validateStep(step: Int, uiState: PetFormUiState): String? = when (step) {
     0 -> when {
@@ -197,6 +212,7 @@ private fun validateStep(step: Int, uiState: PetFormUiState): String? = when (st
 
 @Composable
 private fun StepProgress(currentStep: Int) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth()) {
             repeat(TOTAL_STEPS) { index ->
@@ -215,7 +231,7 @@ private fun StepProgress(currentStep: Int) {
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Paso ${currentStep + 1} de $TOTAL_STEPS",
+            text = language.text("Paso ${currentStep + 1} de $TOTAL_STEPS", "Step ${currentStep + 1} of $TOTAL_STEPS"),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             color = PawMedicSemanticColors.current.hint
@@ -235,9 +251,10 @@ private fun StepHeader(title: String, subtitle: String) {
 
 @Composable
 private fun SpeciesBreedStep(uiState: PetFormUiState, viewModel: PetFormViewModel) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     StepHeader(
-        title = "¿Qué tipo de mascota tienes?",
-        subtitle = "Elige la especie y la raza para personalizar su perfil."
+        title = language.text("¿Qué tipo de mascota tienes?", "What kind of pet do you have?"),
+        subtitle = language.text("Elige la especie y la raza para personalizar su perfil.", "Choose the species and breed to personalize their profile.")
     )
     uiState.speciesOptions.chunked(2).forEachIndexed { rowIndex, rowItems ->
         if (rowIndex > 0) Spacer(modifier = Modifier.height(12.dp))
@@ -259,9 +276,9 @@ private fun SpeciesBreedStep(uiState: PetFormUiState, viewModel: PetFormViewMode
     }
     Spacer(modifier = Modifier.height(24.dp))
     FormDropdownField(
-        label = "Raza",
+        label = language.text("Raza", "Breed"),
         selectedValue = uiState.breed,
-        placeholder = if (uiState.species.isBlank()) "Selecciona primero la especie" else "Selecciona la raza",
+        placeholder = if (uiState.species.isBlank()) language.text("Selecciona primero la especie", "Select a species first") else language.text("Selecciona la raza", "Select a breed"),
         options = uiState.availableBreeds.map(BreedOption::name),
         enabled = uiState.species.isNotBlank() && uiState.availableBreeds.isNotEmpty(),
         onOptionSelected = { name ->
@@ -277,6 +294,7 @@ private fun SpeciesCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val shape = RoundedCornerShape(16.dp)
     Box(
         modifier = modifier
@@ -295,13 +313,13 @@ private fun SpeciesCard(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
                 imageVector = speciesIconFor(name).vector(),
-                contentDescription = name,
+                contentDescription = petCatalogLabel(name, language),
                 tint = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.hint,
                 modifier = Modifier.size(52.dp)
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                name,
+                petCatalogLabel(name, language),
                 fontSize = 14.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                 color = PawMedicSemanticColors.current.text,
@@ -329,17 +347,18 @@ private fun BasicInfoStep(
     viewModel: PetFormViewModel,
     onPickPhoto: () -> Unit
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     StepHeader(
-        title = "Cuéntanos sobre tu mascota",
-        subtitle = "Su nombre, sexo y una foto para reconocerla fácilmente."
+        title = language.text("Cuéntanos sobre tu mascota", "Tell us about your pet"),
+        subtitle = language.text("Su nombre, sexo y una foto para reconocerla fácilmente.", "Their name, sex and a photo to recognize them easily.")
     )
     PhotoPickerCard(uiState.photo_url, uiState.species, uiState.isEditMode, onPickPhoto)
     Spacer(modifier = Modifier.height(16.dp))
     PawMedicTextField(
         value = uiState.name,
         onValueChange = viewModel::onNameChanged,
-        label = "Nombre de la mascota (Mínimo 2 letras, sin números)",
-        placeholder = "Ej. Max",
+        label = language.text("Nombre de la mascota (Mínimo 2 letras, sin números)", "Pet name (at least 2 letters, no numbers)"),
+        placeholder = language.text("Ej. Max", "E.g. Max"),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
     )
     Spacer(modifier = Modifier.height(14.dp))
@@ -348,25 +367,26 @@ private fun BasicInfoStep(
 
 @Composable
 private fun AgeWeightStep(uiState: PetFormUiState, viewModel: PetFormViewModel) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     StepHeader(
-        title = "Edad y peso",
-        subtitle = "Esta información ayuda a darle un mejor seguimiento de salud."
+        title = language.text("Edad y peso", "Age and weight"),
+        subtitle = language.text("Esta información ayuda a darle un mejor seguimiento de salud.", "This information helps track your pet's health.")
     )
     AgeInputSection(uiState, viewModel)
     Spacer(modifier = Modifier.height(14.dp))
     PawMedicTextField(
         value = uiState.weightKg,
         onValueChange = viewModel::onWeightChanged,
-        label = "Peso aproximado (en kilos)",
-        placeholder = "Ej. 4.5",
+        label = language.text("Peso aproximado (en kilos)", "Approximate weight (kg)"),
+        placeholder = language.text("Ej. 4.5", "E.g. 4.5"),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
     )
     Spacer(modifier = Modifier.height(14.dp))
     PawMedicTextField(
         value = uiState.allergies,
         onValueChange = viewModel::onAllergiesChanged,
-        label = "Notas relevantes (Alergias, cuidados)",
-        placeholder = "Alergias, cuidados especiales, temperamento...",
+        label = language.text("Notas relevantes (Alergias, cuidados)", "Relevant notes (allergies, care)"),
+        placeholder = language.text("Alergias, cuidados especiales, temperamento...", "Allergies, special care, temperament..."),
         singleLine = false,
         modifier = Modifier.height(100.dp)
     )
@@ -379,6 +399,7 @@ private fun PhotoPickerCard(
     isEditMode: Boolean,
     onClick: () -> Unit
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -398,9 +419,9 @@ private fun PhotoPickerCard(
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = when {
-                    photo_url.isNotBlank() && isEditMode -> "Cambiar foto de perfil"
-                    photo_url.isNotBlank() -> "Foto seleccionada (Click para cambiar)"
-                    else -> "Subir foto de tu mascota"
+                    photo_url.isNotBlank() && isEditMode -> language.text("Cambiar foto de perfil", "Change profile photo")
+                    photo_url.isNotBlank() -> language.text("Foto seleccionada (Click para cambiar)", "Photo selected (tap to change)")
+                    else -> language.text("Subir foto de tu mascota", "Upload your pet's photo")
                 },
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
@@ -410,7 +431,7 @@ private fun PhotoPickerCard(
             if (photo_url.isBlank() && !isEditMode) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Formatos aceptados: JPG, PNG (Max 5MB)",
+                    text = language.text("Formatos aceptados: JPG, PNG (Max 5MB)", "Accepted formats: JPG, PNG (max 5 MB)"),
                     fontSize = 12.sp,
                     color = PawMedicSemanticColors.current.hint,
                     textAlign = TextAlign.Center
@@ -425,9 +446,10 @@ private fun GenderSelector(
     selectedGender: String,
     onGenderSelected: (String) -> Unit
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Sexo de la mascota",
+            text = language.text("Sexo de la mascota", "Pet's sex"),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             color = PawMedicSemanticColors.current.text,
@@ -435,7 +457,7 @@ private fun GenderSelector(
         )
         Row(modifier = Modifier.fillMaxWidth()) {
             GenderChip(
-                text = "Macho",
+                text = language.text("Macho", "Male"),
                 isSelected = selectedGender == "Macho",
                 selectedColor = PawMedicSemanticColors.current.blueSurface,
                 selectedBorderColor = Color(0xFF7DD3FC),
@@ -444,7 +466,7 @@ private fun GenderSelector(
             )
             Spacer(modifier = Modifier.width(10.dp))
             GenderChip(
-                text = "Hembra",
+                text = language.text("Hembra", "Female"),
                 isSelected = selectedGender == "Hembra",
                 selectedColor = PawMedicSemanticColors.current.pinkSurface,
                 selectedBorderColor = Color(0xFFF9A8D4),
@@ -491,6 +513,7 @@ private fun AgeInputSection(
     uiState: PetFormUiState,
     viewModel: PetFormViewModel
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     var expanded by remember { mutableStateOf(false) }
     var showDatePickerModal by remember { mutableStateOf(false) }
     val timeUnits = listOf("Semanas", "Meses", "Años")
@@ -510,7 +533,7 @@ private fun AgeInputSection(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Edad de la mascota",
+            text = language.text("Edad de la mascota", "Pet's age"),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             color = PawMedicSemanticColors.current.text,
@@ -518,14 +541,14 @@ private fun AgeInputSection(
         )
         Row(modifier = Modifier.fillMaxWidth()) {
             AgeModeChip(
-                text = "Edad aproximada",
+                text = language.text("Edad aproximada", "Approximate age"),
                 isSelected = uiState.ageMode == AgeInputMode.APPROXIMATE,
                 onClick = { viewModel.onAgeModeChanged(AgeInputMode.APPROXIMATE) },
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(10.dp))
             AgeModeChip(
-                text = "Fecha nacimiento",
+                text = language.text("Fecha nacimiento", "Date of birth"),
                 isSelected = uiState.ageMode == AgeInputMode.EXACT_DATE,
                 onClick = { viewModel.onAgeModeChanged(AgeInputMode.EXACT_DATE) },
                 modifier = Modifier.weight(1f)
@@ -544,8 +567,8 @@ private fun AgeInputSection(
                     PawMedicTextField(
                         value = uiState.ageNumber,
                         onValueChange = viewModel::onAgeNumberChanged,
-                        label = "Número",
-                        placeholder = "Ej. 3",
+                        label = language.text("Número", "Number"),
+                        placeholder = language.text("Ej. 3", "E.g. 3"),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number,
                             imeAction = ImeAction.Next
@@ -568,7 +591,7 @@ private fun AgeInputSection(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = uiState.ageUnit,
+                            text = petAgeUnitLabel(uiState.ageUnit, language),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicSemanticColors.current.accent
@@ -587,7 +610,7 @@ private fun AgeInputSection(
                     ) {
                         timeUnits.forEach { unit ->
                             DropdownMenuItem(
-                                text = { Text(text = unit, fontSize = 14.sp) },
+                                text = { Text(text = petAgeUnitLabel(unit, language), fontSize = 14.sp) },
                                 onClick = {
                                     viewModel.onAgeUnitChanged(unit)
                                     expanded = false
@@ -600,7 +623,7 @@ private fun AgeInputSection(
         } else {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Fecha de nacimiento",
+                    text = language.text("Fecha de nacimiento", "Date of birth"),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = PawMedicSemanticColors.current.text,
@@ -618,7 +641,7 @@ private fun AgeInputSection(
                         readOnly = true,
                         placeholder = {
                             Text(
-                                text = "Selecciona en el calendario (dd-MM-yy)",
+                                text = language.text("Selecciona en el calendario (dd-MM-yy)", "Select from the calendar (dd-MM-yy)"),
                                 color = PawMedicSemanticColors.current.hint,
                                 fontSize = 14.sp
                             )
@@ -658,7 +681,7 @@ private fun AgeInputSection(
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = "Edad calculada: ${uiState.ageNumber} ${uiState.ageUnit}",
+                            text = language.text("Edad calculada: ${uiState.ageNumber} ${uiState.ageUnit}", "Calculated age: ${uiState.ageNumber} ${petAgeUnitLabel(uiState.ageUnit, language)}"),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicSemanticColors.current.accent
@@ -670,6 +693,13 @@ private fun AgeInputSection(
     }
 }
 
+private fun petAgeUnitLabel(unit: String, language: AppLanguage): String = language.text(unit, when (unit) {
+    "Semanas" -> "Weeks"
+    "Meses" -> "Months"
+    "Años" -> "Years"
+    else -> unit
+})
+
 @Composable
 private fun FormDropdownField(
     label: String,
@@ -680,6 +710,7 @@ private fun FormDropdownField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
+    val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     var expanded by remember { mutableStateOf(false) }
     LaunchedEffect(enabled, options) {
         if (!enabled) {
@@ -697,7 +728,7 @@ private fun FormDropdownField(
         )
         Box(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
-                value = selectedValue.ifBlank { placeholder },
+                value = if (selectedValue.isBlank()) placeholder else petCatalogLabel(selectedValue, language),
                 onValueChange = {},
                 readOnly = true,
                 enabled = enabled,
@@ -736,7 +767,7 @@ private fun FormDropdownField(
             ) {
                 options.forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(text = option, fontSize = 14.sp) },
+                        text = { Text(text = petCatalogLabel(option, language), fontSize = 14.sp) },
                         onClick = {
                             onOptionSelected(option)
                             expanded = false

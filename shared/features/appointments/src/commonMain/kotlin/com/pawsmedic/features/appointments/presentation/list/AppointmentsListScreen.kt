@@ -54,6 +54,7 @@ import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import com.pawsmedic.shared.core.designsystem.language.AppLanguage
 import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
+import com.pawsmedic.shared.core.designsystem.language.serviceCategoryLabel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -163,16 +164,15 @@ private fun Appointment.isCompleted() =
     status.contains("Completada", ignoreCase = true) ||
         status.contains("Completed", ignoreCase = true)
 
-private fun categoryLabel(category: String): String = when (category) {
-    ALL -> "Todas las categorías"
-    "consulta" -> "Consultas"
-    "vacunacion" -> "Vacunación"
-    "desparasitacion" -> "Desparasitación"
-    "estetica" -> "Estética"
-    "cirugia" -> "Cirugías"
-    "diagnostico" -> "Diagnóstico"
-    "otros" -> "Otros servicios"
-    else -> category.replaceFirstChar { it.uppercase() }
+private fun categoryLabel(category: String, language: AppLanguage): String =
+    if (category == ALL) language.text("Todas las categorías", "All categories")
+    else serviceCategoryLabel(category, language).replaceFirstChar { it.uppercase() }
+
+private fun StatusFilter.localized(language: AppLanguage): String = when (this) {
+    StatusFilter.ALL -> language.text(label, "Visible appointments")
+    StatusFilter.PENDING -> language.text(label, "Pending")
+    StatusFilter.ACCEPTED -> language.text(label, "Accepted")
+    StatusFilter.CANCELLED -> language.text(label, "Cancelled")
 }
 
 @Composable
@@ -288,23 +288,23 @@ fun AppointmentsListScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterDropdownChip(
-                        label = categoryLabel(effectiveCategory),
+                        label = categoryLabel(effectiveCategory, language),
                         isActive = effectiveCategory != ALL,
-                        options = categoryOptions.map { it to categoryLabel(it) },
+                        options = categoryOptions.map { it to categoryLabel(it, language) },
                         selectedKey = effectiveCategory,
                         onSelected = { selectedCategory = it }
                     )
                     FilterDropdownChip(
-                        label = if (effectivePet == ALL) "Todas las mascotas" else effectivePet,
+                        label = if (effectivePet == ALL) language.text("Todas las mascotas", "All pets") else effectivePet,
                         isActive = effectivePet != ALL,
-                        options = petOptions.map { it to if (it == ALL) "Todas las mascotas" else it },
+                        options = petOptions.map { it to if (it == ALL) language.text("Todas las mascotas", "All pets") else it },
                         selectedKey = effectivePet,
                         onSelected = { selectedPet = it }
                     )
                     FilterDropdownChip(
-                        label = selectedStatus.label,
+                        label = selectedStatus.localized(language),
                         isActive = selectedStatus != StatusFilter.ALL,
-                        options = StatusFilter.entries.map { it.name to it.label },
+                        options = StatusFilter.entries.map { it.name to it.localized(language) },
                         selectedKey = selectedStatus.name,
                         onSelected = { selectedStatusName = it }
                     )
@@ -317,7 +317,7 @@ fun AppointmentsListScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (filtered.size == 1) "1 cita" else "${filtered.size} citas",
+                        text = if (filtered.size == 1) language.text("1 cita", "1 appointment") else language.text("${filtered.size} citas", "${filtered.size} appointments"),
                         modifier = Modifier.weight(1f),
                         fontSize = 13.sp,
                         color = PawMedicColors.Gray600
@@ -331,7 +331,7 @@ fun AppointmentsListScreen(
                             }
                         ) {
                             Text(
-                                text = "Limpiar filtros",
+                                text = language.text("Limpiar filtros", "Clear filters"),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PawMedicColors.Teal600
@@ -350,7 +350,7 @@ fun AppointmentsListScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No hay citas que coincidan con los filtros.",
+                            text = language.text("No hay citas que coincidan con los filtros.", "No appointments match the filters."),
                             fontSize = 14.sp,
                             color = PawMedicColors.Gray500
                         )
