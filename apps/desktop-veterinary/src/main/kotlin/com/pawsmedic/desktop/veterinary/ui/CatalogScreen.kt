@@ -10,6 +10,7 @@ import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
+import io.ktor.http.ContentType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -277,7 +278,14 @@ fun CatalogScreen(
                 val imageUrl = selectedPhoto?.let { photo ->
                     val bucket = supabase.storage.from("product-images")
                     val key = "$clinicId/${UUID.randomUUID()}.${photo.extension}"
-                    bucket.upload(key, photo.bytes)
+                    bucket.upload(key, photo.bytes) {
+                        upsert = false
+                        contentType = when (photo.extension.lowercase()) {
+                            "jpg", "jpeg" -> ContentType.Image.JPEG
+                            "png" -> ContentType.Image.PNG
+                            else -> error("Formato de imagen no compatible.")
+                        }
+                    }
                     bucket.publicUrl(key)
                 } ?: editingProduct?.imageUrl.orEmpty()
                 val existing = editingProduct
@@ -315,7 +323,19 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = tr("No se pudo guardar el elemento. Inténtalo de nuevo.", "Could not save the item. Please try again.")
+            val detail = e.message?.takeIf { it.isNotBlank() }?.take(240) ?: e.javaClass.simpleName
+            System.err.println("Could not save catalog item: ${e.javaClass.simpleName}: $detail")
+            errorMessage = if (
+                detail.contains("row-level security policy", ignoreCase = true) &&
+                detail.contains("/storage/v1/object/", ignoreCase = true)
+            ) {
+                tr(
+                    "Supabase denegó la subida de la imagen. Aplica la migración de permisos de imágenes y verifica que tu cuenta esté vinculada a esta clínica.",
+                    "Supabase denied the image upload. Apply the product image access migration and verify your account is linked to this clinic."
+                )
+            } else {
+                tr("No se pudo guardar el elemento. Inténtalo de nuevo.", "Could not save the item. Please try again.")
+            }
         } finally {
             isSaving = false
         }

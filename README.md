@@ -96,15 +96,17 @@ Products and services are entered individually; TXT import is no longer availabl
 Apply `supabase/migrations/20261116000000_operational_reports.sql` and
 `supabase/migrations/20261116000001_product_images.sql`, followed by
 `supabase/migrations/20261116000002_public_product_catalog.sql`, followed by
-`supabase/migrations/20261117000000_public_product_id_compatibility.sql`, in that order, to
-the Supabase project after the existing migrations. The latter requires
-permission to create a Storage bucket and policies. Verify policies and
+`supabase/migrations/20261117000000_public_product_id_compatibility.sql` and
+`supabase/migrations/20261118000000_product_images_tenant_upload.sql`, followed by
+`supabase/migrations/20261118000001_fix_product_image_storage_policies.sql`, in that order,
+to the Supabase project after the existing migrations. The product image migrations
+require permission to create a Storage bucket and policies. Verify policies and
 reports with accounts from different clinics before deploying.
 If the earlier migrations were already applied, apply only the new ID
-compatibility migration; it replaces the existing public-products function
-without changing product rows.
-The last migration exposes only active, published products of active clinics
-to signed-in users; these appear in the clinic profile in the mobile app.
+compatibility and product-image storage-policy migrations; they update the
+public-products function and storage policies without changing product rows.
+The public product catalog migration exposes only active, published products
+of active clinics to signed-in users; these appear in the clinic profile in the mobile app.
 The deployment must allow authenticated users to read `product_types`, allow
 the clinic account to write its products, and permit uploads to the
 `product-images` bucket. Existing permissive policies can broaden access even
