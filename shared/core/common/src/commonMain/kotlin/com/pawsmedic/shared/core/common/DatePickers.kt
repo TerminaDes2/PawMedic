@@ -79,3 +79,18 @@ fun calculateAgeFromIsoDate(dateOfBirth: String?): String? {
         }
     }
 }
+
+fun formatDisplayDateTime(raw: String?): String {
+    if (raw.isNullOrBlank()) return "—"
+    return try {
+        val datePart = raw.substringBefore("T")
+        val timePart = raw.substringAfter("T").substringBefore(".").substringBefore("+").substringBefore("Z")
+        val dateSubparts = datePart.split("-")
+        val formattedDate = if (dateSubparts.size == 3) "${dateSubparts[2]}/${dateSubparts[1]}/${dateSubparts[0]}" else datePart
+        val timeSubparts = timePart.split(":")
+        val formattedTime = if (timeSubparts.size >= 2) "${timeSubparts[0]}:${timeSubparts[1]}" else timePart
+        "$formattedDate $formattedTime"
+    } catch (e: Exception) {
+        raw
+    }
+}

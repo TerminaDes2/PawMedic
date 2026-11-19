@@ -176,14 +176,14 @@ fun PetDetailScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // --- HISTORIAL CLINICO SECTION ---
+            // --- RECETAS MÉDICAS SECTION ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = language.text("Historial Clínico", "Medical history"),
+                    text = language.text("Recetas Médicas", "Medical Prescriptions"),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = PawMedicSemanticColors.current.text

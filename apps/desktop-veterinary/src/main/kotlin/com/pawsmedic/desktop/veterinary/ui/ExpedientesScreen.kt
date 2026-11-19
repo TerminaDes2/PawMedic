@@ -48,6 +48,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @Serializable
@@ -742,7 +746,7 @@ fun ExpedientesScreen(
                                                 rec.consultations.forEach { c ->
                                                     Column(modifier = Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(8.dp)).padding(12.dp)) {
                                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                            Text("${tr("Fecha:", "Date:")} ${c.occurredAt} • Vet: ${c.veterinarianName}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                                            Text("${tr("Fecha:", "Date:")} ${formatDateTime(c.occurredAt)} • Vet: ${c.veterinarianName}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                                                             Text("${tr("Estado:", "Status:")} ${c.status}", fontSize = 11.sp, color = TextMuted)
                                                         }
                                                         HorizontalDivider(color = BorderLight, modifier = Modifier.padding(vertical = 4.dp))
@@ -756,7 +760,7 @@ fun ExpedientesScreen(
                                         }
 
                                         2 -> { // TODAS LAS RECETAS
-                                            Text(tr("RECETAS MÉDICAS Y FÁRMACOS (HISTORIAL COMPLETO)", "PRESCRIPTIONS AND MEDICATIONS (FULL HISTORY)"), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                            Text(tr("RECETAS MÉDICAS Y FÁRMACOS (RECETAS)", "PRESCRIPTIONS AND MEDICATIONS (PRESCRIPTIONS)"), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
                                             if (rec.prescriptions.isEmpty()) {
                                                 Text(tr("Sin recetas registradas para este paciente.", "No prescriptions registered for this patient."), fontSize = 13.sp, color = TextMuted)
                                             } else {
@@ -793,7 +797,7 @@ fun ExpedientesScreen(
                                             } else {
                                                 val v = latest.vitalSigns
                                                 val s = latest.systemsExploration
-                                                Text(tr("CONSTANTES FISIOLÓGICAS RECIENTES", "RECENT VITAL SIGNS"), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
+                                                Text(tr("CONSTANTES FISIOLÓGICAS RECIENTES (${formatDateTime(latest.occurredAt)})", "RECENT VITAL SIGNS (${formatDateTime(latest.occurredAt)})"), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ClinicalEmerald)
                                                 Text("Temp: ${v.temperatureCelsius ?: 38.5} °C • FC: ${v.heartRateBpm ?: 120} bpm • FR: ${v.respiratoryRateRpm ?: 24} rpm • Peso: ${(v.weightGrams ?: 4200) / 1000.0} kg", fontSize = 13.sp, color = TextPrimary)
                                                 Text("TLLC: ${v.tllcSeconds} • Hidratación: ${v.hydrationStatus} • Condición: ${v.bodyConditionScore}", fontSize = 12.sp, color = TextSecondary)
 
@@ -813,7 +817,7 @@ fun ExpedientesScreen(
                                                 Text(tr("Sin estudios o imágenes adjuntas.", "No studies or images attached."), fontSize = 13.sp, color = TextMuted)
                                             } else {
                                                 rec.studies.forEach { st ->
-                                                    Text("${tr("Estudio:", "Study:")} ${displayText(st.name)} (${st.studyType}) - ${tr("Fecha:", "Date:")} ${st.requestedAt}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                                    Text("${tr("Estudio:", "Study:")} ${displayText(st.name)} (${st.studyType}) - ${tr("Fecha:", "Date:")} ${formatDateTime(st.requestedAt)}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                                                     if (st.resultsNotes.isNotBlank()) Text("${tr("Resultados:", "Results:")} ${displayText(st.resultsNotes)}", fontSize = 12.sp, color = TextSecondary)
                                                 }
                                             }
@@ -840,6 +844,23 @@ fun ExpedientesScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+private fun formatDateTime(raw: String): String {
+    return runCatching {
+        val instant = Instant.parse(raw)
+        val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZoneId.systemDefault())
+        formatter.format(instant)
+    }.recoverCatching {
+        val odt = OffsetDateTime.parse(raw)
+        odt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+    }.getOrElse {
+        if (raw.length >= 16 && raw[10] == 'T') {
+            "${raw.substring(0, 10)} ${raw.substring(11, 16)}"
+        } else {
+            raw
         }
     }
 }

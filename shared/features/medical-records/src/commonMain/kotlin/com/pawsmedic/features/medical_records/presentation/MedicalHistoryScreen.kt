@@ -60,7 +60,7 @@ fun MedicalHistoryScreen(
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         PawMedicTopBar(
-            title = language.text("Historial Clínico", "Medical history"),
+            title = language.text("Recetas Médicas", "Medical Prescriptions"),
             onBackClick = onBackClick
         )
 
@@ -94,7 +94,7 @@ fun MedicalHistoryScreen(
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = language.text("Mostrando historial de: ${uiState.selectedPetName}", "Showing history for: ${if (uiState.selectedPetName == "Todas") "All" else uiState.selectedPetName}"),
+                            text = language.text("Mostrando recetas de: ${uiState.selectedPetName}", "Showing prescriptions for: ${if (uiState.selectedPetName == "Todas") "All" else uiState.selectedPetName}"),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = PawMedicSemanticColors.current.text

@@ -303,7 +303,7 @@ fun PetNavHost(
                     )
                     BottomNavItem(
                         icon = Icons.Default.FolderShared,
-                        label = language.text("Historial", "Records"),
+                        label = language.text("Recetas", "Prescriptions"),
                         isSelected = pagerState.currentPage == 3,
                         onClick = {
                             showProfile = false
@@ -595,7 +595,7 @@ fun PetNavHost(
                                     modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(language.text("Cargando el historial clínico…", "Loading medical history…"), color = PawMedicSemanticColors.current.secondaryText)
+                                    Text(language.text("Cargando las recetas…", "Loading prescriptions…"), color = PawMedicSemanticColors.current.secondaryText)
                                 }
                             }
                             presState.errorMessage != null -> {

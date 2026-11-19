@@ -43,6 +43,7 @@ import com.pawsmedic.features.medical_records.domain.model.ClinicalConsultation
 import com.pawsmedic.features.medical_records.domain.model.ClinicalStudyRecord
 import com.pawsmedic.features.medical_records.domain.model.PetBackground
 import com.pawsmedic.features.medical_records.domain.model.PetMedicalRecord
+import com.pawsmedic.shared.core.common.formatDisplayDateTime
 import com.pawsmedic.features.medical_records.domain.model.PrescriptionRecord
 import com.pawsmedic.features.medical_records.presentation.dialog.EditBackgroundDialog
 import com.pawsmedic.features.medical_records.presentation.dialog.NewConsultationDialog
@@ -330,7 +331,7 @@ private fun GeneralSummaryTab(record: PetMedicalRecord) {
 
         val latestConsultation = record.consultations.firstOrNull()
         if (latestConsultation != null) {
-            DetailSectionCard(title = language.text("🩺 Últimas Constantes Fisiológicas (${latestConsultation.occurredAt})", "🩺 Latest vital signs (${latestConsultation.occurredAt})")) {
+            DetailSectionCard(title = language.text("🩺 Últimas Constantes Fisiológicas (${formatDisplayDateTime(latestConsultation.occurredAt)})", "🩺 Latest vital signs (${formatDisplayDateTime(latestConsultation.occurredAt)})")) {
                 val v = latestConsultation.vitalSigns
                 InfoRow("Temperatura", "${v.temperatureCelsius ?: 38.5} °C")
                 InfoRow("Frecuencia Cardíaca", "${v.heartRateBpm ?: 120} bpm")
@@ -398,7 +399,7 @@ private fun BackgroundTab(
             InfoRow("Hábitat y Condiciones", bg.habitat.ifBlank { language.text("Interior de casa sin salidas a la calle", "Indoors without outdoor access") })
         }
 
-        DetailSectionCard(title = language.text("🏥 Historial Clínico Previo", "🏥 Previous medical history")) {
+        DetailSectionCard(title = language.text("🏥 Recetas y Antecedentes Previos", "🏥 Previous Prescriptions & Background")) {
             InfoRow("Enfermedades Anteriores", bg.pastDiseases.ifBlank { language.text("Ninguna", "None") })
             InfoRow("Cirugías Anteriores", bg.pastSurgeries.ifBlank { language.text("Ninguna", "None") })
             InfoRow("Antecedentes Familiares", bg.familyHistory.ifBlank { language.text("Sin datos relevantes", "No relevant information") })
@@ -418,7 +419,7 @@ private fun ConsultationsTab(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (isVet) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(language.text("Historial de Consultas (${record.consultations.size})", "Consultation history (${record.consultations.size})"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
+                Text(language.text("Recetas y Consultas (${record.consultations.size})", "Prescriptions & Consultations (${record.consultations.size})"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
                 Button(
                     onClick = onNewConsultation,
                     colors = ButtonDefaults.buttonColors(containerColor = PawMedicColors.Teal600)
@@ -458,7 +459,7 @@ private fun ConsultationCardItem(consultation: ClinicalConsultation) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "📅 ${consultation.occurredAt}",
+                    text = "📅 ${formatDisplayDateTime(consultation.occurredAt)}",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = PawMedicSemanticColors.current.accent

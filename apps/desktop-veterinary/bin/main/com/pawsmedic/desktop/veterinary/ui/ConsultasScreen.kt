@@ -36,6 +36,7 @@ import com.pawsmedic.features.medical_records.data.datasource.SupabaseMedicalRec
 import com.pawsmedic.features.medical_records.data.repository.DefaultMedicalRecordRepository
 import com.pawsmedic.shared.core.model.ProfileRole
 import com.pawsmedic.shared.core.model.UserProfile
+import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.launch
@@ -48,6 +49,7 @@ fun ConsultasScreen(
 ) {
     val english = LocalDesktopAppearance.current.english
     fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
+
     var searchMedicalIdQuery by remember { mutableStateOf("") }
     var patientsList by remember { mutableStateOf<List<PatientRow>>(emptyList()) }
     var selectedPatient by remember { mutableStateOf<PatientRow?>(null) }
@@ -191,7 +193,7 @@ fun ConsultasScreen(
         currentScreen = "Consultas",
         onNavigate = onNavigate,
         onLogout = onLogout,
-        title = tr("Atención de Consultas Clínicas", "Clinical consultations"),
+        title = tr("Atención de Consultas Clínicas", "Clinical Consultations"),
         userEmail = userEmail
     ) {
         Row(
@@ -215,7 +217,7 @@ fun ConsultasScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = tr("Pacientes Registrados", "Registered patients"),
+                            text = tr("Pacientes Registrados", "Registered Patients"),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
@@ -242,7 +244,7 @@ fun ConsultasScreen(
                     OutlinedTextField(
                         value = searchMedicalIdQuery,
                         onValueChange = { searchMedicalIdQuery = it },
-                        placeholder = { Text(tr("Buscar por ID Médico (PM-XXXX) o Nombre", "Search by Medical ID (PM-XXXX) or name"), fontSize = 12.sp) },
+                        placeholder = { Text(tr("Buscar por ID Médico (PM-XXXX) o Nombre", "Search by Medical ID (PM-XXXX) or Name"), fontSize = 12.sp) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),

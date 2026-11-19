@@ -229,7 +229,7 @@ fun LoginScreen(
                         )
 
                         Text(
-                            text = tr("Sistema de Gestión Veterinaria e Historial Clínico", "Veterinary management and medical records system"),
+                            text = tr("Sistema de Gestión Veterinaria y Recetas", "Veterinary management and prescriptions system"),
                             fontSize = 14.sp,
                             color = TextMuted
                         )
@@ -265,7 +265,7 @@ fun LoginScreen(
                                 ) {
                                     Icon(Icons.Default.History, contentDescription = null, tint = Color(0xFF2DD4BF), modifier = Modifier.size(14.dp))
                                 }
-                                Text(tr("Todo el historial, siempre disponible", "Medical history, always available"), fontSize = 13.sp, color = Color(0xFFCBD5E1))
+                                Text(tr("Todas las recetas, siempre disponibles", "Prescriptions, always available"), fontSize = 13.sp, color = Color(0xFFCBD5E1))
                             }
                         }
                     }

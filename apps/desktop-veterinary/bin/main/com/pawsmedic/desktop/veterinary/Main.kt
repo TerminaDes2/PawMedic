@@ -270,6 +270,10 @@ fun main() = application {
                             activeUserEmail = email
                             currentScreen = "Agenda"
                         },
+                        onNavigateToAdminMain = { email ->
+                            activeUserEmail = email
+                            currentScreen = "Admin"
+                        },
                         onNavigateToAdminLogin = {
                             currentScreen = "AdminLogin"
                         },

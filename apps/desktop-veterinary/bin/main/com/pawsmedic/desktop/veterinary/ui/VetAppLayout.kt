@@ -224,6 +224,7 @@ fun VetAppLayout(
                         Text(text = if (english) when (currentScreen) {
                             "Agenda" -> "Appointments"
                             "Horarios" -> "Opening hours"
+                            "Consultas" -> "Clinical consultations"
                             "Expedientes" -> "Medical records"
                             "Catalog" -> "Services and products"
                             "Reports" -> "Operational reports"

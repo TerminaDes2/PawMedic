@@ -273,7 +273,7 @@ fun PetDashboardContent(
             Spacer(modifier = Modifier.width(10.dp))
             QuickAccessCard(
                 icon = Icons.Default.FolderShared,
-                title = language.text("Historial", "Records"),
+                title = language.text("Recetas", "Prescriptions"),
                 backgroundColor = PawMedicSemanticColors.current.violetSurface,
                 onClick = onNavigateToMedicalHistory,
                 modifier = Modifier.weight(1f)

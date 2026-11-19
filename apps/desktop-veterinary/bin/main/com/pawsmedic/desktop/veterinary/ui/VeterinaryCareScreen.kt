@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,6 +54,15 @@ private data class CareServiceItem(
     @SerialName("duration_minutes") val durationMinutes: Int = 30,
     @SerialName("price_cents") val priceCents: Int = 0,
     val active: Boolean = true
+)
+
+private data class DraftMedication(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val dose: String,
+    val route: String,
+    val frequency: String,
+    val durationDays: String
 )
 
 @Serializable
@@ -123,11 +133,13 @@ fun VeterinaryCareScreen(
     var nextDate by remember { mutableStateOf("") }
 
     // Medicamentos y Receta
-    var drugName by remember { mutableStateOf("") }
-    var drugDose by remember { mutableStateOf("") }
-    var drugRoute by remember { mutableStateOf("Oral") }
-    var drugFreq by remember { mutableStateOf("Cada 12h") }
-    var drugDurationDays by remember { mutableStateOf("7") }
+    var prescriptionDurationDays by remember { mutableStateOf("7") }
+    val addedMedications = remember { mutableStateListOf<DraftMedication>() }
+    var currentDrugName by remember { mutableStateOf("") }
+    var currentDrugDose by remember { mutableStateOf("") }
+    var currentDrugRoute by remember { mutableStateOf("Oral") }
+    var currentDrugFreq by remember { mutableStateOf("Cada 12h") }
+    var currentDrugDuration by remember { mutableStateOf("7") }
     var isConsultationAdmin by remember { mutableStateOf(false) }
 
     // Estudios
@@ -333,28 +345,39 @@ fun VeterinaryCareScreen(
                                         occurredAt = todayIso
                                     )
 
-                                    val prescriptions = if (drugName.isNotBlank()) {
-                                        val days = drugDurationDays.toIntOrNull() ?: 7
-                                        val calculatedEndDate = runCatching {
-                                            convertMillisToIsoDateString(System.currentTimeMillis() + days.toLong() * 86400000L)
-                                        }.getOrDefault(todayIso)
+                                    val overallDays = prescriptionDurationDays.toIntOrNull() ?: 7
+                                    val calculatedEndDate = runCatching {
+                                        convertMillisToIsoDateString(System.currentTimeMillis() + overallDays.toLong() * 86400000L)
+                                    }.getOrDefault(todayIso)
 
-                                        listOf(
-                                            PrescriptionRecord(
-                                                petId = p.id,
-                                                drugName = drugName.trim(),
-                                                dosage = drugDose.trim(),
-                                                route = drugRoute.trim(),
-                                                frequency = drugFreq.trim(),
-                                                duration = "$days días",
-                                                startDate = todayIso,
-                                                endDate = calculatedEndDate,
-                                                isAdministeredInConsultation = isConsultationAdmin,
-                                                prescribingVetName = context.vetUserName,
-                                                prescribingVetId = context.vetUserId
+                                    val finalMedications = addedMedications.toMutableList()
+                                    if (currentDrugName.isNotBlank()) {
+                                        finalMedications.add(
+                                            DraftMedication(
+                                                name = currentDrugName.trim(),
+                                                dose = currentDrugDose.trim(),
+                                                route = currentDrugRoute.trim(),
+                                                frequency = currentDrugFreq.trim(),
+                                                durationDays = currentDrugDuration.trim().ifBlank { "7" }
                                             )
                                         )
-                                    } else emptyList()
+                                    }
+
+                                    val prescriptions = finalMedications.map { med ->
+                                        PrescriptionRecord(
+                                            petId = p.id,
+                                            drugName = med.name,
+                                            dosage = med.dose,
+                                            route = med.route,
+                                            frequency = med.frequency,
+                                            duration = "${med.durationDays} días",
+                                            startDate = todayIso,
+                                            endDate = calculatedEndDate,
+                                            isAdministeredInConsultation = isConsultationAdmin,
+                                            prescribingVetName = context.vetUserName,
+                                            prescribingVetId = context.vetUserId
+                                        )
+                                    }
 
                                     val studies = if (studyName.isNotBlank() || category == "DIAGNOSTICO") {
                                         listOf(
@@ -438,7 +461,7 @@ fun VeterinaryCareScreen(
                                                 }
                                             }
 
-                                            successMessage = "¡Atención finalizada y guardada en el historial de ${p.name}!"
+                                            successMessage = "¡Atención finalizada y guardada en las recetas de ${p.name}!"
                                         }
                                         .onFailure { err ->
                                             statusMessage = err.message ?: "No se pudo guardar la atención."
@@ -456,7 +479,7 @@ fun VeterinaryCareScreen(
                     ) {
                         Icon(Icons.Default.Healing, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(if (isSaving) "Guardando…" else "Finalizar y Guardar en Historial", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(if (isSaving) "Guardando…" else "Finalizar y Guardar en Recetas", fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
@@ -544,18 +567,73 @@ fun VeterinaryCareScreen(
                         OutlinedTextField(value = observations, onValueChange = { observations = it }, label = { Text("Observaciones y seguimiento") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp))
 
                         Text("Receta Médica y Fármacos", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        OutlinedTextField(value = drugName, onValueChange = { drugName = it }, label = { Text("Medicamento recetado") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp))
+                        OutlinedTextField(
+                            value = prescriptionDurationDays,
+                            onValueChange = { prescriptionDurationDays = it },
+                            label = { Text("Duración general de la receta (días) *") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Agregar medicamento a la receta:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
+                        OutlinedTextField(value = currentDrugName, onValueChange = { currentDrugName = it }, label = { Text("Nombre del medicamento") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Column(modifier = Modifier.weight(1f)) { OutlinedTextField(value = drugDose, onValueChange = { drugDose = it }, label = { Text("Dosis") }) }
-                            Column(modifier = Modifier.weight(1f)) { OutlinedTextField(value = drugRoute, onValueChange = { drugRoute = it }, label = { Text("Vía") }) }
-                            Column(modifier = Modifier.weight(1f)) { OutlinedTextField(value = drugFreq, onValueChange = { drugFreq = it }, label = { Text("Frecuencia") }) }
-                            Column(modifier = Modifier.weight(1f)) { OutlinedTextField(value = drugDurationDays, onValueChange = { drugDurationDays = it }, label = { Text("Duración (días)") }, singleLine = true) }
+                            Column(modifier = Modifier.weight(1f)) { OutlinedTextField(value = currentDrugDose, onValueChange = { currentDrugDose = it }, label = { Text("Dosis") }) }
+                            Column(modifier = Modifier.weight(1f)) { OutlinedTextField(value = currentDrugRoute, onValueChange = { currentDrugRoute = it }, label = { Text("Vía") }) }
+                            Column(modifier = Modifier.weight(1f)) { OutlinedTextField(value = currentDrugFreq, onValueChange = { currentDrugFreq = it }, label = { Text("Frecuencia") }) }
+                            Column(modifier = Modifier.weight(1f)) { OutlinedTextField(value = currentDrugDuration, onValueChange = { currentDrugDuration = it }, label = { Text("Duración (días)") }, singleLine = true) }
                         }
-                        val calcDays = drugDurationDays.toIntOrNull() ?: 7
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Button(
+                            onClick = {
+                                if (currentDrugName.isNotBlank()) {
+                                    addedMedications.add(
+                                        DraftMedication(
+                                            name = currentDrugName.trim(),
+                                            dose = currentDrugDose.trim(),
+                                            route = currentDrugRoute.trim(),
+                                            frequency = currentDrugFreq.trim(),
+                                            durationDays = currentDrugDuration.trim().ifBlank { "7" }
+                                        )
+                                    )
+                                    currentDrugName = ""
+                                    currentDrugDose = ""
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(36.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text("➕ Agregar Medicamento a la Receta", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+
+                        if (addedMedications.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Medicamentos en esta receta (${addedMedications.size}):", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            addedMedications.forEachIndexed { index, med ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(6.dp)).padding(8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("${med.name} — ${med.dose} (${med.route}, ${med.frequency})", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                        Text("Duración específica: ${med.durationDays} días", fontSize = 11.sp, color = TextSecondary)
+                                    }
+                                    IconButton(onClick = { addedMedications.removeAt(index) }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Eliminar", tint = Color.Red, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        }
+
+                        val calcDays = prescriptionDurationDays.toIntOrNull() ?: 7
                         val calcExpiry = runCatching {
                             convertMillisToIsoDateString(System.currentTimeMillis() + calcDays.toLong() * 86400000L)
                         }.getOrDefault("N/A")
-                        Text("Caducidad calculada de la receta: $calcExpiry ($calcDays días de tratamiento)", fontSize = 12.sp, color = TextSecondary)
+                        Text("Caducidad calculada de la receta en general: $calcExpiry ($calcDays días de vigencia)", fontSize = 12.sp, color = TextSecondary)
                     }
 
                     "CIRUGIA" -> {

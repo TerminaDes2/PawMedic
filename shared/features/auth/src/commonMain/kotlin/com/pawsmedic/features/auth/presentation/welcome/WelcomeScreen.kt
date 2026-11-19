@@ -88,7 +88,7 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = language.text("Encuentra veterinarias, gestiona citas y lleva el historial médico de tus mascotas en un solo lugar.", "Find veterinary clinics, manage appointments and keep your pets' medical records in one place."),
+                text = language.text("Encuentra veterinarias, gestiona citas y lleva las recetas médicas de tus mascotas en un solo lugar.", "Find veterinary clinics, manage appointments and keep your pets' prescriptions in one place."),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
                 color = PawMedicSemanticColors.current.secondaryText,
