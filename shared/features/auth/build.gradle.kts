@@ -32,6 +32,7 @@ kotlin {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.cio)
         }
         getByName("desktopTest").dependencies {
             implementation(libs.ktor.client.cio)

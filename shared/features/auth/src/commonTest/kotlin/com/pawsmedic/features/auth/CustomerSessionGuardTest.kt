@@ -85,5 +85,7 @@ class CustomerSessionGuardTest {
         override suspend fun signOut() {
             signOutCount++
         }
+
+        override suspend fun recordLegalAcceptance(termsVersion: String, privacyVersion: String) = Unit
     }
 }

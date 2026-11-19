@@ -30,6 +30,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
@@ -47,6 +50,8 @@ import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTextField
 import com.pawsmedic.shared.core.designsystem.components.PawMedicTopBar
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
+import com.pawsmedic.features.auth.presentation.terms.LegalSection
+import com.pawsmedic.features.auth.presentation.terms.TermsAndConditionsDialog
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 import com.pawsmedic.shared.core.designsystem.language.AppLanguage
 import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
@@ -63,6 +68,7 @@ fun RegisterScreen(
 ) {
     val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
     val uiState by viewModel.uiState.collectAsState()
+    var legalSection by remember { mutableStateOf<LegalSection?>(null) }
 
     LaunchedEffect(uiState.isSuccess, uiState.userId) {
         if (uiState.isSuccess && uiState.userId != null) onRegisterSuccess(uiState.userId!!)
@@ -211,12 +217,29 @@ fun RegisterScreen(
                         onCheckedChange = { viewModel.toggleTermsAccepted() },
                         colors = CheckboxDefaults.colors(checkedColor = PawMedicColors.Teal600, uncheckedColor = PawMedicSemanticColors.current.hint)
                     )
-                    Text(
-                        text = language.text("Acepto los Términos y Condiciones y la Política de Privacidad", "I accept the Terms and Conditions and Privacy Policy"),
-                        fontSize = 13.sp,
-                        color = PawMedicSemanticColors.current.text,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
+                    Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+                        Text(
+                            text = language.text("He leído y acepto:", "I have read and accept:"),
+                            fontSize = 13.sp,
+                            color = PawMedicSemanticColors.current.text,
+                            modifier = Modifier.clickable { viewModel.toggleTermsAccepted() }
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = language.text("Términos de servicio", "Terms of service"),
+                                fontSize = 12.sp,
+                                color = PawMedicSemanticColors.current.accent,
+                                modifier = Modifier.clickable { legalSection = LegalSection.TERMS }
+                            )
+                            Text("·", fontSize = 12.sp, color = PawMedicSemanticColors.current.hint)
+                            Text(
+                                text = language.text("Política de privacidad", "Privacy policy"),
+                                fontSize = 12.sp,
+                                color = PawMedicSemanticColors.current.accent,
+                                modifier = Modifier.clickable { legalSection = LegalSection.PRIVACY }
+                            )
+                        }
+                    }
                 }
                 StepError(uiState.errorMessage?.let { localizeAuthMessage(it, language) })
                 Spacer(modifier = Modifier.height(24.dp))
@@ -227,6 +250,10 @@ fun RegisterScreen(
                     isLoading = uiState.isLoading
                 )
             }
+        }
+
+        legalSection?.let { section ->
+            TermsAndConditionsDialog(section = section, onDismiss = { legalSection = null })
         }
 
         Row(

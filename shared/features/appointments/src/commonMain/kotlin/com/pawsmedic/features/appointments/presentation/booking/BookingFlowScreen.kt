@@ -586,36 +586,64 @@ private fun SelectDateTimeStep(
                 fontSize = 14.sp,
                 color = PawMedicSemanticColors.current.secondaryText
             )
-            else -> uiState.availableTimeSlots.forEach { slot ->
-                val selected = slot.startsAt == uiState.selectedSlot?.startsAt
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (selected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
-                        .border(
-                            width = if (selected) 2.dp else 1.dp,
-                            color = if (selected) PawMedicColors.Teal600 else PawMedicSemanticColors.current.separator,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .clickable { onTimeSlotSelected(slot) }
-                        .padding(14.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = PawMedicSemanticColors.current.accent,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
+            else -> {
+                val groupedSlots = uiState.availableTimeSlots
+                    .sortedBy { it.label }
+                    .groupBy { slot ->
+                        val hour = slot.label.substringBefore(':').toIntOrNull() ?: 0
+                        when {
+                            hour < 12 -> "morning"
+                            hour < 17 -> "midday"
+                            else -> "afternoon"
+                        }
+                    }
+
+                listOf(
+                    "morning" to language.text("Mañana", "Morning"),
+                    "midday" to language.text("Mediodía", "Midday"),
+                    "afternoon" to language.text("Tarde", "Afternoon")
+                ).forEach { (periodKey, periodLabel) ->
+                    val periodSlots = groupedSlots[periodKey].orEmpty()
+                    if (periodSlots.isNotEmpty()) {
                         Text(
-                            text = slot.label,
-                            fontSize = 16.sp,
+                            text = periodLabel,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PawMedicSemanticColors.current.text
+                            color = PawMedicSemanticColors.current.secondaryText,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
                         )
+                        periodSlots.chunked(3).forEach { rowSlots ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowSlots.forEach { slot ->
+                                    val selected = slot.startsAt == uiState.selectedSlot?.startsAt
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(if (selected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.surface)
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (selected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.separator,
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable { onTimeSlotSelected(slot) }
+                                            .padding(vertical = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = slot.label,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (selected) PawMedicColors.White else PawMedicSemanticColors.current.text
+                                        )
+                                    }
+                                }
+                                repeat(3 - rowSlots.size) { Spacer(modifier = Modifier.weight(1f)) }
+                            }
+                        }
                     }
                 }
             }

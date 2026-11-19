@@ -10,7 +10,10 @@ interface AppointmentRepository {
     suspend fun getAvailableSlots(
         tenantId: String,
         serviceId: String,
-        date: String
+        date: String,
+        excludedAppointmentId: String? = null
     ): Result<List<AvailableAppointmentSlot>>
     suspend fun requestAppointment(appointment: Appointment): Result<Appointment>
+    suspend fun cancelAppointment(appointmentId: String): Result<Unit>
+    suspend fun editAppointment(appointmentId: String, date: String, time: String): Result<Unit>
 }

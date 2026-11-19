@@ -36,4 +36,8 @@ class NoOpSupabaseAuthDataSource : SupabaseAuthDataSource {
     override suspend fun signOut() {
         error("Authentication is not available in this test data source")
     }
+
+    override suspend fun recordLegalAcceptance(termsVersion: String, privacyVersion: String) {
+        error("Legal acceptance is not available in this test data source")
+    }
 }

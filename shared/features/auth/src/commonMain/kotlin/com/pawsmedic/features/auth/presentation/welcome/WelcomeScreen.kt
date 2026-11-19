@@ -10,10 +10,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -21,6 +26,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.auth.presentation.components.AuthLogo
+import com.pawsmedic.features.auth.presentation.terms.LegalSection
+import com.pawsmedic.features.auth.presentation.terms.TermsAndConditionsDialog
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
@@ -35,6 +42,7 @@ fun WelcomeScreen(
     modifier: Modifier = Modifier
 ) {
     val language = LocalLanguagePreference.current?.selected ?: AppLanguage.SPANISH
+    var legalSection by remember { mutableStateOf<LegalSection?>(null) }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -111,12 +119,28 @@ fun WelcomeScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
-                text = language.text("Al continuar, aceptas nuestros Términos y Políticas de Privacidad", "By continuing, you agree to our Terms and Privacy Policy"),
-                fontSize = 12.sp,
-                color = PawMedicSemanticColors.current.hint,
-                textAlign = TextAlign.Center
-            )
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = language.text("Términos", "Terms"),
+                    fontSize = 12.sp,
+                    color = PawMedicSemanticColors.current.accent,
+                    modifier = Modifier.clickable { legalSection = LegalSection.TERMS }
+                )
+                Text(" · ", fontSize = 12.sp, color = PawMedicSemanticColors.current.hint)
+                Text(
+                    text = language.text("Política de privacidad", "Privacy policy"),
+                    fontSize = 12.sp,
+                    color = PawMedicSemanticColors.current.accent,
+                    modifier = Modifier.clickable { legalSection = LegalSection.PRIVACY }
+                )
+            }
         }
+    }
+
+    legalSection?.let { section ->
+        TermsAndConditionsDialog(section = section, onDismiss = { legalSection = null })
     }
 }

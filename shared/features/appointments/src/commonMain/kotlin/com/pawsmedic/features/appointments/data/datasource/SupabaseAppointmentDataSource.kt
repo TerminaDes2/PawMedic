@@ -61,7 +61,8 @@ class SupabaseAppointmentDataSource(
     override suspend fun getAvailableSlots(
         tenantId: String,
         serviceId: String,
-        date: String
+        date: String,
+        excludedAppointmentId: String?
     ): List<AvailableAppointmentSlot> =
         supabase.postgrest.rpc(
             function = "get_available_slots",
@@ -69,6 +70,9 @@ class SupabaseAppointmentDataSource(
                 put("p_tenant_id", tenantId)
                 put("p_service_id", serviceId)
                 put("p_date", date)
+                if (excludedAppointmentId != null) {
+                    put("p_excluded_appointment_id", excludedAppointmentId)
+                }
             }
         ).decodeList<AvailableSlotRecord>()
             .map { AvailableAppointmentSlot(it.startsAt, it.endsAt, it.localTime) }
@@ -101,6 +105,28 @@ class SupabaseAppointmentDataSource(
             status = result.status.toDisplayStatus(),
             startsAt = result.startsAt,
             endsAt = result.endsAt
+        )
+    }
+
+    override suspend fun cancelAppointment(appointmentId: String) {
+        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para cancelar la cita." }
+        supabase.postgrest.rpc(
+            function = "cancel_owned_appointment",
+            parameters = buildJsonObject {
+                put("p_appointment_id", appointmentId)
+            }
+        )
+    }
+
+    override suspend fun editAppointment(appointmentId: String, date: String, time: String) {
+        require(ownerId.isNotBlank()) { "No hay una cuenta autenticada para editar la cita." }
+        supabase.postgrest.rpc(
+            function = "update_owned_appointment",
+            parameters = buildJsonObject {
+                put("p_appointment_id", appointmentId)
+                put("p_date", date)
+                put("p_time", time)
+            }
         )
     }
 }

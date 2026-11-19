@@ -54,6 +54,10 @@ class SupabaseAuthRepository(
     override suspend fun verifyEmailOtp(email: String, code: String): AuthenticatedSession =
         dataSource.verifyEmailOtp(email, code).toDomain()
 
+    override suspend fun recordLegalAcceptance(termsVersion: String, privacyVersion: String) {
+        dataSource.recordLegalAcceptance(termsVersion, privacyVersion)
+    }
+
     override suspend fun resendEmailOtp(email: String) {
         dataSource.resendEmailOtp(email)
     }
