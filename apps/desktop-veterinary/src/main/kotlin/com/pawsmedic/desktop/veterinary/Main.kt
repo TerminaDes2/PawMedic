@@ -284,12 +284,7 @@ fun main() = application {
                         },
                         onBackToLogin = { currentScreen = "Login" }
                     )
-                    "Register" -> Column(Modifier.fillMaxSize()) {
-                        Box(Modifier.weight(1f).fillMaxWidth()) {
-                            RegisterScreen(onNavigateToLogin = { currentScreen = "Login" })
-                        }
-                        SupportFooter(modifier = Modifier.padding(start = 16.dp, bottom = 12.dp))
-                    }
+                    "Register" -> RegisterScreen(onNavigateToLogin = { currentScreen = "Login" })
                     "Agenda" -> AgendaScreen(
                         userEmail = activeUserEmail,
                         onNavigate = { currentScreen = it },
