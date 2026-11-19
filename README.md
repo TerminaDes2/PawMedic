@@ -69,7 +69,10 @@ configuration is not a substitute for protecting secrets.
 On Windows use `gradlew.bat`; on macOS/Linux use `./gradlew`.
 
 The desktop veterinary catalog supports product creation, detail, editing,
-availability, publication and JPG/PNG images (up to 5 MB). Images are stored
+availability, publication and required JPG/PNG images (up to 5 MB). Products
+must use a category selected from `product_types` in Supabase; the selected
+ID is stored in `products.type_id`. Existing products without an image or
+category must have those fields filled in when edited. Images are stored
 in the public `product-images` bucket: do not upload private information, as
 an image URL is accessible even when its product is unpublished.
 
@@ -83,22 +86,45 @@ After consulting a report, use **PDF** to save its current date range, totals,
 completed appointments and services. The PDF contains clinic and patient
 information; save it only in an authorized location.
 
-In the veterinary catalog, select **Servicios** or **Productos**, then
-**Importar TXT** for the corresponding template. Save the text file as UTF-8,
-with one `campo: valor` per line and `---` on a separate line between entries.
-Products require `nombre`, `sku`, `precio` in MXN and `existencias`; services
-require `nombre`, `precio` and `duracion` in minutes. `descripcion` is optional.
-All records are validated before a single batch insert. Imported products start
-active but unpublished; category and image are not imported.
+The superadmin audit report requires
+`supabase/migrations/20261118000000_superadmin_audit_read.sql` to let
+superadmins read audit events. The report includes events recorded in the
+selected period; the migration does not reconstruct missing history.
+
+Products and services are entered individually; TXT import is no longer available.
 
 Apply `supabase/migrations/20261116000000_operational_reports.sql` and
 `supabase/migrations/20261116000001_product_images.sql`, followed by
-`supabase/migrations/20261116000002_public_product_catalog.sql`, in that order, to
-the Supabase project after the existing migrations. The latter requires
-permission to create a Storage bucket and policies. Verify policies and
+`supabase/migrations/20261116000002_public_product_catalog.sql`, followed by
+`supabase/migrations/20261117000000_public_product_id_compatibility.sql` and
+`supabase/migrations/20261118000000_product_images_tenant_upload.sql`, followed by
+`supabase/migrations/20261118000001_fix_product_image_storage_policies.sql`, in that order,
+to the Supabase project after the existing migrations. The product image migrations
+require permission to create a Storage bucket and policies. Verify policies and
 reports with accounts from different clinics before deploying.
-The last migration exposes only active, published products of active clinics
-to signed-in users; these appear in the clinic profile in the mobile app.
+If the earlier migrations were already applied, apply only the new ID
+compatibility and product-image storage-policy migrations; they update the
+public-products function and storage policies without changing product rows.
+The public product catalog migration exposes only active, published products
+of active clinics to signed-in users; these appear in the clinic profile in the mobile app.
+The deployment must allow authenticated users to read `product_types`, allow
+the clinic account to write its products, and permit uploads to the
+`product-images` bucket. Existing permissive policies can broaden access even
+when stricter policies are also present.
+
+To build a Windows portable ZIP with the integrated veterinary and superadmin
+interfaces, the local translation worker and a Windows Java runtime, set
+`JAVA_HOME` to that runtime and run
+`gradlew.bat :apps:desktop-veterinary:portableWindowsZip`. The ZIP is created in
+`apps\desktop-veterinary\build\distributions`. Extract it and run
+`Iniciar PawMedic.exe`; it opens without a console window, and superadmin access
+is available on the login screen. Building the launcher requires the Windows
+.NET Framework C# compiler.
+Only the Supabase URL and public publishable/anon key are included from `.env`
+or environment variables. Never distribute a service-role or secret key.
+The application still needs network access to Supabase, although Argos
+translation runs locally. Review third-party redistribution licenses before
+distributing the ZIP.
 
 Both desktop dashboards provide a persistent dark-mode setting. English is
 available for navigation, veterinary reports, the main catalog labels,

@@ -37,6 +37,7 @@ import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
 import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
 import com.pawsmedic.desktop.admin.ui.AppearanceButton
+import com.pawsmedic.desktop.admin.ui.SupportFooter
 import com.pawsmedic.shared.core.model.ProfileRole
 import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
@@ -163,16 +164,19 @@ fun SuperadminLoginScreen(
                     )
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "© 2026 PawsMedic. Superadmin Suite.", fontSize = 12.sp, color = TextMuted)
-                    TextButton(onClick = onBackToLogin) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = ClinicalEmerald, modifier = Modifier.size(16.dp))
-                            Text(tr("Volver al login de veterinaria", "Back to veterinary sign in"), fontSize = 12.sp, color = ClinicalEmerald, fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SupportFooter(labelColor = Color(0xFF94A3B8), contactColor = Color(0xFFCBD5E1))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "© 2026 PawsMedic. Superadmin Suite.", fontSize = 12.sp, color = TextMuted)
+                        TextButton(onClick = onBackToLogin) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = ClinicalEmerald, modifier = Modifier.size(16.dp))
+                                Text(tr("Volver al login de veterinaria", "Back to veterinary sign in"), fontSize = 12.sp, color = ClinicalEmerald, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

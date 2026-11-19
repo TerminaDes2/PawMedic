@@ -26,6 +26,7 @@ import com.pawsmedic.desktop.veterinary.ui.theme.*
 import com.pawsmedic.desktop.admin.ui.AppearanceButton
 import com.pawsmedic.desktop.admin.ui.NavigationLanguageButton
 import com.pawsmedic.desktop.admin.ui.LocalDesktopAppearance
+import com.pawsmedic.desktop.admin.ui.SupportFooter
 import com.pawsmedic.desktop.veterinary.supabase
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
@@ -198,6 +199,10 @@ fun VetAppLayout(
                         }
                     }
                 }
+                SupportFooter(
+                    labelColor = Color(0xFF94A3B8),
+                    contactColor = Color(0xFFCBD5E1)
+                )
             }
 
             // CONTENIDO PRINCIPAL DERECHO

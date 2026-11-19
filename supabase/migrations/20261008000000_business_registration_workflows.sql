@@ -218,8 +218,7 @@ begin
 
     update public.tenants
     set status = case when p_status = 'APPROVED' then 'ACTIVE'::public.tenant_status
-                      else 'SUSPENDED'::public.tenant_status end,
-        updated_at = now()
+                      else 'SUSPENDED'::public.tenant_status end
     where id = v_business.tenant_id;
 
     insert into public.audit_logs (actor_id, tenant_id, action, entity_type, entity_id, metadata)

@@ -214,8 +214,7 @@ fun ScheduleScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else
-                tr("No se pudieron cargar los horarios. Comprueba la conexión y la configuración de Supabase.", "Could not load schedules. Check your connection and Supabase configuration.")
+            errorMessage = tr("No se pudieron cargar los horarios. Inténtalo de nuevo.", "Could not load schedules. Please try again.")
         } finally {
             loading = false
         }
@@ -264,7 +263,7 @@ fun ScheduleScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo guardar el horario. Comprueba los permisos y vuelve a intentarlo.", "Could not save the schedule. Check permissions and try again.")
+            errorMessage = tr("No se pudo guardar el horario. Inténtalo de nuevo.", "Could not save the schedule. Please try again.")
         } finally {
             saving = false
         }
@@ -287,7 +286,7 @@ fun ScheduleScreen(
             throw e
         } catch (e: Exception) {
             deleting = null
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo eliminar el horario. Comprueba los permisos y vuelve a intentarlo.", "Could not delete the schedule. Check permissions and try again.")
+            errorMessage = tr("No se pudo eliminar el horario. Inténtalo de nuevo.", "Could not delete the schedule. Please try again.")
         } finally {
             saving = false
         }

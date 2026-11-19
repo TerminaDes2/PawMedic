@@ -10,6 +10,7 @@ import com.pawsmedic.shared.core.model.UserProfile
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
+import io.ktor.http.ContentType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,6 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -62,15 +64,22 @@ private data class CatalogService(
 private data class CatalogProduct(
     val id: Int,
     @SerialName("tenant_id") val tenantId: String,
-    val sku: String,
+    val sku: String? = null,
     val name: String,
     val description: String = "",
+    @SerialName("type_id") val typeId: Int? = null,
     @SerialName("price_cents") val priceCents: Int,
     @SerialName("stock_quantity") val stockQuantity: Int,
     val active: Boolean,
     val published: Boolean,
     @SerialName("image_url") val imageUrl: String = ""
 )
+
+@Serializable
+internal data class ProductCategory(val id: Int, val name: String)
+
+internal fun productRequirementsMet(categoryId: Int?, categories: List<ProductCategory>, hasImage: Boolean): Boolean =
+    categoryId != null && categories.any { it.id == categoryId } && hasImage
 
 @Serializable
 private data class NewCatalogService(
@@ -88,9 +97,10 @@ private data class NewCatalogProduct(
     val sku: String,
     val name: String,
     val description: String,
+    @SerialName("type_id") val typeId: Int,
     @SerialName("price_cents") val priceCents: Int,
     @SerialName("stock_quantity") val stockQuantity: Int,
-    @SerialName("image_url") val imageUrl: String = "",
+    @SerialName("image_url") val imageUrl: String,
     val active: Boolean = true,
     val published: Boolean = false
 )
@@ -113,12 +123,6 @@ fun CatalogScreen(
     fun tr(spanish: String, englishText: String) = if (english) englishText else spanish
     var selectedTab by remember { mutableStateOf("Servicios") }
     var showCreateDialog by remember { mutableStateOf(false) }
-    var showImportDialog by remember { mutableStateOf(false) }
-    var importKind by remember { mutableStateOf(ImportKind.PRODUCT) }
-    var importItems by remember { mutableStateOf<List<ImportItem>?>(null) }
-    var importFileName by remember { mutableStateOf("") }
-    var importError by remember { mutableStateOf<String?>(null) }
-    var importNotice by remember { mutableStateOf<String?>(null) }
     var editingProduct by remember { mutableStateOf<CatalogProduct?>(null) }
     var detailProduct by remember { mutableStateOf<CatalogProduct?>(null) }
     var detailImage by remember { mutableStateOf<ImageBitmap?>(null) }
@@ -126,6 +130,10 @@ fun CatalogScreen(
     var selectedPhoto by remember { mutableStateOf<SelectedPhoto?>(null) }
     var services by remember { mutableStateOf<List<CatalogService>>(emptyList()) }
     var products by remember { mutableStateOf<List<CatalogProduct>>(emptyList()) }
+    var categories by remember { mutableStateOf<List<ProductCategory>>(emptyList()) }
+    var categoriesError by remember { mutableStateOf(false) }
+    var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
+    var categoryMenuExpanded by remember { mutableStateOf(false) }
     val translations = LocalCatalogTranslations.current
     var translationError by remember { mutableStateOf(false) }
     var translating by remember { mutableStateOf(false) }
@@ -143,9 +151,9 @@ fun CatalogScreen(
     var stock by remember { mutableStateOf("0") }
     val coroutineScope = rememberCoroutineScope()
 
-    val catalogTexts = remember(services, products, selectedTab) {
+    val catalogTexts = remember(services, products, categories, selectedTab) {
         if (selectedTab == "Servicios") services.flatMap { listOf(it.name, it.description) }
-        else products.flatMap { listOf(it.name, it.description) }
+        else products.flatMap { listOf(it.name, it.description) } + categories.map { it.name }
     }
     LaunchedEffect(english, catalogTexts, translationAttempt) {
         if (!english) {
@@ -193,10 +201,20 @@ fun CatalogScreen(
             products = supabase.postgrest["products"].select {
                 filter { eq("tenant_id", clinicId) }
             }.decodeList<CatalogProduct>()
+            try {
+                categories = supabase.postgrest["product_types"].select().decodeList<ProductCategory>().sortedBy { it.name }
+                categoriesError = false
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                categories = emptyList()
+                categoriesError = true
+                System.err.println("No se pudieron cargar las categorías de productos: ${e.javaClass.simpleName}")
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo cargar el catálogo desde Supabase.", "Could not load the catalog from Supabase.")
+            errorMessage = tr("No se pudo cargar el catálogo. Inténtalo de nuevo.", "Could not load the catalog. Please try again.")
         } finally {
             isLoading = false
         }
@@ -217,36 +235,54 @@ fun CatalogScreen(
         }
         val cleanName = name.trim()
         if (cleanName.isBlank()) { errorMessage = tr("El nombre es obligatorio.", "Name is required."); return }
+        val minutes = duration.toIntOrNull()?.takeIf { it > 0 }
+        val cleanSku = sku.trim()
+        val quantity = stock.toIntOrNull()?.takeIf { it >= 0 }
+        val categoryId = selectedCategoryId
+        if (selectedTab == "Servicios" && minutes == null) {
+            errorMessage = tr("La duración debe ser un entero mayor que cero.", "Duration must be a positive whole number."); return
+        }
+        if (selectedTab != "Servicios") {
+            if (cleanSku.isBlank()) { errorMessage = tr("El SKU es obligatorio para los productos.", "SKU is required for products."); return }
+            if (quantity == null) { errorMessage = tr("La existencia debe ser un entero no negativo.", "Stock must be a non-negative whole number."); return }
+            if (!productRequirementsMet(categoryId, categories, selectedPhoto != null || !editingProduct?.imageUrl.isNullOrBlank())) {
+                errorMessage = tr("Selecciona una categoría disponible y una imagen para el producto.", "Select an available category and an image for the product."); return
+            }
+        }
         isSaving = true
         errorMessage = null
         try {
             if (selectedTab == "Servicios") {
-                val minutes = duration.toIntOrNull()?.takeIf { it > 0 }
-                    ?: error(tr("La duración debe ser un entero mayor que cero.", "Duration must be a positive whole number."))
                 supabase.postgrest["services"].insert(
-                    NewCatalogService(clinicId, cleanName, description.trim(), minutes, priceCents)
+                    NewCatalogService(clinicId, cleanName, description.trim(), checkNotNull(minutes), priceCents)
                 )
             } else {
-                val cleanSku = sku.trim()
-                if (cleanSku.isBlank()) error(tr("El SKU es obligatorio para los productos.", "SKU is required for products."))
-                val quantity = stock.toIntOrNull()?.takeIf { it >= 0 }
-                    ?: error(tr("La existencia debe ser un entero no negativo.", "Stock must be a non-negative whole number."))
+                checkNotNull(categoryId)
+                checkNotNull(quantity)
                 val imageUrl = selectedPhoto?.let { photo ->
                     val bucket = supabase.storage.from("product-images")
                     val key = "$clinicId/${UUID.randomUUID()}.${photo.extension}"
-                    bucket.upload(key, photo.bytes)
+                    bucket.upload(key, photo.bytes) {
+                        upsert = false
+                        contentType = when (photo.extension.lowercase()) {
+                            "jpg", "jpeg" -> ContentType.Image.JPEG
+                            "png" -> ContentType.Image.PNG
+                            else -> error("Formato de imagen no compatible.")
+                        }
+                    }
                     bucket.publicUrl(key)
                 } ?: editingProduct?.imageUrl.orEmpty()
                 val existing = editingProduct
                 if (existing == null) {
                     supabase.postgrest["products"].insert(
-                        NewCatalogProduct(clinicId, cleanSku, cleanName, description.trim(), priceCents, quantity, imageUrl)
+                        NewCatalogProduct(clinicId, cleanSku, cleanName, description.trim(), categoryId, priceCents, quantity, imageUrl)
                     )
                 } else {
                     val updated = supabase.postgrest["products"].update({
                         set("sku", cleanSku)
                         set("name", cleanName)
                         set("description", description.trim())
+                        set("type_id", categoryId)
                         set("price_cents", priceCents)
                         set("stock_quantity", quantity)
                         set("image_url", imageUrl)
@@ -265,12 +301,25 @@ fun CatalogScreen(
             duration = "30"
             stock = "0"
             selectedPhoto = null
+            selectedCategoryId = null
             editingProduct = null
             loadCatalog()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo guardar el elemento en Supabase.", "Could not save the item in Supabase.")
+            val detail = e.message?.takeIf { it.isNotBlank() }?.take(240) ?: e.javaClass.simpleName
+            System.err.println("Could not save catalog item: ${e.javaClass.simpleName}: $detail")
+            errorMessage = if (
+                detail.contains("row-level security policy", ignoreCase = true) &&
+                detail.contains("/storage/v1/object/", ignoreCase = true)
+            ) {
+                tr(
+                    "Supabase denegó la subida de la imagen. Aplica la migración de permisos de imágenes y verifica que tu cuenta esté vinculada a esta clínica.",
+                    "Supabase denied the image upload. Apply the product image access migration and verify your account is linked to this clinic."
+                )
+            } else {
+                tr("No se pudo guardar el elemento. Inténtalo de nuevo.", "Could not save the item. Please try again.")
+            }
         } finally {
             isSaving = false
         }
@@ -294,7 +343,7 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo actualizar el estado del elemento.", "Could not update the item status.")
+            errorMessage = tr("No se pudo actualizar el estado del elemento.", "Could not update the item status.")
         } finally {
             isSaving = false
         }
@@ -317,7 +366,7 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudieron actualizar los servicios.", "Could not update the services.")
+            errorMessage = tr("No se pudieron actualizar los servicios.", "Could not update the services.")
         } finally {
             isSaving = false
         }
@@ -339,37 +388,7 @@ fun CatalogScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorMessage = if (e is IllegalStateException) e.message else tr("No se pudo actualizar la publicación del producto.", "Could not update the product publication status.")
-        }
-    }
-
-    suspend fun importCatalog() {
-        val clinicId = tenantId
-        val items = importItems
-        if (clinicId == null || items == null || isSaving) return
-        isSaving = true
-        importError = null
-        try {
-            if (importKind == ImportKind.PRODUCT) {
-                supabase.postgrest["products"].insert(items.map {
-                    NewCatalogProduct(clinicId, it.sku, it.name, it.description, it.priceCents, it.stock)
-                })
-            } else {
-                supabase.postgrest["services"].insert(items.map {
-                    NewCatalogService(clinicId, it.name, it.description, it.duration, it.priceCents)
-                })
-            }
-            showImportDialog = false
-            importItems = null
-            loadCatalog()
-            importNotice = if (english) "${items.size} items imported." else "Se importaron ${items.size} elementos."
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            importError = if (english) "Could not confirm the import. Check the catalog before retrying; duplicate SKUs or database constraints may also cause errors."
-                else "No se pudo confirmar la importación. Revisa el catálogo antes de reintentar; un SKU duplicado o una restricción de la base de datos también puede causar este error."
-        } finally {
-            isSaving = false
+            errorMessage = tr("No se pudo actualizar la publicación del producto.", "Could not update the product publication status.")
         }
     }
 
@@ -430,17 +449,10 @@ fun CatalogScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(onClick = { coroutineScope.launch { loadCatalog() } }, enabled = !isLoading) { Text(tr("Actualizar", "Refresh")) }
-                    OutlinedButton(onClick = {
-                        importKind = if (selectedTab == "Productos") ImportKind.PRODUCT else ImportKind.SERVICE
-                        importItems = null
-                        importFileName = ""
-                        importError = null
-                        importNotice = null
-                        showImportDialog = true
-                    }, enabled = tenantId != null && !isLoading && !isSaving) { Text(tr("Importar TXT", "Import TXT")) }
                     Button(onClick = {
                         editingProduct = null
                         selectedPhoto = null
+                        selectedCategoryId = null
                         name = ""; sku = ""; description = ""; price = ""; stock = "0"; duration = "30"
                         errorMessage = null
                         showCreateDialog = true
@@ -450,7 +462,6 @@ fun CatalogScreen(
                 }
             }
             Spacer(Modifier.height(16.dp))
-            importNotice?.let { Text(it, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp) }
             if (english) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Automatic translation; check the original.", color = TextSecondary, fontSize = 12.sp)
@@ -529,7 +540,7 @@ fun CatalogScreen(
                 else items(products, key = { it.id }) { product ->
                     Row(Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(7.dp)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(0.38f)) {
-                            Text(product.sku, fontSize = 10.sp, color = TextMuted)
+                            Text(product.sku.orEmpty(), fontSize = 10.sp, color = TextMuted)
                             Text(displayText(product.name), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
                             TextButton(onClick = { detailProduct = product }) { Text(tr("Ver detalle", "View details")) }
                         }
@@ -556,72 +567,6 @@ fun CatalogScreen(
             }
         }
 
-        if (showImportDialog) Dialog(onDismissRequest = { if (!isSaving) showImportDialog = false }) {
-            Card(Modifier.width(620.dp).heightIn(max = 720.dp), shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CardWhite)) {
-                Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        if (importKind == ImportKind.PRODUCT) tr("Importar productos", "Import products")
-                        else tr("Importar servicios", "Import services"),
-                        fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary
-                    )
-                    Text(tr(
-                        "Selecciona un archivo .txt en UTF-8. Escribe un campo por línea y separa cada elemento con --- en una línea. Máximo 500 elementos. La descripción es opcional; los demás campos son obligatorios. El precio está en MXN y admite hasta dos decimales.",
-                        "Select a UTF-8 .txt file. Write one field per line and separate items with --- on its own line. Maximum 500 items. Description is optional; all other fields are required. Prices are in MXN with up to two decimals."
-                    ), color = TextSecondary, fontSize = 13.sp)
-                    Text(tr("Ejemplo (usa los nombres de campo indicados):", "Example (use the field names shown):"),
-                        color = TextPrimary, fontWeight = FontWeight.Medium)
-                    val example = if (importKind == ImportKind.PRODUCT)
-                        "nombre: Alimento\nsku: ALI-001\ndescripcion: Bolsa de 1 kg\nprecio: 150.00\nexistencias: 12\n---\nnombre: Juguete\nsku: JUG-001\ndescripcion: Pelota\nprecio: 35.50\nexistencias: 5"
-                    else
-                        "nombre: Consulta general\ndescripcion: Revisión veterinaria\nprecio: 350.00\nduracion: 30\n---\nnombre: Baño\ndescripcion: Higiene básica\nprecio: 250.00\nduracion: 60"
-                    Text(example, color = TextPrimary, fontSize = 12.sp,
-                        modifier = Modifier.fillMaxWidth().background(OffWhiteBg, RoundedCornerShape(8.dp)).padding(12.dp))
-                    Text(if (importKind == ImportKind.PRODUCT)
-                        tr("Los productos se crean activos y sin publicar. La categoría y la imagen no se importan.",
-                            "Products are created active and unpublished. Category and image are not imported.")
-                    else tr("La duración se expresa en minutos. Los servicios se crean activos.",
-                        "Duration is in minutes. Services are created active."),
-                        color = TextSecondary, fontSize = 12.sp)
-                    OutlinedButton(enabled = !isSaving, onClick = {
-                        val file = chooseCatalogFile()
-                        if (file != null) {
-                            importItems = null
-                            importFileName = file.name
-                            importError = null
-                            coroutineScope.launch {
-                                isSaving = true
-                                try {
-                                    importItems = withContext(Dispatchers.IO) { parseCatalogImport(readCatalogFile(file), importKind) }
-                                } catch (e: CancellationException) {
-                                    throw e
-                                } catch (e: Exception) {
-                                    importError = e.message ?: tr("No se pudo leer el archivo.", "Could not read the file.")
-                                } finally {
-                                    isSaving = false
-                                }
-                            }
-                        }
-                    }) { Text(tr("Seleccionar archivo", "Choose file")) }
-                    importItems?.let {
-                        Text("$importFileName — ${it.size} ${tr("elementos listos para importar", "items ready to import")}",
-                            color = MaterialTheme.colorScheme.primary)
-                    }
-                    importError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedButton(onClick = { showImportDialog = false }, enabled = !isSaving, modifier = Modifier.weight(1f)) {
-                            Text(tr("Cancelar", "Cancel"))
-                        }
-                        Button(onClick = { coroutineScope.launch { importCatalog() } }, enabled = importItems != null && !isSaving,
-                            modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = ClinicalEmerald)) {
-                            Text(if (isSaving) tr("Procesando…", "Processing…") else tr("Importar", "Import"), color = Color.White)
-                        }
-                    }
-                }
-            }
-        }
-
         detailProduct?.let { product ->
             AlertDialog(
                 onDismissRequest = { detailProduct = null },
@@ -629,6 +574,7 @@ fun CatalogScreen(
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("SKU: ${product.sku}")
+                        Text("${tr("Categoría", "Category")}: ${categories.find { it.id == product.typeId }?.name?.let(::displayText) ?: tr("Sin categoría", "No category")}")
                         Text("${tr("Descripción", "Description")}: ${displayText(product.description).ifBlank { "—" }}")
                         if (english) {
                             Text("Automatic translation; check the original.", color = TextSecondary, fontSize = 11.sp)
@@ -648,7 +594,8 @@ fun CatalogScreen(
                 confirmButton = {
                     TextButton(onClick = {
                         editingProduct = product
-                        name = product.name; sku = product.sku; description = product.description
+                        name = product.name; sku = product.sku.orEmpty(); description = product.description
+                        selectedCategoryId = product.typeId
                         price = java.math.BigDecimal(product.priceCents).movePointLeft(2).toPlainString()
                         stock = product.stockQuantity.toString()
                         selectedPhoto = null
@@ -675,8 +622,40 @@ fun CatalogScreen(
                     if (selectedTab == "Servicios") OutlinedTextField(duration, { duration = it }, label = { Text(tr("Duración (minutos)", "Duration (minutes)")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     else {
                         OutlinedTextField(stock, { stock = it }, label = { Text(tr("Existencias", "Stock")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        Box(Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = categories.find { it.id == selectedCategoryId }?.name?.let(::displayText).orEmpty(),
+                                onValueChange = {},
+                                readOnly = true,
+                                enabled = !isSaving && categories.isNotEmpty(),
+                                singleLine = true,
+                                label = { Text(tr("Categoría", "Category")) },
+                                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                            Box(Modifier.matchParentSize().clickable(enabled = !isSaving && categories.isNotEmpty()) { categoryMenuExpanded = true })
+                            DropdownMenu(expanded = categoryMenuExpanded, onDismissRequest = { categoryMenuExpanded = false }) {
+                                categories.forEach { category ->
+                                    DropdownMenuItem(text = { Text(displayText(category.name)) }, onClick = {
+                                        selectedCategoryId = category.id
+                                        categoryMenuExpanded = false
+                                    })
+                                }
+                            }
+                        }
+                        if (categories.isEmpty()) {
+                            Text(if (categoriesError) tr("No se pudieron cargar las categorías. Actualiza el catálogo.", "Could not load categories. Refresh the catalog.")
+                            else tr("No hay categorías disponibles en Supabase.", "No categories are available in Supabase."),
+                                color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                        }
                         OutlinedButton(onClick = {
-                            val file = chooseProfilePhoto()
+                            val file = chooseProfilePhoto(english)
                             if (file != null) coroutineScope.launch {
                                 try {
                                     selectedPhoto = readProfilePhoto(file)
@@ -684,11 +663,14 @@ fun CatalogScreen(
                                 } catch (e: CancellationException) {
                                     throw e
                                 } catch (e: Exception) {
-                                    errorMessage = e.message ?: "No se pudo leer la imagen."
+                                    errorMessage = tr("No se pudo leer la imagen. Selecciona un archivo JPG o PNG válido.", "Could not read the image. Select a valid JPG or PNG file.")
                                 }
                             }
-                        }, enabled = !isSaving) { Text(tr("Seleccionar imagen JPG o PNG", "Choose JPG or PNG image")) }
+                        }, enabled = !isSaving) { Text(tr("Seleccionar imagen obligatoria (JPG o PNG)", "Choose required image (JPG or PNG)")) }
                         selectedPhoto?.let { Image(it.preview, contentDescription = tr("Imagen seleccionada", "Selected image"), modifier = Modifier.size(72.dp)) }
+                        if (selectedPhoto == null && !editingProduct?.imageUrl.isNullOrBlank()) {
+                            Text(tr("Se conservará la imagen actual.", "The current image will be kept."), fontSize = 12.sp, color = TextSecondary)
+                        }
                         Text(tr("Los productos nuevos quedan sin publicar. El estado de publicación puede cambiarse desde el listado.", "New products are unpublished. Change their publication status in the list."), fontSize = 11.sp, color = TextSecondary)
                     }
                     errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
