@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pawsmedic.features.businesses.domain.model.Business
 import com.pawsmedic.features.businesses.presentation.VeterinaryListViewModel
-import com.pawsmedic.features.businesses.presentation.detail.ClinicImage
+import com.pawsmedic.features.businesses.presentation.detail.ClinicBannerImage
 import com.pawsmedic.shared.core.designsystem.components.PawMedicPrimaryButton
 import com.pawsmedic.shared.core.designsystem.components.PawMedicSecondaryButton
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
@@ -202,28 +202,13 @@ private fun VeterinaryCard(
     ) {
         Column {
             // Clinic Photo / Banner
-            Box(
+            ClinicBannerImage(
+                imageUrl = clinic.imageUrl,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(140.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(PawMedicSemanticColors.current.softAccent),
-                contentAlignment = Alignment.Center
-            ) {
-                if (clinic.imageUrl.isNullOrBlank()) {
-                    Icon(
-                        imageVector = Icons.Default.LocalHospital,
-                        contentDescription = null,
-                        tint = PawMedicSemanticColors.current.accent,
-                        modifier = Modifier.size(56.dp)
-                    )
-                } else {
-                    ClinicImage(
-                        url = clinic.imageUrl,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 

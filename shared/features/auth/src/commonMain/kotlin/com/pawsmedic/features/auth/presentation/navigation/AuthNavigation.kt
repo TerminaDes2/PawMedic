@@ -77,14 +77,20 @@ fun AuthNavHost(
             AuthScreenState.Welcome -> {
                 WelcomeScreen(
                     onNavigateToLogin = { currentScreen = AuthScreenState.Login },
-                    onNavigateToRegister = { currentScreen = AuthScreenState.Register }
+                    onNavigateToRegister = {
+                        registerViewModel.resetForm()
+                        currentScreen = AuthScreenState.Register
+                    }
                 )
             }
             AuthScreenState.Login -> {
                 LoginScreen(
                     viewModel = loginViewModel,
                     onBackClick = { currentScreen = AuthScreenState.Welcome },
-                    onNavigateToRegister = { currentScreen = AuthScreenState.Register },
+                    onNavigateToRegister = {
+                        registerViewModel.resetForm()
+                        currentScreen = AuthScreenState.Register
+                    },
                     onLoginSuccess = { userId ->
                         currentScreen = AuthScreenState.Authenticated(userId, loginViewModel.uiState.value.userEmail)
                     },
@@ -102,8 +108,14 @@ fun AuthNavHost(
             AuthScreenState.Register -> {
                 RegisterScreen(
                     viewModel = registerViewModel,
-                    onBackClick = { currentScreen = AuthScreenState.Welcome },
-                    onNavigateToLogin = { currentScreen = AuthScreenState.Login },
+                    onBackClick = {
+                        registerViewModel.resetForm()
+                        currentScreen = AuthScreenState.Welcome
+                    },
+                    onNavigateToLogin = {
+                        registerViewModel.resetForm()
+                        currentScreen = AuthScreenState.Login
+                    },
                     onRegisterSuccess = { userId ->
                         currentScreen = AuthScreenState.RegistrationSuccess(
                             userId,

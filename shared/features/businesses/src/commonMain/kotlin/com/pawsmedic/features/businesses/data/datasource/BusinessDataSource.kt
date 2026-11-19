@@ -51,11 +51,19 @@ class SupabaseBusinessDataSource(
         }
         val schedulesDeferred = async { getSchedules(id) }
         val timeZoneDeferred = async { getTimeZone(id) }
+        val servicesDeferred = async {
+            supabase.postgrest["services"]
+                .select {
+                    filter { eq("tenant_id", id); eq("active", true) }
+                }
+                .decodeList<BusinessServiceCategoryRecord>()
+        }
 
         val business = businessDeferred.await()
         business?.toDto(
             schedules = schedulesDeferred.await(),
-            timeZone = timeZoneDeferred.await()
+            timeZone = timeZoneDeferred.await(),
+            serviceCategories = servicesDeferred.await().map { it.category }.distinct()
         )
     }
 
@@ -90,25 +98,29 @@ private data class BusinessDirectoryRecord(
     @SerialName("legal_name") val legalName: String = "",
     val address: String? = null,
     val phone: String? = null,
+    @SerialName("logo_url") val logoUrl: String? = null,
     @SerialName("photo_url") val photoUrl: String? = null
 ) {
     fun toDto(
         schedules: List<BusinessScheduleDto> = emptyList(),
         timeZone: String = "America/Mexico_City",
         serviceCategories: List<String> = emptyList()
-    ) = BusinessDto(
-        id = id,
-        name = name.ifBlank { publicName.ifBlank { legalName } },
-        address = address,
-        phone = phone,
-        photoUrl = photoUrl,
-        hours = schedules.map { schedule ->
-            "${schedule.dayOfWeek.toWeekdayName()}: ${schedule.openTime.take(5)}–${schedule.closeTime.take(5)}"
-        },
-        schedules = schedules,
-        serviceCategories = serviceCategories,
-        timeZone = timeZone
-    )
+    ): BusinessDto {
+        val resolvedLogo = logoUrl?.takeIf { it.isNotBlank() } ?: photoUrl
+        return BusinessDto(
+            id = id,
+            name = name.ifBlank { publicName.ifBlank { legalName } },
+            address = address,
+            phone = phone,
+            photoUrl = resolvedLogo,
+            hours = schedules.map { schedule ->
+                "${schedule.dayOfWeek.toWeekdayName()}: ${schedule.openTime.take(5)}–${schedule.closeTime.take(5)}"
+            },
+            schedules = schedules,
+            serviceCategories = serviceCategories,
+            timeZone = timeZone
+        )
+    }
 }
 
 @Serializable

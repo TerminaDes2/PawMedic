@@ -7,8 +7,13 @@ internal data class AuthMessage(val spanish: String, val english: String) {
 internal fun signInError(message: String): AuthMessage = when {
     message.contains("missing email or phone", ignoreCase = true) ||
         message.contains("invalid_credentials", ignoreCase = true) ||
-        message.contains("invalid login", ignoreCase = true) ->
+        message.contains("invalid_grant", ignoreCase = true) ||
+        message.contains("invalid login", ignoreCase = true) ||
+        message.contains("AuthRestException", ignoreCase = true) ->
         AuthMessage("Correo o contraseña incorrectos, o la cuenta no ha sido verificada.", "Incorrect email or password, or the account has not been verified.")
+    message.contains("email not confirmed", ignoreCase = true) ||
+        message.contains("email_not_confirmed", ignoreCase = true) ->
+        AuthMessage("Tu correo electrónico no ha sido verificado aún. Por favor confirma tu cuenta.", "Your email has not been verified yet. Please confirm your account.")
     message == "Por favor ingrese correo electrónico y contraseña" ||
         message == "Por favor ingrese correo y contraseña." ->
         AuthMessage("Por favor ingrese correo electrónico y contraseña.", "Enter your email and password.")
