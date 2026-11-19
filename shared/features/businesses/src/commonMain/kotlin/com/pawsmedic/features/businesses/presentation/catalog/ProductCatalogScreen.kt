@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -43,6 +45,15 @@ import com.pawsmedic.shared.core.designsystem.language.LocalLanguagePreference
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicColors
 import com.pawsmedic.shared.core.designsystem.theme.PawMedicSemanticColors
 
+private val productCategories = listOf(
+    "Todos",
+    "Alimentos",
+    "Medicamentos",
+    "Estética e higiene",
+    "Accesorios",
+    "Material veterinario"
+)
+
 @Composable
 fun ProductCatalogScreen(
     clinicName: String,
@@ -56,6 +67,7 @@ fun ProductCatalogScreen(
     var isLoading by remember(tenantId) { mutableStateOf(true) }
     var errorMessage by remember(tenantId) { mutableStateOf<String?>(null) }
     var query by remember(tenantId) { mutableStateOf("") }
+    var selectedCategory by remember(tenantId) { mutableStateOf("Todos") }
 
     LaunchedEffect(tenantId, publicProductsDataSource) {
         isLoading = true
@@ -71,10 +83,14 @@ fun ProductCatalogScreen(
         }
     }
 
+    val categories = productCategories
     val filtered = products.filter { product ->
-        query.isBlank() ||
+        val matchesQuery = query.isBlank() ||
             product.name.contains(query, ignoreCase = true) ||
             product.description.contains(query, ignoreCase = true)
+        val matchesCategory = selectedCategory == "Todos" ||
+            product.typeName.equals(selectedCategory, ignoreCase = true)
+        matchesQuery && matchesCategory
     }
 
     Column(modifier = modifier.fillMaxSize().background(PawMedicSemanticColors.current.background)) {
@@ -88,7 +104,6 @@ fun ProductCatalogScreen(
                     modifier = Modifier.fillMaxWidth().height(170.dp)
                         .background(PawMedicSemanticColors.current.accent)
                 ) {
-                    ProductCatalogBanner(modifier = Modifier.fillMaxSize())
                     ProductCatalogBanner(modifier = Modifier.fillMaxSize())
                     Box(
                         modifier = Modifier.align(Alignment.TopStart).padding(16.dp).size(38.dp)
@@ -122,6 +137,41 @@ fun ProductCatalogScreen(
                         unfocusedContainerColor = PawMedicSemanticColors.current.surface
                     )
                 )
+
+                Text(
+                    language.text("Categorías", "Categories"),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PawMedicSemanticColors.current.text,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    categories.forEach { category ->
+                        val isSelected = category == selectedCategory
+                        Text(
+                            text = category,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.text,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(if (isSelected) PawMedicSemanticColors.current.softAccent else PawMedicSemanticColors.current.surface)
+                                .border(
+                                    1.dp,
+                                    if (isSelected) PawMedicSemanticColors.current.accent else PawMedicSemanticColors.current.border,
+                                    RoundedCornerShape(18.dp)
+                                )
+                                .clickable { selectedCategory = category }
+                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                        )
+                    }
+                }
 
                 Text(
                     language.text("Productos publicados", "Published products"),
@@ -167,6 +217,13 @@ private fun ProductCatalogCard(product: PublicProduct, modifier: Modifier = Modi
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(product.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PawMedicSemanticColors.current.text)
+            Text(
+                product.typeName?.takeIf(String::isNotBlank)
+                    ?: language.text("Sin categoría", "No category"),
+                fontSize = 12.sp,
+                color = PawMedicSemanticColors.current.accent,
+                modifier = Modifier.padding(top = 4.dp)
+            )
             if (product.description.isNotBlank()) {
                 Text(product.description, fontSize = 12.sp, color = PawMedicSemanticColors.current.secondaryText, modifier = Modifier.padding(top = 4.dp), maxLines = 2)
             }
